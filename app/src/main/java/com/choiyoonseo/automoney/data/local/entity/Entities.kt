@@ -2,6 +2,8 @@ package com.choiyoonseo.automoney.data.local.entity
 
 import androidx.room.Embedded
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
@@ -16,7 +18,14 @@ import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.domain.model.WalletType
 import java.time.Instant
 
-@Entity(tableName = "transactions")
+@Entity(
+    tableName = "transactions",
+    indices = [
+        Index(value = ["sourceNotificationHash"], unique = true),
+        Index(value = ["monthKey", "occurredAt"]),
+        Index(value = ["occurredAt"])
+    ]
+)
 data class TransactionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val occurredAt: Instant,
@@ -36,7 +45,21 @@ data class TransactionEntity(
     val monthKey: String
 )
 
-@Entity(tableName = "review_items")
+@Entity(
+    tableName = "review_items",
+    foreignKeys = [
+        ForeignKey(
+            entity = TransactionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["transactionId"],
+            onDelete = ForeignKey.CASCADE
+        )
+    ],
+    indices = [
+        Index(value = ["transactionId"], unique = true),
+        Index(value = ["resolvedAt", "createdAt"])
+    ]
+)
 data class ReviewItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val transactionId: Long,
@@ -54,7 +77,12 @@ data class ReviewItemWithTransaction(
     val transaction: TransactionEntity
 )
 
-@Entity(tableName = "rules")
+@Entity(
+    tableName = "rules",
+    indices = [
+        Index(value = ["enabled"])
+    ]
+)
 data class RuleEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val matchType: RuleMatchType,

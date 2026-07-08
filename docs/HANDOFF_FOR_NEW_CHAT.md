@@ -2,6 +2,8 @@
 
 Use this document when starting a new Codex or Claude chat for the AutoMoney project.
 
+Encoding note: this file is UTF-8. If Korean text looks garbled in Windows PowerShell, read it with `Get-Content -Encoding UTF8`.
+
 ## Project Location
 
 Actual Android app project:

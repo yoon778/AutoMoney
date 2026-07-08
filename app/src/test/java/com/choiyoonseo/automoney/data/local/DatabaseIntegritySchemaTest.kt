@@ -1,0 +1,77 @@
+package com.choiyoonseo.automoney.data.local
+
+import com.google.common.truth.Truth.assertThat
+import java.io.File
+import org.junit.Test
+
+class DatabaseIntegritySchemaTest {
+    @Test
+    fun transactionsHaveUniqueSourceNotificationHashIndex() {
+        val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
+            .readText()
+
+        assertThat(entities).contains("Index(value = [\"sourceNotificationHash\"], unique = true)")
+    }
+
+    @Test
+    fun reviewItemsReferenceTransactionOnceAndCascadeOnDelete() {
+        val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
+            .readText()
+
+        assertThat(entities).contains("Index(value = [\"transactionId\"], unique = true)")
+        assertThat(entities).contains("entity = TransactionEntity::class")
+        assertThat(entities).contains("parentColumns = [\"id\"]")
+        assertThat(entities).contains("childColumns = [\"transactionId\"]")
+        assertThat(entities).contains("onDelete = ForeignKey.CASCADE")
+    }
+
+    @Test
+    fun databaseVersionBumpsForIntegrityMigration() {
+        val database = File("src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt")
+            .readText()
+        val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
+            .readText()
+
+        assertThat(database).contains("version = 4")
+        assertThat(database).contains("MIGRATION_2_3")
+        assertThat(database).contains("MIGRATION_3_4")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
+    }
+
+    @Test
+    fun roomSchemaExportIsEnabledForMigrationValidation() {
+        val database = File("src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt")
+            .readText()
+        val buildFile = File("build.gradle.kts").readText()
+
+        assertThat(database).contains("exportSchema = true")
+        assertThat(buildFile).contains("arg(\"room.schemaLocation\", \"\$projectDir/schemas\")")
+        assertThat(buildFile).contains("getByName(\"androidTest\").assets.srcDir(\"\$projectDir/schemas\")")
+    }
+
+    @Test
+    fun currentRoomSchemaFileIsGenerated() {
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/4.json")
+
+        assertThat(schema.exists()).isTrue()
+    }
+
+    @Test
+    fun performanceIndexesSupportMainQueries() {
+        val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
+            .readText()
+        val database = File("src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt")
+            .readText()
+
+        assertThat(entities).contains("Index(value = [\"monthKey\", \"occurredAt\"])")
+        assertThat(entities).contains("Index(value = [\"occurredAt\"])")
+        assertThat(entities).contains("Index(value = [\"resolvedAt\", \"createdAt\"])")
+        assertThat(entities).contains("Index(value = [\"enabled\"])")
+        assertThat(database).contains("index_transactions_monthKey_occurredAt")
+        assertThat(database).contains("index_transactions_occurredAt")
+        assertThat(database).contains("index_review_items_resolvedAt_createdAt")
+        assertThat(database).contains("index_rules_enabled")
+    }
+}

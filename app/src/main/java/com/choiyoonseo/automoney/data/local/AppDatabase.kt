@@ -28,8 +28,8 @@ import com.choiyoonseo.automoney.data.local.entity.WalletEntity
         FixedExpenseEntity::class,
         MonthlyPlanItemEntity::class
     ],
-    version = 2,
-    exportSchema = false
+    version = 4,
+    exportSchema = true
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
@@ -72,6 +72,99 @@ abstract class AppDatabase : RoomDatabase() {
                         amountWon INTEGER NOT NULL,
                         type TEXT NOT NULL
                     )
+                    """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    UPDATE transactions
+                    SET sourceNotificationHash = NULL
+                    WHERE sourceNotificationHash IS NOT NULL
+                        AND id NOT IN (
+                            SELECT MIN(id)
+                            FROM transactions
+                            WHERE sourceNotificationHash IS NOT NULL
+                            GROUP BY sourceNotificationHash
+                        )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_transactions_sourceNotificationHash
+                    ON transactions(sourceNotificationHash)
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS review_items_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        transactionId INTEGER NOT NULL,
+                        reason TEXT NOT NULL,
+                        createdAt TEXT NOT NULL,
+                        resolvedAt TEXT,
+                        FOREIGN KEY(transactionId) REFERENCES transactions(id) ON DELETE CASCADE
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO review_items_new (id, transactionId, reason, createdAt, resolvedAt)
+                    SELECT id, transactionId, reason, createdAt, resolvedAt
+                    FROM review_items
+                    WHERE EXISTS (
+                        SELECT 1
+                        FROM transactions
+                        WHERE transactions.id = review_items.transactionId
+                    )
+                        AND id IN (
+                            SELECT COALESCE(
+                                MAX(CASE WHEN resolvedAt IS NULL THEN id END),
+                                MAX(id)
+                            )
+                            FROM review_items
+                            GROUP BY transactionId
+                        )
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE review_items")
+                db.execSQL("ALTER TABLE review_items_new RENAME TO review_items")
+                db.execSQL(
+                    """
+                    CREATE UNIQUE INDEX IF NOT EXISTS index_review_items_transactionId
+                    ON review_items(transactionId)
+                    """.trimIndent()
+                )
+            }
+        }
+
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS index_transactions_monthKey_occurredAt
+                    ON transactions(monthKey, occurredAt)
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS index_transactions_occurredAt
+                    ON transactions(occurredAt)
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS index_review_items_resolvedAt_createdAt
+                    ON review_items(resolvedAt, createdAt)
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE INDEX IF NOT EXISTS index_rules_enabled
+                    ON rules(enabled)
                     """.trimIndent()
                 )
             }
