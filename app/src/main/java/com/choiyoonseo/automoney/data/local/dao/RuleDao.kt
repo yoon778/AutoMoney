@@ -10,7 +10,6 @@ interface RuleDao {
     @Insert
     suspend fun insert(entity: RuleEntity): Long
 
-    @Query("SELECT * FROM rules WHERE enabled = 1")
+    @Query("SELECT * FROM rules WHERE enabled = 1 ORDER BY id ASC")
     suspend fun enabledRules(): List<RuleEntity>
 }
-

@@ -59,6 +59,32 @@ class DatabaseIntegritySchemaTest {
     }
 
     @Test
+    fun roomSchemaFilesAreUtf8WithoutBom() {
+        val schemaDir = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase")
+        val schemas = schemaDir.listFiles { file -> file.extension == "json" }
+            ?.toList()
+            .orEmpty()
+
+        assertThat(schemas).isNotEmpty()
+        schemas.forEach { schema ->
+            val bytes = schema.readBytes()
+            val hasBom = bytes.size >= 3 &&
+                bytes[0] == 0xEF.toByte() &&
+                bytes[1] == 0xBB.toByte() &&
+                bytes[2] == 0xBF.toByte()
+
+            assertThat(hasBom).isFalse()
+        }
+    }
+
+    @Test
+    fun legacyRoomSchemaFileSupportsMigrationValidation() {
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/2.json")
+
+        assertThat(schema.exists()).isTrue()
+    }
+
+    @Test
     fun performanceIndexesSupportMainQueries() {
         val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
             .readText()
@@ -73,5 +99,35 @@ class DatabaseIntegritySchemaTest {
         assertThat(database).contains("index_transactions_occurredAt")
         assertThat(database).contains("index_review_items_resolvedAt_createdAt")
         assertThat(database).contains("index_rules_enabled")
+    }
+
+    @Test
+    fun enabledRulesUseStableApplicationOrder() {
+        val ruleDao = File("src/main/java/com/choiyoonseo/automoney/data/local/dao/RuleDao.kt")
+            .readText()
+
+        assertThat(ruleDao).contains("SELECT * FROM rules WHERE enabled = 1 ORDER BY id ASC")
+    }
+
+    @Test
+    fun openReviewCountUsesSqlCountQuery() {
+        val reviewDao = File("src/main/java/com/choiyoonseo/automoney/data/local/dao/ReviewItemDao.kt")
+            .readText()
+        val repository = File("src/main/java/com/choiyoonseo/automoney/data/repository/RoomMoneyRepository.kt")
+            .readText()
+
+        assertThat(reviewDao).contains("SELECT COUNT(*) FROM review_items WHERE resolvedAt IS NULL")
+        assertThat(repository).contains("observeOpenItemCount()")
+    }
+
+    @Test
+    fun appContainerExposesAtomicReviewUseCases() {
+        val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
+            .readText()
+
+        assertThat(appContainer).contains("ResolveReviewUseCase")
+        assertThat(appContainer).contains("ResolveAccountTransferUseCase")
+        assertThat(appContainer).contains("val resolveReviewUseCase = ResolveReviewUseCase(repository)")
+        assertThat(appContainer).contains("val resolveAccountTransferUseCase = ResolveAccountTransferUseCase(repository)")
     }
 }

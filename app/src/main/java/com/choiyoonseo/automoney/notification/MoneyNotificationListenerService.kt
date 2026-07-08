@@ -7,6 +7,7 @@ import com.choiyoonseo.automoney.AutoMoneyApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 
 class MoneyNotificationListenerService : NotificationListenerService() {
@@ -49,5 +50,10 @@ class MoneyNotificationListenerService : NotificationListenerService() {
                 )
             }
         }
+    }
+
+    override fun onDestroy() {
+        scope.cancel()
+        super.onDestroy()
     }
 }

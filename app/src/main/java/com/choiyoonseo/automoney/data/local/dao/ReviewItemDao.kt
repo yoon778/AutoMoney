@@ -21,6 +21,9 @@ interface ReviewItemDao {
     @Query("SELECT * FROM review_items WHERE resolvedAt IS NULL ORDER BY createdAt DESC")
     fun observeOpenItems(): Flow<List<ReviewItemEntity>>
 
+    @Query("SELECT COUNT(*) FROM review_items WHERE resolvedAt IS NULL")
+    fun observeOpenItemCount(): Flow<Int>
+
     @Transaction
     @Query("SELECT * FROM review_items WHERE resolvedAt IS NULL ORDER BY createdAt DESC")
     fun observeOpenItemsWithTransactions(): Flow<List<ReviewItemWithTransaction>>
