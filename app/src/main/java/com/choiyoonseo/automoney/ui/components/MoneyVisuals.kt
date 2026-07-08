@@ -390,6 +390,7 @@ fun MonthlyFlowCard(
 
 @Composable
 private fun FlowStep(step: HomeFlowStepVisual, modifier: Modifier = Modifier) {
+    val colors = MoneyTheme.colors
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -408,10 +409,10 @@ private fun FlowStep(step: HomeFlowStepVisual, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(50.dp)
             )
         }
-        Text(step.label, color = MoneyInk, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Text(step.label, color = colors.ink, style = MaterialTheme.typography.labelMedium, maxLines = 1)
         Text(
             step.value,
-            color = MoneyInk,
+            color = colors.ink,
             style = MaterialTheme.typography.labelSmall,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -421,12 +422,13 @@ private fun FlowStep(step: HomeFlowStepVisual, modifier: Modifier = Modifier) {
 
 @Composable
 private fun FlowConnector() {
+    val colors = MoneyTheme.colors
     Box(
         modifier = Modifier
             .width(14.dp)
             .height(2.dp)
             .clip(RoundedCornerShape(50))
-            .background(MoneyMuted.copy(alpha = 0.22f))
+            .background(colors.muted.copy(alpha = 0.22f))
     )
 }
 
