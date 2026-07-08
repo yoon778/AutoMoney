@@ -1,0 +1,35 @@
+package com.choiyoonseo.automoney.ui.model
+
+import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import java.time.YearMonth
+
+fun transactionsToSpendCalendar(
+    month: YearMonth,
+    transactions: List<MoneyTransaction>
+): MonthlySpendCalendarUi {
+    val dailySpends = transactions
+        .filter { it.monthKey == month && it.countsAsActualExpense() }
+        .groupBy { it.occurredAt.atZone(java.time.ZoneId.systemDefault()).dayOfMonth }
+        .map { (day, dayTransactions) ->
+            val label = if (dayTransactions.size == 1) {
+                dayTransactions.first().category?.displayName ?: "기타"
+            } else {
+                "${dayTransactions.size}건"
+            }
+            DailySpendUi(
+                day = day,
+                amountWon = dayTransactions.sumOf { it.amount.won },
+                label = label
+            )
+        }
+        .sortedBy { it.day }
+
+    return MonthlySpendCalendarUi(
+        monthTitle = "${month.year}년 ${month.monthValue}월",
+        daysInMonth = month.lengthOfMonth(),
+        firstWeekdayOffset = month.atDay(1).dayOfWeek.value % 7,
+        dailySpends = dailySpends,
+        yearMonth = month
+    )
+}

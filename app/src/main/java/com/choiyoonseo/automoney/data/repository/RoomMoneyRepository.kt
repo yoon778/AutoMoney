@@ -1,0 +1,188 @@
+package com.choiyoonseo.automoney.data.repository
+
+import com.choiyoonseo.automoney.data.local.AppDatabase
+import com.choiyoonseo.automoney.data.local.entity.AssetAccountEntity
+import com.choiyoonseo.automoney.data.local.entity.ReviewItemEntity
+import com.choiyoonseo.automoney.data.local.entity.ReviewItemWithTransaction
+import com.choiyoonseo.automoney.data.local.entity.RuleEntity
+import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.domain.assets.applyTransactionBalance
+import com.choiyoonseo.automoney.domain.assets.removeTransactionBalance
+import com.choiyoonseo.automoney.domain.assets.replaceTransactionBalance
+import com.choiyoonseo.automoney.domain.model.MoneyAmount
+import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.model.OpenReviewItem
+import com.choiyoonseo.automoney.domain.model.ReviewReason
+import com.choiyoonseo.automoney.domain.model.Rule
+import com.choiyoonseo.automoney.domain.model.SourceType
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
+import java.time.Instant
+import java.time.YearMonth
+
+class RoomMoneyRepository(
+    private val db: AppDatabase
+) : MoneyRepository {
+    override suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction> {
+        return db.transactionDao().recentNotificationTransactions(limit).map { it.toDomain() }
+    }
+
+    override fun observeTransactionsForMonth(month: YearMonth): Flow<List<MoneyTransaction>> {
+        return db.transactionDao()
+            .observeTransactionsForMonth(month.toString())
+            .map { entities -> entities.map { it.toDomain() } }
+    }
+
+    override fun observeOpenReviewCount(): Flow<Int> {
+        return db.reviewItemDao().observeOpenItems().map { it.size }
+    }
+
+    override fun observeOpenReviewItems(): Flow<List<OpenReviewItem>> {
+        return db.reviewItemDao()
+            .observeOpenItemsWithTransactions()
+            .map { items -> items.map { it.toDomain() } }
+    }
+
+    override suspend fun enabledRules(): List<Rule> {
+        return db.ruleDao().enabledRules().map { it.toDomain() }
+    }
+
+    override suspend fun saveTransaction(transaction: MoneyTransaction): Long {
+        val id = db.transactionDao().insert(transaction.toEntity())
+        syncAssetAccounts { accounts ->
+            applyTransactionBalance(accounts, transaction.copy(id = id))
+        }
+        return id
+    }
+
+    override suspend fun updateTransaction(transaction: MoneyTransaction) {
+        val previous = transaction.id.takeIf { it > 0 }?.let { id ->
+            db.transactionDao().transactionById(id)?.toDomain()
+        }
+        db.transactionDao().update(transaction.toEntity())
+        syncAssetAccounts { accounts ->
+            replaceTransactionBalance(accounts, oldTransaction = previous, newTransaction = transaction)
+        }
+    }
+
+    override suspend fun deleteTransaction(transactionId: Long) {
+        val previous = db.transactionDao().transactionById(transactionId)?.toDomain()
+        db.transactionDao().deleteById(transactionId)
+        if (previous != null) {
+            syncAssetAccounts { accounts ->
+                removeTransactionBalance(accounts, previous)
+            }
+        }
+    }
+
+    override suspend fun createReviewItem(transactionId: Long, reason: ReviewReason) {
+        db.reviewItemDao().insert(
+            ReviewItemEntity(
+                transactionId = transactionId,
+                reason = reason,
+                createdAt = Instant.now(),
+                resolvedAt = null
+            )
+        )
+    }
+
+    override suspend fun resolveReviewItem(reviewItemId: Long) {
+        db.reviewItemDao().resolve(reviewItemId, Instant.now())
+    }
+
+    override suspend fun saveRule(rule: Rule): Long {
+        return db.ruleDao().insert(rule.toEntity())
+    }
+
+    private suspend fun syncAssetAccounts(
+        transform: (List<AssetAccount>) -> List<AssetAccount>
+    ) {
+        val current = db.assetDao().accountsOnce().map { it.toDomain() }
+        val updated = transform(current)
+        updated.forEachIndexed { index, account ->
+            if (account != current[index]) {
+                db.assetDao().insertAccount(account.toEntity())
+            }
+        }
+    }
+}
+
+private fun MoneyTransaction.toEntity(): TransactionEntity {
+    return TransactionEntity(
+        id = id,
+        occurredAt = occurredAt,
+        amountWon = amount.won,
+        direction = direction,
+        type = type,
+        category = category,
+        paymentMethod = paymentMethod,
+        merchant = merchant,
+        counterparty = counterparty,
+        memo = memo,
+        sourceApp = sourceApp,
+        sourceType = sourceType.name,
+        sourceNotificationHash = sourceNotificationHash,
+        status = status,
+        confidence = confidence,
+        monthKey = monthKey.toString()
+    )
+}
+
+private fun AssetAccountEntity.toDomain(): AssetAccount =
+    AssetAccount(id = id, name = name, balanceWon = balanceWon, kind = kind)
+
+private fun AssetAccount.toEntity(): AssetAccountEntity =
+    AssetAccountEntity(id = id, name = name, balanceWon = balanceWon, kind = kind)
+
+private fun TransactionEntity.toDomain(): MoneyTransaction {
+    return MoneyTransaction(
+        id = id,
+        occurredAt = occurredAt,
+        amount = MoneyAmount(amountWon),
+        direction = direction,
+        type = type,
+        category = category,
+        paymentMethod = paymentMethod,
+        merchant = merchant,
+        counterparty = counterparty,
+        memo = memo,
+        sourceApp = sourceApp,
+        sourceType = SourceType.valueOf(sourceType),
+        sourceNotificationHash = sourceNotificationHash,
+        status = status,
+        confidence = confidence,
+        monthKey = YearMonth.parse(monthKey)
+    )
+}
+
+private fun ReviewItemWithTransaction.toDomain(): OpenReviewItem {
+    return OpenReviewItem(
+        id = reviewItem.id,
+        transaction = transaction.toDomain(),
+        reason = reviewItem.reason,
+        createdAt = reviewItem.createdAt
+    )
+}
+
+private fun RuleEntity.toDomain(): Rule {
+    return Rule(
+        id = id,
+        matchType = matchType,
+        matchValue = matchValue,
+        action = action,
+        targetValue = targetValue,
+        enabled = enabled
+    )
+}
+
+private fun Rule.toEntity(): RuleEntity {
+    return RuleEntity(
+        id = id,
+        matchType = matchType,
+        matchValue = matchValue,
+        action = action,
+        targetValue = targetValue,
+        enabled = enabled
+    )
+}

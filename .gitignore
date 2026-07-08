@@ -1,0 +1,12 @@
+.gradle/
+.gradle-dist/
+.idea/
+build/
+app/build/
+local.properties
+*.iml
+*.log
+automoney-*.png
+window.xml
+*.apk
+*.aab
