@@ -76,7 +76,7 @@ data class LastNotificationDiagnostic(
                 receivedAt = receivedAt,
                 postedAt = snapshot.postedAt,
                 packageName = snapshot.packageName,
-                title = snapshot.title,
+                title = snapshot.title?.let(SensitiveTextMasker::mask),
                 textPreview = snapshot.textPreview(),
                 result = result,
                 message = message,

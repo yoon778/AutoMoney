@@ -157,14 +157,18 @@ PowerShell:
 $env:JAVA_HOME='D:\Android Studio\jbr'
 .\gradlew.bat :app:testDebugUnitTest --no-daemon --console=plain
 .\gradlew.bat :app:assembleDebug --no-daemon --console=plain
+.\gradlew.bat :app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest --no-daemon --console=plain
+.\gradlew.bat :app:connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.choiyoonseo.automoney.data.local.AppDatabaseMigrationTest" --no-daemon --console=plain
 ```
 
 Recent verification passed:
 
 ```text
-:app:testDebugUnitTest
-:app:assembleDebug
+:app:testDebugUnitTest :app:assembleDebug :app:compileDebugAndroidTestKotlin :app:assembleDebugAndroidTest
+:app:connectedDebugAndroidTest with AppDatabaseMigrationTest only on Pixel_7 AVD
 ```
+
+Do not claim the full instrumentation suite passed unless `:app:connectedDebugAndroidTest` is run without a class filter.
 
 ## Phone Install Policy
 

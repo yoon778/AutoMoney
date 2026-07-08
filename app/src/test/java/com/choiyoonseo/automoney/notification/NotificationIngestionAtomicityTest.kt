@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.notification
 
+import com.choiyoonseo.automoney.data.repository.DuplicateNotificationException
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -41,6 +42,40 @@ class NotificationIngestionAtomicityTest {
         assertThat(repository.saveTransactionCalls).isEqualTo(0)
         assertThat(repository.createReviewItemCalls).isEqualTo(0)
     }
+
+    @Test
+    fun duplicateInsertRaceReturnsDuplicateResult() = runTest {
+        val repository = RecordingMoneyRepository(throwDuplicateOnSave = true)
+        val useCase = NotificationIngestionUseCase(
+            parser = StaticParser(expenseDraft()),
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+
+        val result = useCase.ingest(snapshot())
+
+        assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
+    }
+
+    @Test
+    fun lowConfidenceAutoConfirmedDraftUsesReviewSave() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = StaticParser(expenseDraft().copy(confidence = 0.45)),
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+
+        val result = useCase.ingest(snapshot())
+
+        assertThat(result).isEqualTo(
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+        )
+        assertThat(repository.saveWithReviewCalls).isEqualTo(1)
+        assertThat(repository.saveTransactionCalls).isEqualTo(0)
+    }
 }
 
 private class StaticParser(
@@ -50,7 +85,9 @@ private class StaticParser(
     override fun parse(snapshot: NotificationSnapshot): ParseResult = ParseResult.Parsed(draft)
 }
 
-private class RecordingMoneyRepository : MoneyRepository {
+private class RecordingMoneyRepository(
+    private val throwDuplicateOnSave: Boolean = false
+) : MoneyRepository {
     var saveWithReviewCalls = 0
     var saveTransactionCalls = 0
     var createReviewItemCalls = 0
@@ -63,6 +100,9 @@ private class RecordingMoneyRepository : MoneyRepository {
 
     override suspend fun saveTransaction(transaction: MoneyTransaction): Long {
         saveTransactionCalls += 1
+        if (throwDuplicateOnSave) {
+            throw DuplicateNotificationException(transaction.sourceNotificationHash)
+        }
         return 1
     }
 
@@ -84,6 +124,16 @@ private class RecordingMoneyRepository : MoneyRepository {
     override suspend fun resolveReviewItem(reviewItemId: Long) = Unit
     override suspend fun saveRule(rule: Rule): Long = 1
 }
+
+private fun expenseDraft() = reviewDraft().copy(
+    direction = TransactionDirection.EXPENSE,
+    type = TransactionType.EXPENSE,
+    merchant = "store",
+    counterparty = null,
+    memo = "store",
+    status = TransactionStatus.AUTO_CONFIRMED,
+    reviewReason = null
+)
 
 private fun reviewDraft() = TransactionDraft(
     occurredAt = Instant.parse("2026-07-08T01:00:00Z"),

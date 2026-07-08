@@ -33,4 +33,7 @@ interface TransactionDao {
 
     @Query("SELECT * FROM transactions WHERE sourceNotificationHash IS NOT NULL ORDER BY occurredAt DESC LIMIT :limit")
     suspend fun recentNotificationTransactions(limit: Int): List<TransactionEntity>
+
+    @Query("SELECT COUNT(*) FROM transactions WHERE sourceNotificationHash = :sourceNotificationHash")
+    suspend fun countBySourceNotificationHash(sourceNotificationHash: String): Int
 }

@@ -183,6 +183,31 @@ class AssetBalanceSyncTest {
         assertThat(updated.single().balanceWon).isEqualTo(100_000)
     }
 
+    @Test
+    fun autoConfirmedExpenseWithUnmatchedPaymentMethodNeedsAccountReview() {
+        val accounts = listOf(AssetAccount(id = 1, name = "\uad6d\ubbfc\uc740\ud589", balanceWon = 100_000))
+
+        val needsReview = needsAccountMatchReview(
+            accounts = accounts,
+            transaction = transaction(paymentMethod = "\uc2e0\ud55c\uce74\ub4dc")
+        )
+
+        assertThat(needsReview).isTrue()
+    }
+
+    @Test
+    fun matchedOrAlreadyReviewTransactionsDoNotNeedAccountReview() {
+        val accounts = listOf(AssetAccount(id = 1, name = "\uad6d\ubbfc\uc740\ud589", balanceWon = 100_000))
+
+        assertThat(needsAccountMatchReview(accounts, transaction(paymentMethod = "\uad6d\ubbfc"))).isFalse()
+        assertThat(
+            needsAccountMatchReview(
+                accounts,
+                transaction(paymentMethod = "\uc2e0\ud55c\uce74\ub4dc", status = TransactionStatus.NEEDS_REVIEW)
+            )
+        ).isFalse()
+    }
+
     private fun transaction(
         amountWon: Long = 10_000,
         direction: TransactionDirection = TransactionDirection.EXPENSE,

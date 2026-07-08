@@ -148,6 +148,31 @@ class ReviewItemMapperTest {
         assertThat(card.secondaryAction).isEqualTo("제외")
     }
 
+    @Test
+    fun unmatchedAccountReviewMapsToAccountCheckCard() {
+        val card = openReviewItemsToCards(
+            listOf(
+                OpenReviewItem(
+                    id = 13,
+                    transaction = transaction(
+                        type = TransactionType.EXPENSE,
+                        direction = TransactionDirection.EXPENSE,
+                        merchant = "\uc2a4\ud0c0\ubc85\uc2a4",
+                        counterparty = null,
+                        memo = "\uacc4\uc88c \ub9e4\uce6d \ud655\uc778",
+                        paymentMethod = "\uc2e0\ud55c\uce74\ub4dc"
+                    ),
+                    reason = ReviewReason.ACCOUNT_UNMATCHED,
+                    createdAt = Instant.parse("2026-07-01T01:00:00Z")
+                )
+            )
+        ).single()
+
+        assertThat(card.title).isEqualTo("\uc2a4\ud0c0\ubc85\uc2a4")
+        assertThat(card.tag).isEqualTo("\uacc4\uc88c")
+        assertThat(card.detailLines).contains("\ucd9c\uae08 \uacc4\uc88c \uc2e0\ud55c\uce74\ub4dc")
+    }
+
     private fun transaction(
         type: TransactionType,
         direction: TransactionDirection,

@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.notification
 
+import com.choiyoonseo.automoney.data.repository.DuplicateNotificationException
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.ReviewReason
@@ -27,7 +28,9 @@ class NotificationIngestionUseCase(
             return IngestionResult.Ignored(reason)
         }
 
-        val withRules = categorizationEngine.applyRules(parsed.draft, repository.enabledRules())
+        val withRules = categorizationEngine
+            .applyRules(parsed.draft, repository.enabledRules())
+            .routeLowConfidenceToReview()
         val duplicateDecision = duplicateDetector.detect(
             candidate = withRules,
             existing = repository.recentNotificationTransactions(limit = 50)
@@ -46,10 +49,14 @@ class NotificationIngestionUseCase(
             DuplicateDecision.DUPLICATE -> withRules
         }
 
-        if (finalDraft.status == TransactionStatus.NEEDS_REVIEW && finalDraft.reviewReason != null) {
-            repository.saveTransactionWithReview(finalDraft.toDomain(), finalDraft.reviewReason)
-        } else {
-            repository.saveTransaction(finalDraft.toDomain())
+        try {
+            if (finalDraft.status == TransactionStatus.NEEDS_REVIEW && finalDraft.reviewReason != null) {
+                repository.saveTransactionWithReview(finalDraft.toDomain(), finalDraft.reviewReason)
+            } else {
+                repository.saveTransaction(finalDraft.toDomain())
+            }
+        } catch (e: DuplicateNotificationException) {
+            return IngestionResult.Duplicate(finalDraft.type)
         }
 
         return IngestionResult.Saved(finalDraft.type, finalDraft.reviewReason)
@@ -90,3 +97,14 @@ private fun TransactionDraft.toDomain(): MoneyTransaction {
         monthKey = monthKey
     )
 }
+
+private fun TransactionDraft.routeLowConfidenceToReview(): TransactionDraft {
+    if (status != TransactionStatus.AUTO_CONFIRMED) return this
+    if (confidence >= AUTO_REVIEW_CONFIDENCE_THRESHOLD) return this
+    return copy(
+        status = TransactionStatus.NEEDS_REVIEW,
+        reviewReason = ReviewReason.LOW_CONFIDENCE_CATEGORY
+    )
+}
+
+private const val AUTO_REVIEW_CONFIDENCE_THRESHOLD = 0.7

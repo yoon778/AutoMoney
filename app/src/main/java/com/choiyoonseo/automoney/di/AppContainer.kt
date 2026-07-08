@@ -10,6 +10,8 @@ import com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.NotificationParserRouter
 import com.choiyoonseo.automoney.domain.parser.TossNotificationParser
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
+import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
+import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.rules.CategorizationEngine
 import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
@@ -37,6 +39,10 @@ class AppContainer(context: Context) {
     val saveManualTransactionUseCase = SaveManualTransactionUseCase(repository)
 
     val editTransactionUseCase = EditTransactionUseCase(repository)
+
+    val resolveReviewUseCase = ResolveReviewUseCase(repository)
+
+    val resolveAccountTransferUseCase = ResolveAccountTransferUseCase(repository)
 
     val notificationIngestionUseCase = NotificationIngestionUseCase(
         parser = NotificationParserRouter(

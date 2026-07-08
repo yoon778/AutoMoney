@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.data.repository
 
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.OpenReviewItem
 import com.choiyoonseo.automoney.domain.model.ReviewReason
@@ -23,5 +24,22 @@ interface MoneyRepository {
     suspend fun deleteTransaction(transactionId: Long)
     suspend fun createReviewItem(transactionId: Long, reason: ReviewReason)
     suspend fun resolveReviewItem(reviewItemId: Long)
+    suspend fun resolveReviewItemWithTransaction(reviewItemId: Long, transaction: MoneyTransaction) {
+        updateTransaction(transaction)
+        resolveReviewItem(reviewItemId)
+    }
+    suspend fun resolveAccountTransferReview(
+        reviewItemId: Long,
+        transaction: MoneyTransaction,
+        fromAccount: AssetAccount,
+        toAccount: AssetAccount,
+        pairedReviewItemId: Long? = null,
+        pairedTransaction: MoneyTransaction? = null
+    ) {
+        resolveReviewItemWithTransaction(reviewItemId, transaction)
+        if (pairedReviewItemId != null && pairedTransaction != null) {
+            resolveReviewItemWithTransaction(pairedReviewItemId, pairedTransaction)
+        }
+    }
     suspend fun saveRule(rule: Rule): Long
 }

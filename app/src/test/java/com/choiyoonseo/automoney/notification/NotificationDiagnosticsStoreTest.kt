@@ -30,7 +30,7 @@ class NotificationDiagnosticsStoreTest {
         val diagnostic = LastNotificationDiagnostic.fromIngestionResult(
             snapshot = NotificationSnapshot(
                 packageName = "com.kbstar.kbbank",
-                title = "KB",
+                title = "account 123456-78-901234",
                 text = "account 123456-78-901234 10,000 won payment",
                 bigText = null,
                 postedAt = Instant.parse("2026-07-03T01:00:00Z")
@@ -39,6 +39,7 @@ class NotificationDiagnosticsStoreTest {
             receivedAt = Instant.parse("2026-07-03T01:00:05Z")
         )
 
+        assertThat(diagnostic.title).isEqualTo("account ****1234")
         assertThat(diagnostic.textPreview).contains("****1234")
         assertThat(diagnostic.textPreview).contains("10,000 won")
         assertThat(diagnostic.textPreview.contains("123456-78-901234")).isFalse()

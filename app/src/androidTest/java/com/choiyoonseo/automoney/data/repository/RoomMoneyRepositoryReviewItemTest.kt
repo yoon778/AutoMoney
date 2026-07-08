@@ -55,6 +55,40 @@ class RoomMoneyRepositoryReviewItemTest {
         assertTrue(repository.observeOpenReviewItems().first().isEmpty())
     }
 
+    @Test
+    fun unmatchedNotificationAccountIsStoredAsReviewTransaction() = runBlocking {
+        val transactionId = repository.saveTransaction(autoExpense(paymentMethod = "Unknown Card"))
+
+        val transaction = repository.observeTransactionsForMonth(YearMonth.of(2026, 7))
+            .first()
+            .single { it.id == transactionId }
+        val reviewItem = repository.observeOpenReviewItems().first().single()
+
+        assertEquals(TransactionStatus.NEEDS_REVIEW, transaction.status)
+        assertEquals(ReviewReason.ACCOUNT_UNMATCHED, reviewItem.reason)
+        assertEquals(transactionId, reviewItem.transaction.id)
+    }
+
+    @Test
+    fun unmatchedAccountTakesPriorityOverGenericReviewReason() = runBlocking {
+        val transactionId = repository.saveTransactionWithReview(
+            autoExpense(
+                paymentMethod = "Unknown Card",
+                status = TransactionStatus.NEEDS_REVIEW
+            ),
+            ReviewReason.LOW_CONFIDENCE_CATEGORY
+        )
+
+        val transaction = repository.observeTransactionsForMonth(YearMonth.of(2026, 7))
+            .first()
+            .single { it.id == transactionId }
+        val reviewItem = repository.observeOpenReviewItems().first().single()
+
+        assertEquals(TransactionStatus.NEEDS_REVIEW, transaction.status)
+        assertEquals(ReviewReason.ACCOUNT_UNMATCHED, reviewItem.reason)
+        assertEquals(transactionId, reviewItem.transaction.id)
+    }
+
     private fun walletTopup() = MoneyTransaction(
         occurredAt = Instant.parse("2026-07-01T01:00:00Z"),
         amount = MoneyAmount(10000),
@@ -70,6 +104,27 @@ class RoomMoneyRepositoryReviewItemTest {
         sourceNotificationHash = "hash",
         status = TransactionStatus.NEEDS_REVIEW,
         confidence = 0.8,
+        monthKey = YearMonth.of(2026, 7)
+    )
+
+    private fun autoExpense(
+        paymentMethod: String,
+        status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED
+    ) = MoneyTransaction(
+        occurredAt = Instant.parse("2026-07-01T01:00:00Z"),
+        amount = MoneyAmount(12000),
+        direction = TransactionDirection.EXPENSE,
+        type = TransactionType.EXPENSE,
+        category = null,
+        paymentMethod = paymentMethod,
+        merchant = "Store",
+        counterparty = null,
+        memo = "Store payment",
+        sourceApp = "test.finance",
+        sourceType = SourceType.NOTIFICATION,
+        sourceNotificationHash = "hash-$paymentMethod-$status",
+        status = status,
+        confidence = 0.9,
         monthKey = YearMonth.of(2026, 7)
     )
 }

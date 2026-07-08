@@ -81,6 +81,23 @@ fun openReviewItemsToCards(items: List<OpenReviewItem>): List<ReviewCardUi> =
                 sourceApp = sourceAppUiForPackage(transaction.sourceApp)
             )
 
+            ReviewReason.ACCOUNT_UNMATCHED -> ReviewCardUi(
+                id = "review-${item.id}",
+                title = transaction.reviewName("\uacc4\uc88c \ud655\uc778"),
+                message = "\uac70\ub798\ub294 \uc800\uc7a5\ub410\uc9c0\ub9cc \ucd9c\uae08 \uacc4\uc88c\ub97c \uc790\uc0b0 \ubaa9\ub85d\uc5d0\uc11c \ucc3e\uc9c0 \ubabb\ud588\uc5b4\uc694.",
+                amountWon = transaction.amount.won,
+                tag = "\uacc4\uc88c",
+                iconText = "\uacc4",
+                primaryAction = "\uacc4\uc88c \ud655\uc778",
+                secondaryAction = "\uc81c\uc678",
+                editAction = "\uc218\uc815",
+                detailLines = accountLines,
+                kind = ReviewCardKind.OTHER,
+                reviewItemId = item.id,
+                sourceTransaction = transaction,
+                sourceApp = sourceAppUiForPackage(transaction.sourceApp)
+            )
+
             ReviewReason.DUPLICATE_SUSPECTED,
             ReviewReason.LOW_CONFIDENCE_CATEGORY,
             ReviewReason.PAYMENT_GATEWAY -> ReviewCardUi(

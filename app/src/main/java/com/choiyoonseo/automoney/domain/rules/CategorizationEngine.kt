@@ -14,9 +14,12 @@ class CategorizationEngine {
         return rules.filter { it.enabled }.fold(draft) { current, rule ->
             if (!matches(current, rule)) return@fold current
             when (rule.action) {
-                RuleAction.SET_CATEGORY -> current.copy(category = Category.valueOf(rule.targetValue))
+                RuleAction.SET_CATEGORY -> {
+                    val category = enumValueOrNull<Category>(rule.targetValue) ?: return@fold current
+                    current.copy(category = category)
+                }
                 RuleAction.SET_TRANSACTION_TYPE -> {
-                    val type = TransactionType.valueOf(rule.targetValue)
+                    val type = enumValueOrNull<TransactionType>(rule.targetValue) ?: return@fold current
                     current.copy(type = type, direction = type.defaultDirection)
                 }
                 RuleAction.EXCLUDE -> current.copy(
@@ -48,3 +51,5 @@ class CategorizationEngine {
     }
 }
 
+private inline fun <reified T : Enum<T>> enumValueOrNull(value: String): T? =
+    enumValues<T>().firstOrNull { it.name == value }

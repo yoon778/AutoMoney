@@ -24,6 +24,23 @@ fun replaceTransactionBalance(
     return applyTransactionBalance(restored, newTransaction)
 }
 
+fun needsAccountMatchReview(
+    accounts: List<AssetAccount>,
+    transaction: MoneyTransaction
+): Boolean {
+    if (!transaction.canAffectBalance()) return false
+
+    if (transaction.type == TransactionType.WALLET_TOPUP) {
+        val from = transaction.paymentMethod.cleanOrNull() ?: return true
+        val to = transaction.merchant.cleanOrNull() ?: transaction.counterparty.cleanOrNull() ?: return true
+        return accounts.indexOfPaymentMethod(from) == -1 || accounts.indexOfPaymentMethod(to) == -1
+    }
+
+    if (transaction.singleAccountDeltaWon() == null) return false
+    val paymentMethod = transaction.paymentMethod.cleanOrNull() ?: return true
+    return accounts.indexOfPaymentMethod(paymentMethod) == -1
+}
+
 private fun applyBalanceEffect(
     accounts: List<AssetAccount>,
     transaction: MoneyTransaction,
