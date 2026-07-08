@@ -2,6 +2,8 @@
 
 This repository uses separate branches for Codex and Claude work.
 
+Encoding note: this file is UTF-8. If Korean text looks garbled in Windows PowerShell, read it with `Get-Content -Encoding UTF8`.
+
 ## Stable Branch
 
 - `main` is the stable integration branch.
@@ -31,6 +33,52 @@ This repository uses separate branches for Codex and Claude work.
 - The user reviews changes in GitHub Desktop or GitHub and merges into `main`.
 - After `main` changes, each agent should update from `main` before starting the next task.
 - If a task touches both logic and UI, split it into two branches or agree on one owner before editing.
+
+## Split Axis: by Layer (not by feature)
+
+Work is divided **horizontally by layer**, not vertically by feature zone.
+
+- Codex owns the logic layers across every feature; Claude owns the UI layer across every feature.
+- This keeps each agent specialized (Codex = logic, Claude = UI) and keeps the split consistent.
+- The cost of a layer split is that every feature has a seam where logic meets UI. Those seams are the "boundary zones" below and are the only places that need coordination.
+
+## File Ownership Map
+
+Package root: `app/src/main/java/com/choiyoonseo/automoney`
+
+| Path | Purpose | Owner |
+| --- | --- | --- |
+| `data/**` (Room DB, DAO, entity, repository) | Persistence | Codex |
+| `domain/**` (parser, rules, report, review, use cases) | Business logic | Codex |
+| `notification/**` | Notification listener / ingestion | Codex |
+| `export/**` | CSV export | Codex |
+| `ui/theme`, `ui/components`, `ui/home`, `ui/report`, `ui/review`, `ui/settings`, `ui/assets`, `ui/edit`, `ui/transactions` | Screens & visuals | Claude |
+| `ui/model/**` mapper logic (`CalendarMapper`, `MonthlySummaryMapper`, `ReviewItemMapper`, `SourceAppUi`) | Domain → UI data conversion | Codex (see boundary zones) |
+| UI model data classes (e.g. `DashboardUiModels`) | Shared UI contract | Shared contract |
+| `di/AppContainer.kt` | Dependency wiring | Shared |
+| `ui/AppRoot.kt`, `MainActivity.kt` | Navigation / screen wiring | Shared (Claude-led) |
+| `app/build.gradle.kts` | Library dependencies | Shared |
+
+**Rule of thumb:** anything under `ui/` that renders pixels is Claude's; everything else, including the mapper logic that feeds the UI, is Codex's.
+
+## Boundary Zones (the 10% that needs coordination)
+
+These four spots are where the two agents can collide. Before editing any of them, announce it in the **Shared File Claims** log at the bottom of this file (and in the PR description) so the other agent does not touch it in parallel.
+
+1. **UI model contract** — the UI model data classes (e.g. `DashboardUiModels`). Claude renders them; Codex's mappers produce them. Treat these classes as a **contract**: whoever needs to change a field must claim it first, and the change should be a single small commit that both branches can rebase onto.
+2. **`ui/model/**` mappers** — mapper logic is Codex-owned because it depends on the shape of domain models. Claude reads the output but does not edit mapper logic.
+3. **`di/AppContainer.kt`** — Codex adds new use cases here; Claude may need a new dependency for a screen. Claim before editing.
+4. **`ui/AppRoot.kt` / `MainActivity.kt`** and **`app/build.gradle.kts`** — navigation wiring and library additions. Different lines usually auto-merge, but claim first to be safe.
+
+When a task genuinely needs both a contract change and UI work, do the contract change first (Codex), merge it to `main`, then let Claude build UI on top.
+
+## Shared File Claims
+
+Append a line before you start editing a shared/boundary file; remove it after the change is merged to `main`.
+
+Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
+
+<!-- active claims below -->
 
 ## Current Product Direction
 
