@@ -79,6 +79,7 @@ Append a line before you start editing a shared/boundary file; remove it after t
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- [2026-07-08] Claude claims ui/AppRoot.kt — token-based bottom nav + scaffold canvas for Toss restyle
 
 ## Claude UI Notes
 

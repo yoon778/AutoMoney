@@ -144,3 +144,11 @@ Run only when user explicitly asks to install/update:
 ```powershell
 & 'C:\Users\cys04\AppData\Local\Android\Sdk\platform-tools\adb.exe' install -r 'C:\Users\cys04\OneDrive\Desktop\AutoMoney\app\build\outputs\apk\debug\app-debug.apk'
 ```
+
+## Phase 8 Done (Toss token restyle — foundation + Home)
+
+- Added `ui/theme` token layer: `MoneyColors` (light+dark), Pretendard `Typography`, `Shapes` (18-20dp), `Spacing`.
+- `AutoMoneyTheme` now supports `darkTheme`; live app still defaults to light until all screens convert.
+- Added `SoftShadowCard`; migrated Home components (ScreenTitle, FinanceSectionCard, MetricTile, TransactionRow, MonthlyFlowCard) to tokens + rounder cards.
+- Reworked Home canvas and bottom nav to tokens; added light+dark Home previews.
+- Supersedes the earlier "keep 8dp radius" rule.

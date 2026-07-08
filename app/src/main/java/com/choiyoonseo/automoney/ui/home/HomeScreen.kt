@@ -33,7 +33,6 @@ import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MonthlyFlowCard
@@ -45,6 +44,7 @@ import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
 import com.choiyoonseo.automoney.ui.model.transactionsToRows
 import com.choiyoonseo.automoney.ui.model.transactionsToMonthlySummary
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.flow.flowOf
 import java.time.LocalDate
 import java.time.YearMonth
@@ -56,6 +56,7 @@ fun HomeScreen(
     moneyRepository: MoneyRepository? = null,
     onReviewClick: () -> Unit = {}
 ) {
+    val colors = MoneyTheme.colors
     val month = remember { YearMonth.now() }
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
@@ -100,7 +101,7 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyCanvas)
+            .background(colors.canvas)
             .verticalScroll(rememberScrollState())
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

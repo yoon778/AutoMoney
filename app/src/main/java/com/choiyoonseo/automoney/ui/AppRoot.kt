@@ -20,7 +20,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -38,13 +37,10 @@ import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
 import com.choiyoonseo.automoney.ui.assets.AssetsScreen
 import com.choiyoonseo.automoney.ui.home.HomeScreen
-import com.choiyoonseo.automoney.ui.components.MoneyBlue
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
-import com.choiyoonseo.automoney.ui.components.MoneyMuted
-import com.choiyoonseo.automoney.ui.components.MoneySoftBlue
 import com.choiyoonseo.automoney.ui.report.MonthlyReportScreen
 import com.choiyoonseo.automoney.ui.review.ReviewScreen
 import com.choiyoonseo.automoney.ui.settings.SettingsScreen
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.transactions.TransactionsScreen
 
 private enum class AppTab(val label: String, val icon: ImageVector) {
@@ -66,6 +62,7 @@ fun AppRoot(
     editTransactionUseCase: EditTransactionUseCase? = null,
     notificationDiagnosticsStore: NotificationDiagnosticsStore? = null
 ) {
+    val colors = MoneyTheme.colors
     var selectedTab by remember { mutableStateOf(AppTab.HOME) }
     val context = LocalContext.current
     val notificationAccessChecker = remember(context) {
@@ -83,19 +80,19 @@ fun AppRoot(
     }
 
     Scaffold(
-        containerColor = MoneyCanvas,
+        containerColor = colors.canvas,
         bottomBar = {
-            NavigationBar(containerColor = Color.White) {
+            NavigationBar(containerColor = colors.surface) {
                 AppTab.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = selectedTab == tab,
                         onClick = { selectedTab = tab },
                         colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = MoneyBlue,
-                            selectedTextColor = MoneyBlue,
-                            indicatorColor = MoneySoftBlue,
-                            unselectedIconColor = MoneyMuted,
-                            unselectedTextColor = MoneyMuted
+                            selectedIconColor = colors.primary,
+                            selectedTextColor = colors.primary,
+                            indicatorColor = colors.primary.copy(alpha = 0.12f),
+                            unselectedIconColor = colors.muted,
+                            unselectedTextColor = colors.muted
                         ),
                         icon = {
                             Icon(
