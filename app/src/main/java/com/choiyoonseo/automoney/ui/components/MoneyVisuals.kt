@@ -45,6 +45,7 @@ import com.choiyoonseo.automoney.ui.model.ReviewCardUi
 import com.choiyoonseo.automoney.ui.model.SourceAppUi
 import com.choiyoonseo.automoney.ui.model.TransactionRowUi
 import com.choiyoonseo.automoney.ui.model.formatWon
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 
 val MoneyBlue = Color(0xFF2F80ED)
 val MoneyGreen = Color(0xFF24A148)
@@ -59,6 +60,7 @@ val MoneySoftCoral = Color(0xFFFFF0EA)
 
 @Composable
 fun ScreenTitle(title: String, subtitle: String? = null) {
+    val colors = MoneyTheme.colors
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.Top
@@ -71,7 +73,7 @@ fun ScreenTitle(title: String, subtitle: String? = null) {
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
                 fontWeight = FontWeight.Bold,
-                color = MoneyInk
+                color = colors.ink
             )
             if (subtitle != null) {
                 Text(
@@ -334,6 +336,7 @@ fun MonthlyFlowCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    val colors = MoneyTheme.colors
     val flowSteps = homeFlowStepVisuals(incomeValue, expenseValue, savingsValue)
     val cardModifier = if (onClick == null) {
         modifier.fillMaxWidth()
@@ -345,8 +348,8 @@ fun MonthlyFlowCard(
 
     Surface(
         modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White
+        shape = RoundedCornerShape(20.dp),
+        color = colors.surface
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -354,8 +357,8 @@ fun MonthlyFlowCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text("$title  >", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(period, color = MoneyMuted, modifier = Modifier.padding(top = 4.dp))
+                    Text("$title  >", style = MaterialTheme.typography.titleLarge, color = colors.ink, fontWeight = FontWeight.Bold)
+                    Text(period, color = colors.muted, modifier = Modifier.padding(top = 4.dp))
                 }
                 Image(
                     painter = painterResource(R.drawable.illustration_wallet_coins),
@@ -363,10 +366,11 @@ fun MonthlyFlowCard(
                     modifier = Modifier.size(width = 118.dp, height = 82.dp)
                 )
             }
-            Text("\ub0a8\uc740 \ub3c8", color = MoneyInk, fontWeight = FontWeight.Medium)
+            Text("\ub0a8\uc740 \ub3c8", color = colors.inkSub, fontWeight = FontWeight.Medium)
             Text(
                 remainingValue,
                 style = MaterialTheme.typography.headlineMedium,
+                color = colors.ink,
                 fontWeight = FontWeight.Bold
             )
             Row(
@@ -460,6 +464,7 @@ fun FinanceSectionCard(
     onClick: (() -> Unit)? = null,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val colors = MoneyTheme.colors
     val cardModifier = if (onClick == null) {
         modifier.fillMaxWidth()
     } else {
@@ -470,8 +475,8 @@ fun FinanceSectionCard(
 
     Surface(
         modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surface
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -503,9 +508,9 @@ fun FinanceSectionCard(
                 }
                 Spacer(Modifier.width(8.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = colors.ink, fontWeight = FontWeight.Bold)
                     if (subtitle != null) {
-                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MoneyMuted)
+                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = colors.muted)
                     }
                 }
             }
@@ -521,6 +526,7 @@ fun MetricTile(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    val colors = MoneyTheme.colors
     val tileModifier = if (onClick == null) {
         modifier
     } else {
@@ -530,15 +536,15 @@ fun MetricTile(
         modifier = tileModifier
             .height(124.dp)
             .fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surface
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(metric.title, style = MaterialTheme.typography.labelLarge)
-            Text(metric.value, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(metric.value, style = MaterialTheme.typography.titleLarge, color = colors.ink, fontWeight = FontWeight.Bold)
             LinearProgressIndicator(
                 progress = { metric.normalizedProgress },
                 modifier = Modifier.fillMaxWidth(),
@@ -549,7 +555,7 @@ fun MetricTile(
                 Text(
                     it,
                     style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -560,6 +566,7 @@ fun MetricTile(
 
 @Composable
 fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null) {
+    val colors = MoneyTheme.colors
     val accent = categoryAccentForName(transaction.category)
     val rowModifier = if (onClick == null) {
         Modifier
@@ -581,7 +588,7 @@ fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null)
         IconBadge(text = transaction.iconText, color = softAccentColor(accent), textColor = accent)
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(transaction.merchant, style = MaterialTheme.typography.bodyLarge, maxLines = 1)
+            Text(transaction.merchant, style = MaterialTheme.typography.bodyLarge, color = colors.ink, maxLines = 1)
             Row(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -590,7 +597,7 @@ fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null)
                     "${transaction.category} · ${transaction.method}",
                     modifier = Modifier.weight(1f, fill = false),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = colors.muted,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -603,7 +610,7 @@ fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null)
             formatWon(transaction.amountWon),
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
-            color = if (transaction.amountWon < 0) Color(0xFFD64545) else MoneyGreen
+            color = if (transaction.amountWon < 0) colors.negative else colors.positive
         )
     }
 }
