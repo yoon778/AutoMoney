@@ -9,7 +9,7 @@ Encoding note: this file is UTF-8. If Korean text looks garbled in Windows Power
 Actual Android app project:
 
 ```text
-C:\Users\cys04\OneDrive\Desktop\AutoMoney
+C:\Users\cys04\Desktop\AutoMoney
 ```
 
 Old planning/mockup folder, not used for active app development:
@@ -148,7 +148,7 @@ docs/AI_COLLABORATION.md
 Use these from:
 
 ```text
-C:\Users\cys04\OneDrive\Desktop\AutoMoney
+C:\Users\cys04\Desktop\AutoMoney
 ```
 
 PowerShell:
@@ -215,7 +215,7 @@ Recommended UI tasks:
 AutoMoney 프로젝트를 이어서 작업할 거야.
 
 실제 앱 폴더는:
-C:\Users\cys04\OneDrive\Desktop\AutoMoney
+C:\Users\cys04\Desktop\AutoMoney
 
 GitHub 저장소는:
 https://github.com/yoon778/AutoMoney.git
@@ -234,7 +234,7 @@ main은 내가 최종 병합하는 안정 브랜치야.
 AutoMoney 프로젝트의 UI/UX를 개선할 거야.
 
 실제 앱 폴더는:
-C:\Users\cys04\OneDrive\Desktop\AutoMoney
+C:\Users\cys04\Desktop\AutoMoney
 
 GitHub 저장소는:
 https://github.com/yoon778/AutoMoney.git
