@@ -58,3 +58,19 @@ private fun SettingsPreview() {
         SettingsScreen(PaddingValues(0.dp))
     }
 }
+
+@Preview(name = "홈 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun HomeDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        HomeScreen(PaddingValues(0.dp))
+    }
+}
+
+@Preview(name = "앱 전체 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun AppRootDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        AppRoot()
+    }
+}
