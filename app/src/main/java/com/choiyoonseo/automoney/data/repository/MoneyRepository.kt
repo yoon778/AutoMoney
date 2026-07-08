@@ -14,6 +14,11 @@ interface MoneyRepository {
     fun observeOpenReviewItems(): Flow<List<OpenReviewItem>>
     suspend fun enabledRules(): List<Rule>
     suspend fun saveTransaction(transaction: MoneyTransaction): Long
+    suspend fun saveTransactionWithReview(transaction: MoneyTransaction, reason: ReviewReason): Long {
+        val transactionId = saveTransaction(transaction)
+        createReviewItem(transactionId, reason)
+        return transactionId
+    }
     suspend fun updateTransaction(transaction: MoneyTransaction)
     suspend fun deleteTransaction(transactionId: Long)
     suspend fun createReviewItem(transactionId: Long, reason: ReviewReason)

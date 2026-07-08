@@ -46,9 +46,10 @@ class NotificationIngestionUseCase(
             DuplicateDecision.DUPLICATE -> withRules
         }
 
-        val id = repository.saveTransaction(finalDraft.toDomain())
         if (finalDraft.status == TransactionStatus.NEEDS_REVIEW && finalDraft.reviewReason != null) {
-            repository.createReviewItem(id, finalDraft.reviewReason)
+            repository.saveTransactionWithReview(finalDraft.toDomain(), finalDraft.reviewReason)
+        } else {
+            repository.saveTransaction(finalDraft.toDomain())
         }
 
         return IngestionResult.Saved(finalDraft.type, finalDraft.reviewReason)

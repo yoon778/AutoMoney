@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.data.repository
 
+import androidx.room.withTransaction
 import com.choiyoonseo.automoney.data.local.AppDatabase
 import com.choiyoonseo.automoney.data.local.entity.AssetAccountEntity
 import com.choiyoonseo.automoney.data.local.entity.ReviewItemEntity
@@ -49,6 +50,51 @@ class RoomMoneyRepository(
     }
 
     override suspend fun saveTransaction(transaction: MoneyTransaction): Long {
+        return db.withTransaction {
+            saveTransactionInternal(transaction)
+        }
+    }
+
+    override suspend fun saveTransactionWithReview(
+        transaction: MoneyTransaction,
+        reason: ReviewReason
+    ): Long {
+        return db.withTransaction {
+            val id = saveTransactionInternal(transaction)
+            insertReviewItem(id, reason)
+            id
+        }
+    }
+
+    override suspend fun updateTransaction(transaction: MoneyTransaction) {
+        db.withTransaction {
+            val previous = transaction.id.takeIf { it > 0 }?.let { id ->
+                db.transactionDao().transactionById(id)?.toDomain()
+            }
+            db.transactionDao().update(transaction.toEntity())
+            syncAssetAccounts { accounts ->
+                replaceTransactionBalance(accounts, oldTransaction = previous, newTransaction = transaction)
+            }
+        }
+    }
+
+    override suspend fun deleteTransaction(transactionId: Long) {
+        db.withTransaction {
+            val previous = db.transactionDao().transactionById(transactionId)?.toDomain()
+            db.transactionDao().deleteById(transactionId)
+            if (previous != null) {
+                syncAssetAccounts { accounts ->
+                    removeTransactionBalance(accounts, previous)
+                }
+            }
+        }
+    }
+
+    override suspend fun createReviewItem(transactionId: Long, reason: ReviewReason) {
+        insertReviewItem(transactionId, reason)
+    }
+
+    private suspend fun saveTransactionInternal(transaction: MoneyTransaction): Long {
         val id = db.transactionDao().insert(transaction.toEntity())
         syncAssetAccounts { accounts ->
             applyTransactionBalance(accounts, transaction.copy(id = id))
@@ -56,27 +102,7 @@ class RoomMoneyRepository(
         return id
     }
 
-    override suspend fun updateTransaction(transaction: MoneyTransaction) {
-        val previous = transaction.id.takeIf { it > 0 }?.let { id ->
-            db.transactionDao().transactionById(id)?.toDomain()
-        }
-        db.transactionDao().update(transaction.toEntity())
-        syncAssetAccounts { accounts ->
-            replaceTransactionBalance(accounts, oldTransaction = previous, newTransaction = transaction)
-        }
-    }
-
-    override suspend fun deleteTransaction(transactionId: Long) {
-        val previous = db.transactionDao().transactionById(transactionId)?.toDomain()
-        db.transactionDao().deleteById(transactionId)
-        if (previous != null) {
-            syncAssetAccounts { accounts ->
-                removeTransactionBalance(accounts, previous)
-            }
-        }
-    }
-
-    override suspend fun createReviewItem(transactionId: Long, reason: ReviewReason) {
+    private suspend fun insertReviewItem(transactionId: Long, reason: ReviewReason) {
         db.reviewItemDao().insert(
             ReviewItemEntity(
                 transactionId = transactionId,
