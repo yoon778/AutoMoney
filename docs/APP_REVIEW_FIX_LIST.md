@@ -64,6 +64,37 @@ Manual end-to-end check on the debug build (commit `e69a112` era):
 - Settings correctly reports notification access off and offers the settings button.
 - B4 (timezone) was discovered during this run.
 
+## Notification Pipeline Check (emulator, 2026-07-09)
+
+Question: when a finance notification arrives, does the app recognize → parse → apply it?
+
+**Verified working:**
+- Listener service is registered correctly in the manifest (`BIND_NOTIFICATION_LISTENER_SERVICE` + intent filter).
+- Granting notification access works: after grant, the OS lists AutoMoney's listener as approved (confirmed via `dumpsys notification`), and the Settings screen flips to "권한 켜짐" on the next resume. The real user flow (권한 설정 열기 → grant → back) pauses/resumes the app, so the status refreshes correctly. (It looked stale in testing only because the grant was injected via adb without leaving the app.)
+- A notification from an unsupported package is safely ignored: no crash, process stable. This is by design (`FinancialAppRegistry.isSupportedPackage` gate before any processing).
+- The parse → categorize → low-confidence-to-review → duplicate-detect → save chain is unit-tested and green (156/156): `TossNotificationParserTest`, `CommonFinanceNotificationParserTest`, `NotificationParserRouterTest`, `FinancialAppRegistryTest`, `MoneyNotificationListenerServiceTest`, `NotificationIngestionAtomicityTest`, `NotificationSnapshotBuilderTest`, `NotificationDiagnosticsStoreTest`.
+
+**Limitation of this check:**
+- A full live end-to-end run (real Toss/KB notification → row appears in the app) could NOT be exercised on the emulator: `adb shell cmd notification post` posts from `com.android.shell`, and the posting package cannot be spoofed, so the registry gate (correctly) drops it. The logic below the gate is covered by unit tests, but the final on-device confirmation still needs a real phone with the Toss or KB app installed.
+
+**Findings / suggestions (for Codex):**
+| # | Item | Detail | Owner |
+|---|------|--------|-------|
+| N1 | Unsupported finance apps are dropped with zero trace | The package gate returns before the snapshot is built, so nothing reaches `NotificationDiagnosticsStore`. A user whose bank is not Toss/KB sees "아직 처리한 금융 앱 알림이 없어요" forever with no clue why. Consider recording a lightweight "last ignored package" diagnostic (or a counter) so Settings can say "지원하지 않는 앱의 알림이 왔어요". | [LOGIC] |
+| N2 | Registry covers only 2 apps | `FinancialAppRegistry` = Toss + KB국민은행 only. Samsung Pay, KakaoBank, KakaoPay, NaverPay app notifications never enter the pipeline (topups are only caught indirectly via Toss/KB messages). Expanding is a product decision — flagging so it is a decision, not an accident. | [LOGIC] |
+| N3 | No in-app way to demo/verify the pipeline | `SampleNotificationScenarios` exists but is referenced only by its own test. A debug-only "테스트 알림 넣기" button in Settings that pushes a sample scenario through `NotificationIngestionUseCase` would let anyone verify recognize→parse→apply on any device in seconds (and double as a first-run demo). | [LOGIC] exposes, [UI] renders |
+| N4 | Real-device smoke test still pending | Suggest one manual pass on the physical phone (SM_S931N known from earlier): trigger a small real payment/transfer notification from Toss or KB, then check 거래 tab and Settings' "최근 알림 결과". | user + both agents |
+
+**Files for Codex to read (pipeline, in order):**
+1. `app/src/main/java/com/choiyoonseo/automoney/notification/MoneyNotificationListenerService.kt` — entry point; package gate; diagnostics write (N1 lives here)
+2. `app/src/main/java/com/choiyoonseo/automoney/notification/FinancialAppRegistry.kt` — supported-app allowlist (N2)
+3. `app/src/main/java/com/choiyoonseo/automoney/notification/NotificationSnapshotBuilder.kt` — raw notification → snapshot
+4. `app/src/main/java/com/choiyoonseo/automoney/domain/parser/NotificationParserRouter.kt` + `TossNotificationParser.kt` + `CommonFinanceNotificationParser.kt` — text → transaction draft
+5. `app/src/main/java/com/choiyoonseo/automoney/notification/NotificationIngestionUseCase.kt` — rules, low-confidence→review, duplicate handling, save
+6. `app/src/main/java/com/choiyoonseo/automoney/notification/NotificationDiagnosticsStore.kt` — what Settings' "최근 알림 결과" shows
+7. `app/src/main/java/com/choiyoonseo/automoney/notification/SampleNotificationScenarios.kt` — unused in-app; candidate for N3
+8. Tests mirroring each of the above under `app/src/test/java/com/choiyoonseo/automoney/{notification,domain/parser}/`
+
 ## Suggested Order
 
 **A1 → A2 → A3** (first impression) → **B3** (review-flow correctness) → **C1 → C2 → C3** (full visual consistency + dark) → **B1 → B2** → **D**.
