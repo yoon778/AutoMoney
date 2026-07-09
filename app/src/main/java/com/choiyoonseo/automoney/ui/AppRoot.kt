@@ -32,6 +32,8 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
+import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
+import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.LastNotificationDiagnostic
 import com.choiyoonseo.automoney.notification.NotificationAccessChecker
@@ -71,7 +73,9 @@ fun AppRoot(
     notificationDiagnosticsStore: NotificationDiagnosticsStore? = null,
     walletTopupNoticeStore: WalletTopupNoticeStore? = null,
     notificationOnboardingStore: NotificationOnboardingStore? = null,
-    runSampleNotificationScenarioUseCase: RunSampleNotificationScenarioUseCase? = null
+    runSampleNotificationScenarioUseCase: RunSampleNotificationScenarioUseCase? = null,
+    resolveReviewUseCase: ResolveReviewUseCase? = null,
+    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null
 ) {
     val colors = MoneyTheme.colors
     var selectedTab by remember { mutableStateOf(AppTab.HOME) }
@@ -165,7 +169,9 @@ fun AppRoot(
                 recordWalletTopupUsageUseCase = recordWalletTopupUsageUseCase,
                 moneyRepository = moneyRepository,
                 editTransactionUseCase = editTransactionUseCase,
-                assetRepository = assetRepository
+                assetRepository = assetRepository,
+                resolveReviewUseCase = resolveReviewUseCase,
+                resolveAccountTransferUseCase = resolveAccountTransferUseCase
             )
             AppTab.ASSETS -> AssetsScreen(
                 padding = padding,

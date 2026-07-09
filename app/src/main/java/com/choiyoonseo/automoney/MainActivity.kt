@@ -22,7 +22,9 @@ class MainActivity : ComponentActivity() {
                     notificationDiagnosticsStore = appContainer.notificationDiagnosticsStore,
                     walletTopupNoticeStore = appContainer.walletTopupNoticeStore,
                     notificationOnboardingStore = appContainer.notificationOnboardingStore,
-                    runSampleNotificationScenarioUseCase = appContainer.runSampleNotificationScenarioUseCase
+                    runSampleNotificationScenarioUseCase = appContainer.runSampleNotificationScenarioUseCase,
+                    resolveReviewUseCase = appContainer.resolveReviewUseCase,
+                    resolveAccountTransferUseCase = appContainer.resolveAccountTransferUseCase
                 )
             }
         }

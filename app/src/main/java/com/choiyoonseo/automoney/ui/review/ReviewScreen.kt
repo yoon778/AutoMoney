@@ -48,7 +48,10 @@ import com.choiyoonseo.automoney.domain.model.SourceType
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
+import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
+import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
+import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.review.ReviewResolution
 import com.choiyoonseo.automoney.domain.review.WalletTopupReviewService
 import com.choiyoonseo.automoney.domain.review.WalletTopupUsageResult
@@ -83,7 +86,9 @@ fun ReviewScreen(
     recordWalletTopupUsageUseCase: RecordWalletTopupUsageUseCase? = null,
     moneyRepository: MoneyRepository? = null,
     editTransactionUseCase: EditTransactionUseCase? = null,
-    assetRepository: AssetRepository? = null
+    assetRepository: AssetRepository? = null,
+    resolveReviewUseCase: ResolveReviewUseCase? = null,
+    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null
 ) {
     val scope = rememberCoroutineScope()
     val reviewService = remember { WalletTopupReviewService() }
@@ -129,6 +134,9 @@ fun ReviewScreen(
         resultMessage = message
     }
 
+    fun reviewReasonFor(card: ReviewCardUi): ReviewReason? =
+        openReviewItems.firstOrNull { it.id == card.reviewItemId }?.reason
+
     fun pairedIncomingReviewItem(card: ReviewCardUi) =
         card.sourceTransaction?.id?.let { transactionId ->
             accountTransferCandidates
@@ -143,13 +151,25 @@ fun ReviewScreen(
             isSaving = true
             errorMessage = null
             try {
-                resolveCard(
-                    card = action.card,
-                    message = action.resultMessage,
-                    transactionUpdate = { transaction ->
-                        transaction.resolveReview(action.resolution, userMemo)
-                    }
-                )
+                val card = action.card
+                val sourceTransaction = card.sourceTransaction
+                if (resolveReviewUseCase != null && card.reviewItemId != null && sourceTransaction != null) {
+                    resolveReviewUseCase.resolve(
+                        reviewItemId = card.reviewItemId,
+                        transaction = sourceTransaction,
+                        resolution = action.resolution,
+                        userMemo = userMemo
+                    )
+                    resultMessage = action.resultMessage
+                } else {
+                    resolveCard(
+                        card = card,
+                        message = action.resultMessage,
+                        transactionUpdate = { transaction ->
+                            transaction.resolveReview(action.resolution, userMemo)
+                        }
+                    )
+                }
                 activeReviewMemoAction = null
             } finally {
                 isSaving = false
@@ -199,49 +219,51 @@ fun ReviewScreen(
     }
 
     fun recordAccountTransfer(card: ReviewCardUi, fromAccount: AssetAccount, toAccount: AssetAccount) {
-        val repository = assetRepository ?: return
         isSaving = true
         errorMessage = null
 
         scope.launch {
             try {
+                val sourceTransaction = card.sourceTransaction
                 val pairedItem = pairedIncomingReviewItem(card)
-                val transfer = applyAccountTransfer(
-                    accounts = assetAccounts,
-                    fromAccountName = fromAccount.name,
-                    toAccountName = toAccount.name,
-                    amountWon = card.amountWon
-                )
-                repository.saveAccount(transfer.fromAccount)
-                repository.saveAccount(transfer.toAccount)
-                if (
-                    moneyRepository != null &&
-                    pairedItem != null &&
-                    pairedItem.id != card.reviewItemId
-                ) {
-                    moneyRepository.updateTransaction(
-                        pairedItem.transaction.resolveReview(
-                            resolution = ReviewResolution.ACCOUNT_TRANSFER,
-                            userMemo = "paired ${fromAccount.name} -> ${toAccount.name}"
-                        )
+                    ?.takeIf { it.id != card.reviewItemId }
+                if (resolveAccountTransferUseCase != null && card.reviewItemId != null && sourceTransaction != null) {
+                    resolveAccountTransferUseCase.resolve(
+                        accounts = assetAccounts,
+                        reviewItemId = card.reviewItemId,
+                        transaction = sourceTransaction,
+                        fromAccountName = fromAccount.name,
+                        toAccountName = toAccount.name,
+                        amountWon = card.amountWon,
+                        pairedIncomingReviewItem = pairedItem
                     )
-                    moneyRepository.resolveReviewItem(pairedItem.id)
-                }
-                resolveCard(
-                    card = card,
-                    message = buildString {
+                    resultMessage = buildString {
                         append("${fromAccount.name}에서 ${toAccount.name}으로 ${formatWon(card.amountWon)} 이동 처리했어요.")
                         if (pairedItem != null) {
                             append(" 입금 알림도 같이 검토 완료했어요.")
                         }
-                    },
-                    transactionUpdate = { transaction ->
-                        transaction.resolveReview(
-                            resolution = ReviewResolution.ACCOUNT_TRANSFER,
-                            userMemo = "${fromAccount.name} -> ${toAccount.name}"
-                        )
                     }
-                )
+                } else {
+                    val repository = assetRepository ?: return@launch
+                    val transfer = applyAccountTransfer(
+                        accounts = assetAccounts,
+                        fromAccountName = fromAccount.name,
+                        toAccountName = toAccount.name,
+                        amountWon = card.amountWon
+                    )
+                    repository.saveAccount(transfer.fromAccount)
+                    repository.saveAccount(transfer.toAccount)
+                    resolveCard(
+                        card = card,
+                        message = "${fromAccount.name}에서 ${toAccount.name}으로 ${formatWon(card.amountWon)} 이동 처리했어요.",
+                        transactionUpdate = { transaction ->
+                            transaction.resolveReview(
+                                resolution = ReviewResolution.ACCOUNT_TRANSFER,
+                                userMemo = "${fromAccount.name} -> ${toAccount.name}"
+                            )
+                        }
+                    )
+                }
                 activeAccountTransferCard = null
             } catch (e: IllegalArgumentException) {
                 errorMessage = e.message ?: "계좌 이동값을 확인해 주세요."
@@ -296,8 +318,12 @@ fun ReviewScreen(
             ReviewActionCard(
                 card = card,
                 onPrimaryAction = {
+                    val isAccountUnmatched = reviewReasonFor(card) == ReviewReason.ACCOUNT_UNMATCHED
                     if (card.kind == ReviewCardKind.WALLET_TOPUP) {
                         activeWalletCard = card
+                    } else if (isAccountUnmatched && card.sourceTransaction != null && editTransactionUseCase != null) {
+                        activeEditReviewCard = card
+                        editErrorMessage = null
                     } else {
                         activeReviewMemoAction = card.toPrimaryMemoAction()
                     }
