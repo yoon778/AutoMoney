@@ -15,8 +15,9 @@ import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -29,6 +30,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
@@ -38,12 +40,12 @@ import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
 import com.choiyoonseo.automoney.ui.components.TransactionRow
 import com.choiyoonseo.automoney.ui.model.TransactionDateSectionUi
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
 import com.choiyoonseo.automoney.ui.model.transactionsToDateSections
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -58,6 +60,7 @@ fun TransactionsScreen(
     assetRepository: AssetRepository? = null,
     walletTopupNoticeStore: WalletTopupNoticeStore? = null
 ) {
+    val colors = MoneyTheme.colors
     val scope = rememberCoroutineScope()
     val month = remember { YearMonth.now() }
     val scrollState = rememberScrollState()
@@ -99,7 +102,7 @@ fun TransactionsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyCanvas)
+            .background(colors.canvas)
             .verticalScroll(scrollState)
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -116,18 +119,24 @@ fun TransactionsScreen(
                 Text(
                     text = "거래",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink
                 )
                 Text(
                     text = "날짜순으로 정리된 거래를 확인하고 직접 추가해요.",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.muted
                 )
             }
-            IconButton(
+            FilledIconButton(
                 onClick = {
                     isManualFormVisible = true
                     manualFormMessage = null
-                }
+                },
+                colors = IconButtonDefaults.filledIconButtonColors(
+                    containerColor = colors.primary,
+                    contentColor = Color.White
+                )
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "거래 추가")
             }
@@ -145,8 +154,9 @@ fun TransactionsScreen(
             dateSections.forEach { section ->
                 Text(
                     text = section.dateLabel,
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold,
+                    color = colors.muted
                 )
                 section.rows.forEach { transaction ->
                     TransactionRow(
@@ -165,7 +175,7 @@ fun TransactionsScreen(
                 }
             }
             if (dateSections.all { it.rows.isEmpty() }) {
-                Text("아직 이번 달 기록이 없어요.")
+                Text("아직 이번 달 기록이 없어요.", color = colors.muted)
             }
         }
 

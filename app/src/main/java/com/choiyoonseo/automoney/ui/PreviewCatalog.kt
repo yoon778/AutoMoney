@@ -35,6 +35,14 @@ private fun TransactionsPreview() {
     }
 }
 
+@Preview(name = "거래 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun TransactionsDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        TransactionsScreen(PaddingValues(0.dp))
+    }
+}
+
 @Preview(name = "검토", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun ReviewPreview() {
