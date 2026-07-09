@@ -21,6 +21,7 @@ val defaultManualCategoryOption = manualExpenseCategoryOptions.last()
 val manualIncomeCategoryOptions = listOf(
     ManualCategoryOption(Category.SALARY),
     ManualCategoryOption(Category.ALLOWANCE),
+    ManualCategoryOption(Category.INVESTMENT_RETURN),
     ManualCategoryOption(Category.REIMBURSEMENT),
     ManualCategoryOption(Category.OTHER)
 )

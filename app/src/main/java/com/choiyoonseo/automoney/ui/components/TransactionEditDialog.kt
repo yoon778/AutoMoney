@@ -7,11 +7,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TimePicker
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,11 +31,8 @@ import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionEditDialog(
     transaction: MoneyTransaction,
@@ -48,13 +52,19 @@ fun TransactionEditDialog(
     onDelete: (() -> Unit)? = null
 ) {
     var amountText by remember(transaction.id) { mutableStateOf(transaction.amount.won.toString()) }
-    var dateText by remember(transaction.id) { mutableStateOf(transaction.occurredAt.toEditDateText()) }
-    var timeText by remember(transaction.id) { mutableStateOf(transaction.occurredAt.toEditTimeText()) }
+    var selectedDate by remember(transaction.id) {
+        mutableStateOf(transaction.occurredAt.toTransactionEditLocalDate())
+    }
+    var selectedTime by remember(transaction.id) {
+        mutableStateOf(transaction.occurredAt.toTransactionEditLocalTime())
+    }
+    var isDatePickerOpen by remember(transaction.id) { mutableStateOf(false) }
+    var isTimePickerOpen by remember(transaction.id) { mutableStateOf(false) }
+    var selectedType by remember(transaction.id) { mutableStateOf(transaction.type) }
     var selectedCategoryLabel by remember(transaction.id) {
-        mutableStateOf(categoryLabelForEdit(transaction.category))
+        mutableStateOf(defaultCategoryLabelForEdit(transaction.type, transaction.category))
     }
     var categoryMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
-    var selectedType by remember(transaction.id) { mutableStateOf(transaction.type) }
     var typeMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
     val accountOptions = remember(transaction.id, accountNames, transaction.paymentMethod) {
         accountOptionsForEdit(accountNames, transaction.paymentMethod)
@@ -68,6 +78,65 @@ fun TransactionEditDialog(
     }
     var localErrorMessage by remember(transaction.id) { mutableStateOf<String?>(null) }
     val title = transaction.merchant ?: transaction.counterparty ?: "거래"
+    val categoryOptions = transactionEditCategoryOptionsFor(selectedType)
+
+    if (isDatePickerOpen) {
+        val datePickerState = rememberDatePickerState(
+            initialSelectedDateMillis = selectedDate.toTransactionEditDatePickerMillis()
+        )
+        DatePickerDialog(
+            onDismissRequest = { isDatePickerOpen = false },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        datePickerState.selectedDateMillis?.let { selectedMillis ->
+                            selectedDate = selectedMillis.toTransactionEditDatePickerLocalDate()
+                        }
+                        isDatePickerOpen = false
+                    }
+                ) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isDatePickerOpen = false }) {
+                    Text("취소")
+                }
+            }
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+
+    if (isTimePickerOpen) {
+        val timePickerState = rememberTimePickerState(
+            initialHour = selectedTime.hour,
+            initialMinute = selectedTime.minute,
+            is24Hour = true
+        )
+        AlertDialog(
+            onDismissRequest = { isTimePickerOpen = false },
+            title = { Text("시간 선택") },
+            text = { TimePicker(state = timePickerState) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        selectedTime = selectedTime
+                            .withHour(timePickerState.hour)
+                            .withMinute(timePickerState.minute)
+                        isTimePickerOpen = false
+                    }
+                ) {
+                    Text("확인")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { isTimePickerOpen = false }) {
+                    Text("취소")
+                }
+            }
+        )
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -82,20 +151,18 @@ fun TransactionEditDialog(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
-                OutlinedTextField(
-                    value = dateText,
-                    onValueChange = { dateText = it },
-                    label = { Text("날짜") },
-                    placeholder = { Text("2026-07-06") },
+                OutlinedButton(
+                    onClick = { isDatePickerOpen = true },
                     modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = timeText,
-                    onValueChange = { timeText = it },
-                    label = { Text("시간") },
-                    placeholder = { Text("14:30") },
+                ) {
+                    Text("날짜: ${selectedDate.toTransactionEditDateText()}")
+                }
+                OutlinedButton(
+                    onClick = { isTimePickerOpen = true },
                     modifier = Modifier.fillMaxWidth()
-                )
+                ) {
+                    Text("시간: ${selectedTime.toTransactionEditTimeText()}")
+                }
                 Box(modifier = Modifier.fillMaxWidth()) {
                     OutlinedButton(
                         onClick = { typeMenuExpanded = true },
@@ -113,32 +180,37 @@ fun TransactionEditDialog(
                                 text = { Text(option.label) },
                                 onClick = {
                                     selectedType = option.type
+                                    if (!isCategoryLabelValidForEdit(option.type, selectedCategoryLabel)) {
+                                        selectedCategoryLabel = defaultCategoryLabelForEdit(option.type, transaction.category)
+                                    }
                                     typeMenuExpanded = false
                                 }
                             )
                         }
                     }
                 }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = { categoryMenuExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("분류: $selectedCategoryLabel")
-                    }
-                    DropdownMenu(
-                        expanded = categoryMenuExpanded,
-                        onDismissRequest = { categoryMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        transactionEditCategoryOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option.label) },
-                                onClick = {
-                                    selectedCategoryLabel = option.label
-                                    categoryMenuExpanded = false
-                                }
-                            )
+                if (categoryOptions.isNotEmpty()) {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(
+                            onClick = { categoryMenuExpanded = true },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("분류: $selectedCategoryLabel")
+                        }
+                        DropdownMenu(
+                            expanded = categoryMenuExpanded,
+                            onDismissRequest = { categoryMenuExpanded = false },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            categoryOptions.forEach { option ->
+                                DropdownMenuItem(
+                                    text = { Text(option.label) },
+                                    onClick = {
+                                        selectedCategoryLabel = option.label
+                                        categoryMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -181,10 +253,9 @@ fun TransactionEditDialog(
                 enabled = !isSaving,
                 onClick = {
                     val amountWon = amountText.replace(",", "").trim().toLongOrNull()
-                    val occurredAt = parseEditDateTime(dateText, timeText)
+                    val occurredAt = selectedDate.toTransactionEditInstant(selectedTime)
                     when {
                         amountWon == null -> localErrorMessage = "금액을 확인해 주세요."
-                        occurredAt == null -> localErrorMessage = "날짜와 시간을 확인해 주세요."
                         else -> {
                             localErrorMessage = null
                             onSave(
@@ -218,24 +289,4 @@ fun TransactionEditDialog(
             }
         }
     )
-}
-
-private val editZoneId: ZoneId = ZoneId.of("Asia/Seoul")
-private val editDateFormatter: DateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE
-private val editTimeFormatter: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
-private fun Instant.toEditDateText(): String =
-    atZone(editZoneId).toLocalDate().format(editDateFormatter)
-
-private fun Instant.toEditTimeText(): String =
-    atZone(editZoneId).toLocalTime().format(editTimeFormatter)
-
-private fun parseEditDateTime(dateText: String, timeText: String): Instant? {
-    return try {
-        val date = LocalDate.parse(dateText.trim(), editDateFormatter)
-        val time = LocalTime.parse(timeText.trim(), editTimeFormatter)
-        date.atTime(time).atZone(editZoneId).toInstant()
-    } catch (_: RuntimeException) {
-        null
-    }
 }

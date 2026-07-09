@@ -40,6 +40,18 @@ data class FixedExpensePlan(
     val active: Boolean = true
 )
 
+val fixedExpenseWithdrawalDayOptions: IntRange = 1..31
+
+fun FixedExpensePlan.validatedForSave(): FixedExpensePlan {
+    val cleanName = name.trim()
+    val cleanAccountName = accountName.trim()
+    require(cleanName.isNotBlank()) { "고정지출 이름을 입력해 주세요." }
+    require(amountWon >= 0) { "고정지출 금액은 0원 이상이어야 해요." }
+    require(withdrawalDay in fixedExpenseWithdrawalDayOptions) { "출금일은 1일부터 31일 사이여야 해요." }
+    require(cleanAccountName.isNotBlank()) { "출금 계좌를 입력해 주세요." }
+    return copy(name = cleanName, accountName = cleanAccountName)
+}
+
 enum class MonthlyPlanItemType(val label: String) {
     INCOME("수입"),
     BUDGET("예산")
@@ -83,3 +95,6 @@ fun buildAssetOverview(
         plannedRemainingWon = totalIncomeWon - totalFixedExpenseWon - totalBudgetWon
     )
 }
+
+fun assetOverviewBalanceHelper(accountCount: Int): String =
+    "${accountCount}개 계좌 · 현재 등록 잔액 기준"

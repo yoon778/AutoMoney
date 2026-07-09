@@ -41,4 +41,28 @@ class AssetOverviewCalculatorTest {
 
         assertThat(overview.totalFixedExpenseWon).isEqualTo(0)
     }
+
+    @Test
+    fun fixedExpenseWithdrawalDayOptionsCoverEveryMonthlyDay() {
+        assertThat(fixedExpenseWithdrawalDayOptions.toList())
+            .containsExactlyElementsIn((1..31).toList())
+            .inOrder()
+    }
+
+    @Test
+    fun fixedExpensePlanValidationRejectsInvalidWithdrawalDay() {
+        val error = runCatching {
+            FixedExpensePlan(name = "통신비", amountWon = 70_000, withdrawalDay = 0, accountName = "국민은행")
+                .validatedForSave()
+        }.exceptionOrNull()
+
+        assertThat(error).isInstanceOf(IllegalArgumentException::class.java)
+        assertThat(error).hasMessageThat().contains("출금일")
+    }
+
+    @Test
+    fun assetOverviewBalanceHelperDoesNotClaimPreviousMonthComparison() {
+        assertThat(assetOverviewBalanceHelper(accountCount = 2))
+            .isEqualTo("2개 계좌 · 현재 등록 잔액 기준")
+    }
 }

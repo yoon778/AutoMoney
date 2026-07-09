@@ -7,6 +7,7 @@ import com.choiyoonseo.automoney.data.local.entity.MonthlyPlanItemEntity
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
+import com.choiyoonseo.automoney.domain.assets.validatedForSave
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -26,7 +27,7 @@ class RoomAssetRepository(
         db.assetDao().insertAccount(account.toEntity())
 
     override suspend fun saveFixedExpense(plan: FixedExpensePlan): Long =
-        db.assetDao().insertFixedExpense(plan.toEntity())
+        db.assetDao().insertFixedExpense(plan.validatedForSave().toEntity())
 
     override suspend fun saveMonthlyPlanItem(item: MonthlyPlanItem): Long =
         db.assetDao().insertMonthlyPlanItem(item.toEntity())

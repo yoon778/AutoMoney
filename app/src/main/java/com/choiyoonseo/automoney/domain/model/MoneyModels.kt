@@ -64,6 +64,7 @@ enum class Category(val displayName: String) {
     COIN("코인"),
     SALARY("월급"),
     ALLOWANCE("용돈"),
+    INVESTMENT_RETURN("투자성과"),
     DISCOUNT("할인"),
     REIMBURSEMENT("환급"),
     OTHER("기타")

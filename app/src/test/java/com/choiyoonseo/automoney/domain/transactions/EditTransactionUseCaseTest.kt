@@ -115,6 +115,31 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun updateIncomeCanUseInvestmentReturnCategory() = runTest {
+        val repository = FakeMoneyRepository()
+        val useCase = EditTransactionUseCase(repository)
+
+        useCase.update(
+            transaction = transaction().copy(
+                direction = TransactionDirection.INCOME,
+                type = TransactionType.INCOME,
+                category = Category.SALARY
+            ),
+            amountWon = 12000,
+            categoryText = "투자성과",
+            memo = "배당금",
+            occurredAt = transaction().occurredAt,
+            paymentMethod = "국민은행",
+            transactionType = TransactionType.INCOME
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.type).isEqualTo(TransactionType.INCOME)
+        assertThat(updated.direction).isEqualTo(TransactionDirection.INCOME)
+        assertThat(updated.category).isEqualTo(Category.INVESTMENT_RETURN)
+    }
+
+    @Test
     fun updateLearnsCategoryRuleForSameMerchant() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)

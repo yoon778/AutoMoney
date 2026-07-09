@@ -135,43 +135,8 @@ private fun List<AssetAccount>.indexOfPaymentMethod(paymentMethod: String): Int 
     indexOfFirst { it.matchesPaymentMethod(paymentMethod) }
 
 private fun AssetAccount.matchesPaymentMethod(paymentMethod: String): Boolean {
-    val account = name.normalizedMoneyName()
-    val method = paymentMethod.normalizedMoneyName()
-    if (account.isBlank() || method.isBlank()) return false
-    if (account.contains(method) || method.contains(account)) return true
-
-    return knownAliases(name).any { alias ->
-        val normalizedAlias = alias.normalizedMoneyName()
-        normalizedAlias.isNotBlank() &&
-            (method.contains(normalizedAlias) || normalizedAlias.contains(method))
-    }
+    return moneyNamesMatch(name, paymentMethod)
 }
-
-private fun knownAliases(name: String): List<String> {
-    val normalized = name.normalizedMoneyName()
-    return when {
-        normalized.contains("\uad6d\ubbfc") || normalized.contains("kb") ->
-            listOf("KB", "\uad6d\ubbfc", "\uad6d\ubbfc\uc740\ud589")
-        normalized.contains("\ud1a0\uc2a4") || normalized.contains("toss") ->
-            listOf("\ud1a0\uc2a4", "\ud1a0\uc2a4\ubc45\ud06c", "Toss")
-        normalized.contains("\uce74\uce74\uc624") || normalized.contains("kakao") ->
-            listOf("\uce74\uce74\uc624", "\uce74\uce74\uc624\ubc45\ud06c", "Kakao")
-        normalized.contains("\ub124\uc774\ubc84") || normalized.contains("naver") ->
-            listOf("\ub124\uc774\ubc84", "\ub124\uc774\ubc84\ud398\uc774", "Naver")
-        else -> emptyList()
-    }
-}
-
-private fun String.normalizedMoneyName(): String =
-    lowercase()
-        .replace("\uc740\ud589", "")
-        .replace("\ubc45\ud06c", "")
-        .replace("\ud1b5\uc7a5", "")
-        .replace("\ud398\uc774", "")
-        .replace("bank", "")
-        .replace("pay", "")
-        .replace(Regex("""\s+"""), "")
-        .trim()
 
 private fun String?.cleanOrNull(): String? =
     this?.trim()?.takeIf { it.isNotBlank() }

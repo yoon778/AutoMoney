@@ -40,4 +40,21 @@ class TransactionEditAccountOptionsTest {
             )
         ).isEqualTo("국민은행 통장")
     }
+
+    @Test
+    fun accountOptionsForEditTreatsKbAndKookminAsSameBank() {
+        assertThat(
+            accountOptionsForEdit(
+                accountNames = listOf("국민은행 통장", "KB"),
+                currentPaymentMethod = "KB국민은행"
+            )
+        ).containsExactly("국민은행 통장").inOrder()
+
+        assertThat(
+            accountLabelForEdit(
+                paymentMethod = "KB",
+                accountNames = listOf("국민은행 통장", "토스뱅크 통장")
+            )
+        ).isEqualTo("국민은행 통장")
+    }
 }

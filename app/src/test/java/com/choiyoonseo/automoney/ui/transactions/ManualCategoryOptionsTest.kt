@@ -36,12 +36,14 @@ class ManualCategoryOptionsTest {
         assertThat(manualIncomeCategoryOptions.map { it.label }).containsExactly(
             "월급",
             "용돈",
+            "투자성과",
             "환급",
             "기타"
         ).inOrder()
         assertThat(manualIncomeCategoryOptions.map { it.category }).containsExactly(
             Category.SALARY,
             Category.ALLOWANCE,
+            Category.INVESTMENT_RETURN,
             Category.REIMBURSEMENT,
             Category.OTHER
         ).inOrder()

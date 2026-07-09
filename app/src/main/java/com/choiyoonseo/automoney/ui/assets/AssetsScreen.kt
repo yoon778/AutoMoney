@@ -55,8 +55,11 @@ import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
+import com.choiyoonseo.automoney.domain.assets.assetOverviewBalanceHelper
 import com.choiyoonseo.automoney.domain.assets.buildAssetOverview
+import com.choiyoonseo.automoney.domain.assets.fixedExpenseWithdrawalDayOptions
 import com.choiyoonseo.automoney.domain.assets.updateAssetAccount
+import com.choiyoonseo.automoney.domain.assets.validatedForSave
 import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
@@ -124,7 +127,7 @@ fun AssetsScreen(
         IllustratedSummaryCard(
             title = "총 계좌 잔액",
             value = formatWon(overview.totalAssetsWon),
-            helper = "${accounts.size}개 계좌 · 지난 달보다 안정적으로 관리 중",
+            helper = assetOverviewBalanceHelper(accounts.size),
             accent = MoneyMint,
             icon = Icons.Filled.AccountBalance
         )
@@ -446,8 +449,15 @@ private fun FixedExpenseInputCard(
             onClick = {
                 val cleanAmount = amount.cleanWonOrNull()
                 val cleanDay = day.trim().toIntOrNull()
-                if (name.isNotBlank() && account.isNotBlank() && cleanAmount != null && cleanDay in 1..31) {
-                    onSave(FixedExpensePlan(name = name.trim(), amountWon = cleanAmount, withdrawalDay = cleanDay!!, accountName = account.trim()))
+                if (name.isNotBlank() && account.isNotBlank() && cleanAmount != null && cleanDay != null && cleanDay in fixedExpenseWithdrawalDayOptions) {
+                    onSave(
+                        FixedExpensePlan(
+                            name = name,
+                            amountWon = cleanAmount,
+                            withdrawalDay = cleanDay,
+                            accountName = account
+                        ).validatedForSave()
+                    )
                     name = ""
                     amount = ""
                     day = ""
