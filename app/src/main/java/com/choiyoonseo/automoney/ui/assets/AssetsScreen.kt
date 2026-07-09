@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -20,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -27,6 +30,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -600,8 +604,16 @@ private fun AssetRow(
     onAction: (() -> Unit)? = null
 ) {
     val colors = MoneyTheme.colors
+    val rowModifier = if (onAction == null) {
+        Modifier.fillMaxWidth()
+    } else {
+        Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(onClick = onAction)
+    }
     Surface(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = rowModifier,
         shape = RoundedCornerShape(18.dp),
         color = colors.soft(accent)
     ) {
@@ -629,11 +641,35 @@ private fun AssetRow(
                         Text(subtitle, style = MaterialTheme.typography.bodySmall, color = colors.muted)
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalAlignment = Alignment.End
+                ) {
                     Text(formatWon(amountWon), fontWeight = FontWeight.Bold, color = colors.ink)
                     if (actionLabel != null && onAction != null) {
-                        OutlinedButton(onClick = onAction) {
-                            Text(actionLabel)
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = accent.copy(alpha = 0.16f),
+                            modifier = Modifier.clickable(onClick = onAction)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.Edit,
+                                    contentDescription = actionLabel,
+                                    tint = accent,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Text(
+                                    actionLabel,
+                                    color = accent,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                     }
                 }

@@ -268,12 +268,12 @@ fun MonthlyFlowCard(
             )
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.Top
             ) {
                 flowSteps.forEachIndexed { index, step ->
                     FlowStep(step, Modifier.weight(1f))
                     if (index < flowSteps.lastIndex) {
-                        FlowConnector()
+                        FlowConnector(Modifier.padding(top = 25.dp))
                     }
                 }
             }
@@ -287,26 +287,27 @@ private fun FlowStep(step: HomeFlowStepVisual, modifier: Modifier = Modifier) {
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Box(
             modifier = Modifier
-                .size(56.dp)
-                .clip(RoundedCornerShape(18.dp))
-                .background(step.accent.copy(alpha = 0.12f)),
+                .size(52.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(colors.soft(step.accent)),
             contentAlignment = Alignment.Center
         ) {
             Image(
                 painter = painterResource(step.imageRes),
                 contentDescription = null,
-                modifier = Modifier.size(50.dp)
+                modifier = Modifier.size(34.dp)
             )
         }
-        Text(step.label, color = colors.ink, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Text(step.label, color = colors.muted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
         Text(
             step.value,
             color = colors.ink,
-            style = MaterialTheme.typography.labelSmall,
+            style = MaterialTheme.typography.labelMedium,
+            fontWeight = FontWeight.SemiBold,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
@@ -314,10 +315,10 @@ private fun FlowStep(step: HomeFlowStepVisual, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun FlowConnector() {
+private fun FlowConnector(modifier: Modifier = Modifier) {
     val colors = MoneyTheme.colors
     Box(
-        modifier = Modifier
+        modifier = modifier
             .width(14.dp)
             .height(2.dp)
             .clip(RoundedCornerShape(50))

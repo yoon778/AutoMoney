@@ -5,12 +5,15 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -25,10 +28,10 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import java.time.Instant
 
@@ -138,155 +141,168 @@ fun TransactionEditDialog(
         )
     }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("거래 수정") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(title, fontWeight = FontWeight.Medium)
-                OutlinedTextField(
-                    value = amountText,
-                    onValueChange = { amountText = it },
-                    label = { Text("금액") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedButton(
-                    onClick = { isDatePickerOpen = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("날짜: ${selectedDate.toTransactionEditDateText()}")
-                }
-                OutlinedButton(
-                    onClick = { isTimePickerOpen = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("시간: ${selectedTime.toTransactionEditTimeText()}")
-                }
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = { typeMenuExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("처리 유형: ${typeLabelForEdit(selectedType)}")
-                    }
-                    DropdownMenu(
-                        expanded = typeMenuExpanded,
-                        onDismissRequest = { typeMenuExpanded = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        transactionEditTypeOptions.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option.label) },
-                                onClick = {
-                                    selectedType = option.type
-                                    if (!isCategoryLabelValidForEdit(option.type, selectedCategoryLabel)) {
-                                        selectedCategoryLabel = defaultCategoryLabelForEdit(option.type, transaction.category)
-                                    }
-                                    typeMenuExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                if (categoryOptions.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { categoryMenuExpanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("분류: $selectedCategoryLabel")
-                        }
-                        DropdownMenu(
-                            expanded = categoryMenuExpanded,
-                            onDismissRequest = { categoryMenuExpanded = false },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            categoryOptions.forEach { option ->
-                                DropdownMenuItem(
-                                    text = { Text(option.label) },
-                                    onClick = {
-                                        selectedCategoryLabel = option.label
-                                        categoryMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                if (accountOptions.isNotEmpty()) {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(
-                            onClick = { accountMenuExpanded = true },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("계좌: ${selectedAccountLabel ?: "선택 안 함"}")
-                        }
-                        DropdownMenu(
-                            expanded = accountMenuExpanded,
-                            onDismissRequest = { accountMenuExpanded = false },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            accountOptions.forEach { accountName ->
-                                DropdownMenuItem(
-                                    text = { Text(accountName) },
-                                    onClick = {
-                                        selectedAccountLabel = accountName
-                                        accountMenuExpanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-                OutlinedTextField(
-                    value = memoText,
-                    onValueChange = { memoText = it },
-                    label = { Text("메모") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                (localErrorMessage ?: errorMessage)?.let { Text(it) }
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled = !isSaving,
-                onClick = {
-                    val amountWon = amountText.replace(",", "").trim().toLongOrNull()
-                    val occurredAt = selectedDate.toTransactionEditInstant(selectedTime)
-                    when {
-                        amountWon == null -> localErrorMessage = "금액을 확인해 주세요."
-                        else -> {
-                            localErrorMessage = null
-                            onSave(
-                                amountWon,
-                                selectedCategoryLabel,
-                                memoText,
-                                occurredAt,
-                                selectedAccountLabel,
-                                selectedType
-                            )
-                        }
-                    }
-                }
-            ) {
-                Text(if (isSaving) "저장 중" else "저장")
-            }
-        },
-        dismissButton = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    val colors = MoneyTheme.colors
+    MoneyDialog(
+        title = "거래 수정",
+        subtitle = title,
+        onDismiss = onDismiss,
+        buttons = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 if (onDelete != null) {
-                    OutlinedButton(onClick = onDelete, enabled = !isSaving) {
+                    OutlinedButton(
+                        onClick = onDelete,
+                        enabled = !isSaving,
+                        modifier = Modifier.weight(1f),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.negative)
+                    ) {
                         Text("삭제")
                     }
                 }
-                OutlinedButton(onClick = onExclude, enabled = !isSaving) {
+                OutlinedButton(
+                    onClick = onExclude,
+                    enabled = !isSaving,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text("지출 제외")
                 }
-                OutlinedButton(onClick = onDismiss, enabled = !isSaving) {
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(
+                    onClick = onDismiss,
+                    enabled = !isSaving,
+                    modifier = Modifier.weight(1f)
+                ) {
                     Text("취소")
+                }
+                Button(
+                    enabled = !isSaving,
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        val amountWon = amountText.replace(",", "").trim().toLongOrNull()
+                        val occurredAt = selectedDate.toTransactionEditInstant(selectedTime)
+                        when {
+                            amountWon == null -> localErrorMessage = "금액을 확인해 주세요."
+                            else -> {
+                                localErrorMessage = null
+                                onSave(
+                                    amountWon,
+                                    selectedCategoryLabel,
+                                    memoText,
+                                    occurredAt,
+                                    selectedAccountLabel,
+                                    selectedType
+                                )
+                            }
+                        }
+                    }
+                ) {
+                    Text(if (isSaving) "저장 중" else "저장")
                 }
             }
         }
-    )
+    ) {
+        OutlinedTextField(
+            value = amountText,
+            onValueChange = { amountText = it },
+            label = { Text("금액") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            modifier = Modifier.fillMaxWidth()
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            MoneyPickerField(
+                label = "날짜",
+                value = selectedDate.toTransactionEditDateText(),
+                onClick = { isDatePickerOpen = true },
+                modifier = Modifier.weight(1f)
+            )
+            MoneyPickerField(
+                label = "시간",
+                value = selectedTime.toTransactionEditTimeText(),
+                onClick = { isTimePickerOpen = true },
+                modifier = Modifier.weight(1f)
+            )
+        }
+        Box(modifier = Modifier.fillMaxWidth()) {
+            MoneyPickerField(
+                label = "처리 유형",
+                value = typeLabelForEdit(selectedType),
+                onClick = { typeMenuExpanded = true }
+            )
+            DropdownMenu(
+                expanded = typeMenuExpanded,
+                onDismissRequest = { typeMenuExpanded = false },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                transactionEditTypeOptions.forEach { option ->
+                    DropdownMenuItem(
+                        text = { Text(option.label) },
+                        onClick = {
+                            selectedType = option.type
+                            if (!isCategoryLabelValidForEdit(option.type, selectedCategoryLabel)) {
+                                selectedCategoryLabel = defaultCategoryLabelForEdit(option.type, transaction.category)
+                            }
+                            typeMenuExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+        if (categoryOptions.isNotEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                MoneyPickerField(
+                    label = "분류",
+                    value = selectedCategoryLabel,
+                    onClick = { categoryMenuExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = categoryMenuExpanded,
+                    onDismissRequest = { categoryMenuExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    categoryOptions.forEach { option ->
+                        DropdownMenuItem(
+                            text = { Text(option.label) },
+                            onClick = {
+                                selectedCategoryLabel = option.label
+                                categoryMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        if (accountOptions.isNotEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                MoneyPickerField(
+                    label = "계좌",
+                    value = selectedAccountLabel ?: "선택 안 함",
+                    onClick = { accountMenuExpanded = true }
+                )
+                DropdownMenu(
+                    expanded = accountMenuExpanded,
+                    onDismissRequest = { accountMenuExpanded = false },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    accountOptions.forEach { accountName ->
+                        DropdownMenuItem(
+                            text = { Text(accountName) },
+                            onClick = {
+                                selectedAccountLabel = accountName
+                                accountMenuExpanded = false
+                            }
+                        )
+                    }
+                }
+            }
+        }
+        OutlinedTextField(
+            value = memoText,
+            onValueChange = { memoText = it },
+            label = { Text("메모") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        (localErrorMessage ?: errorMessage)?.let {
+            Text(it, color = colors.negative, style = MaterialTheme.typography.bodySmall)
+        }
+    }
 }
