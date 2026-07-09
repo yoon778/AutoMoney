@@ -49,7 +49,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.choiyoonseo.automoney.R
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
@@ -63,16 +62,15 @@ import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
 import com.choiyoonseo.automoney.ui.components.MoneyMuted
-import com.choiyoonseo.automoney.ui.components.MoneySoftMint
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.accountAccentForName
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
 import com.choiyoonseo.automoney.ui.model.MetricTileUi
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.model.formatWon
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
@@ -111,7 +109,7 @@ fun AssetsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyCanvas)
+            .background(MoneyTheme.colors.canvas)
             .verticalScroll(rememberScrollState())
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -128,7 +126,7 @@ fun AssetsScreen(
             value = formatWon(overview.totalAssetsWon),
             helper = "${accounts.size}개 계좌 · 지난 달보다 안정적으로 관리 중",
             accent = MoneyMint,
-            imageRes = R.drawable.illustration_bank_mint
+            icon = Icons.Filled.AccountBalance
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -146,8 +144,8 @@ fun AssetsScreen(
 
         TabRow(
             selectedTabIndex = selectedSection.ordinal,
-            containerColor = Color.White,
-            contentColor = MoneyBlue
+            containerColor = MoneyTheme.colors.surface,
+            contentColor = MoneyTheme.colors.primary
         ) {
             AssetSection.entries.forEach { section ->
                 Tab(
@@ -528,16 +526,17 @@ private fun MonthlyPlanInputCard(onSave: (MonthlyPlanItem) -> Unit) {
 
 @Composable
 private fun InputCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    val colors = MoneyTheme.colors
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surface
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text(title, fontWeight = FontWeight.Bold)
+            Text(title, fontWeight = FontWeight.Bold, color = colors.ink)
             content()
         }
     }
@@ -590,10 +589,11 @@ private fun AssetRow(
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null
 ) {
+    val colors = MoneyTheme.colors
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = if (accent == MoneyMint) MoneySoftMint else accent.copy(alpha = 0.08f)
+        shape = RoundedCornerShape(18.dp),
+        color = colors.soft(accent)
     ) {
         Column(
             modifier = Modifier.padding(14.dp),
@@ -615,12 +615,12 @@ private fun AssetRow(
                     }
                     Spacer(Modifier.width(10.dp))
                     Column {
-                        Text(title, fontWeight = FontWeight.Bold)
-                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MoneyMuted)
+                        Text(title, fontWeight = FontWeight.Bold, color = colors.ink)
+                        Text(subtitle, style = MaterialTheme.typography.bodySmall, color = colors.muted)
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text(formatWon(amountWon), fontWeight = FontWeight.Bold)
+                    Text(formatWon(amountWon), fontWeight = FontWeight.Bold, color = colors.ink)
                     if (actionLabel != null && onAction != null) {
                         OutlinedButton(onClick = onAction) {
                             Text(actionLabel)
@@ -635,7 +635,7 @@ private fun AssetRow(
                     .height(7.dp)
                     .clip(RoundedCornerShape(50)),
                 color = accent,
-                trackColor = Color.White.copy(alpha = 0.75f)
+                trackColor = colors.surface.copy(alpha = 0.75f)
             )
         }
     }

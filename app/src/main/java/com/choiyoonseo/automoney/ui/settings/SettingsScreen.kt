@@ -23,9 +23,9 @@ import com.choiyoonseo.automoney.notification.NotificationDiagnosticResult
 import com.choiyoonseo.automoney.ui.components.EmptyStateVisual
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
@@ -43,7 +43,7 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyCanvas)
+            .background(MoneyTheme.colors.canvas)
             .verticalScroll(rememberScrollState())
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)

@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
@@ -35,7 +36,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.choiyoonseo.automoney.R
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
@@ -62,7 +62,6 @@ import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.EmptyStateVisual
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyMuted
 import com.choiyoonseo.automoney.ui.components.ReviewActionCard
@@ -75,6 +74,7 @@ import com.choiyoonseo.automoney.ui.model.dismissReviewCard
 import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.model.openReviewItemsToCards
 import com.choiyoonseo.automoney.ui.model.sampleReviewCards
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -279,7 +279,7 @@ fun ReviewScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyCanvas)
+            .background(MoneyTheme.colors.canvas)
             .verticalScroll(rememberScrollState())
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -304,7 +304,7 @@ fun ReviewScreen(
             value = "${reviewCards.size}건",
             helper = "놓치지 말고 확인해 주세요",
             accent = MoneyCoral,
-            imageRes = R.drawable.illustration_review_magnifier
+            icon = Icons.Filled.Search
         )
 
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {

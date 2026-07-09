@@ -1,6 +1,5 @@
 package com.choiyoonseo.automoney.ui.components
 
-import androidx.annotation.DrawableRes
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +16,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
@@ -87,59 +89,6 @@ fun ScreenTitle(title: String, subtitle: String? = null) {
 }
 
 @Composable
-fun MoneyHeroCard(
-    title: String,
-    amount: String,
-    helper: String,
-    @DrawableRes imageRes: Int = R.drawable.illustration_cash_flow,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
-) {
-    val cardModifier = if (onClick == null) {
-        modifier.fillMaxWidth()
-    } else {
-        modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    }
-
-    ElevatedCard(
-        modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color(0xFFEAF2FF))
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(18.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = MoneyInk)
-                Text(
-                    amount,
-                    modifier = Modifier.padding(top = 6.dp),
-                    style = MaterialTheme.typography.headlineMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = MoneyInk
-                )
-                Text(
-                    helper,
-                    modifier = Modifier.padding(top = 6.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Image(
-                painter = painterResource(imageRes),
-                contentDescription = null,
-                modifier = Modifier.size(width = 132.dp, height = 92.dp)
-            )
-        }
-    }
-}
-
-@Composable
 fun MoneyFlowHeroCard(
     title: String,
     primaryValue: String,
@@ -150,6 +99,7 @@ fun MoneyFlowHeroCard(
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    val colors = MoneyTheme.colors
     val cardModifier = if (onClick == null) {
         modifier.fillMaxWidth()
     } else {
@@ -160,8 +110,8 @@ fun MoneyFlowHeroCard(
 
     Surface(
         modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        color = MoneySoftBlue
+        shape = RoundedCornerShape(20.dp),
+        color = colors.soft(colors.primary)
     ) {
         Column(
             modifier = Modifier.padding(18.dp),
@@ -169,26 +119,35 @@ fun MoneyFlowHeroCard(
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(title, style = MaterialTheme.typography.titleMedium, color = MoneyInk)
+                    Text(title, style = MaterialTheme.typography.titleMedium, color = colors.ink)
                     Text(
                         primaryValue,
                         modifier = Modifier.padding(top = 6.dp),
                         style = MaterialTheme.typography.headlineMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MoneyInk
+                        color = colors.ink
                     )
                     Text(
                         helper,
                         modifier = Modifier.padding(top = 6.dp),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MoneyMuted
+                        color = colors.muted
                     )
                 }
-                Image(
-                    painter = painterResource(R.drawable.illustration_wallet_coins),
-                    contentDescription = null,
-                    modifier = Modifier.size(width = 120.dp, height = 88.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(colors.soft(colors.primary)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -206,10 +165,11 @@ fun IllustratedSummaryCard(
     value: String,
     helper: String,
     accent: Color,
-    @DrawableRes imageRes: Int,
+    icon: ImageVector,
     modifier: Modifier = Modifier,
     onClick: (() -> Unit)? = null
 ) {
+    val colors = MoneyTheme.colors
     val cardModifier = if (onClick == null) {
         modifier.fillMaxWidth()
     } else {
@@ -220,8 +180,8 @@ fun IllustratedSummaryCard(
 
     Surface(
         modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        color = accent.copy(alpha = 0.10f)
+        shape = RoundedCornerShape(20.dp),
+        color = colors.soft(accent)
     ) {
         Row(
             modifier = Modifier
@@ -230,96 +190,34 @@ fun IllustratedSummaryCard(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium, color = MoneyInk)
+                Text(title, style = MaterialTheme.typography.titleMedium, color = colors.ink)
                 Text(
                     value,
                     modifier = Modifier.padding(top = 8.dp),
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MoneyInk
+                    color = colors.ink
                 )
                 Text(
                     helper,
                     modifier = Modifier.padding(top = 6.dp),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MoneyMuted
+                    color = colors.muted
                 )
             }
-            Image(
-                painter = painterResource(imageRes),
-                contentDescription = null,
-                modifier = Modifier.size(width = 128.dp, height = 92.dp)
-            )
-        }
-    }
-}
-
-@Composable
-fun MonthlyFlowCardOld(
-    title: String,
-    period: String,
-    remainingValue: String,
-    incomeValue: String,
-    expenseValue: String,
-    savingsValue: String,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null
-) {
-    val flowSteps = homeFlowStepVisuals(incomeValue, expenseValue, savingsValue)
-    val cardModifier = if (onClick == null) {
-        modifier.fillMaxWidth()
-    } else {
-        modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-    }
-
-    Surface(
-        modifier = cardModifier,
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp)
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text("$title  ›", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                    Text(period, color = MoneyMuted, modifier = Modifier.padding(top = 4.dp))
-                }
-                Image(
-                    painter = painterResource(R.drawable.illustration_wallet_coins),
-                    contentDescription = null,
-                    modifier = Modifier.size(width = 118.dp, height = 82.dp)
-                )
-            }
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = MoneySoftBlue
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(colors.soft(accent)),
+                contentAlignment = Alignment.Center
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp)
-                ) {
-                    Text("남은 돈", color = MoneyInk, fontWeight = FontWeight.Medium)
-                    Text(
-                        remainingValue,
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        flowSteps.forEachIndexed { index, step ->
-                            FlowStep(step, Modifier.weight(1f))
-                            if (index < flowSteps.lastIndex) {
-                                FlowConnector()
-                            }
-                        }
-                    }
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accent,
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
     }
@@ -434,16 +332,17 @@ private fun FlowConnector() {
 
 @Composable
 private fun FlowPill(label: String, value: String, accent: Color, modifier: Modifier = Modifier) {
+    val colors = MoneyTheme.colors
     Surface(
         modifier = modifier,
-        shape = RoundedCornerShape(8.dp),
-        color = Color.White.copy(alpha = 0.72f)
+        shape = RoundedCornerShape(14.dp),
+        color = colors.surface.copy(alpha = 0.72f)
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalArrangement = Arrangement.spacedBy(3.dp)
         ) {
-            Text(label, style = MaterialTheme.typography.labelMedium, color = MoneyMuted)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = colors.muted)
             Text(
                 value,
                 style = MaterialTheme.typography.bodyMedium,
@@ -648,18 +547,19 @@ fun ReviewActionCard(
     onAccountTransferAction: (() -> Unit)? = null,
     onEditAction: (() -> Unit)? = null
 ) {
+    val colors = MoneyTheme.colors
     val accent = reviewAccentForLabel(card.tag)
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = accent.copy(alpha = 0.10f))
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.soft(accent))
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(text = card.iconText, color = accent.copy(alpha = 0.14f), textColor = accent)
+                IconBadge(text = card.iconText, color = colors.soft(accent), textColor = accent)
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(card.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(card.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.ink)
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
@@ -670,12 +570,12 @@ fun ReviewActionCard(
                         }
                     }
                 }
-                Text(formatWon(card.amountWon), fontWeight = FontWeight.Bold)
+                Text(formatWon(card.amountWon), fontWeight = FontWeight.Bold, color = colors.ink)
             }
-            Text(card.message, style = MaterialTheme.typography.bodyMedium)
+            Text(card.message, style = MaterialTheme.typography.bodyMedium, color = colors.inkSub)
             card.detailLines.forEach { detail ->
                 Surface(
-                    shape = RoundedCornerShape(8.dp),
+                    shape = RoundedCornerShape(12.dp),
                     color = accent.copy(alpha = 0.08f)
                 ) {
                     Text(
@@ -684,7 +584,7 @@ fun ReviewActionCard(
                             .fillMaxWidth()
                             .padding(horizontal = 12.dp, vertical = 8.dp),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MoneyInk
+                        color = colors.inkSub
                     )
                 }
             }
@@ -712,6 +612,7 @@ fun ReviewActionCard(
 
 @Composable
 fun CategoryBar(category: CategorySpendUi, color: Color, onClick: (() -> Unit)? = null) {
+    val colors = MoneyTheme.colors
     val rowModifier = if (onClick == null) {
         Modifier
     } else {
@@ -719,8 +620,8 @@ fun CategoryBar(category: CategorySpendUi, color: Color, onClick: (() -> Unit)? 
     }
     Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Row(modifier = rowModifier, verticalAlignment = Alignment.CenterVertically) {
-            Text(category.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-            Text("${formatWon(category.amountWon)} · ${category.percentText}", style = MaterialTheme.typography.bodyMedium)
+            Text(category.name, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge, color = colors.ink)
+            Text("${formatWon(category.amountWon)} · ${category.percentText}", style = MaterialTheme.typography.bodyMedium, color = colors.inkSub)
         }
         LinearProgressIndicator(
             progress = { category.ratio.coerceIn(0f, 1f) },
@@ -738,25 +639,35 @@ fun CategoryBar(category: CategorySpendUi, color: Color, onClick: (() -> Unit)? 
 fun EmptyStateVisual(
     title: String,
     message: String,
-    @DrawableRes imageRes: Int = R.drawable.illustration_notification_flow
+    icon: ImageVector = Icons.Filled.CheckCircle
 ) {
+    val colors = MoneyTheme.colors
     Surface(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        color = Color(0xFFF7F9FC)
+        shape = RoundedCornerShape(18.dp),
+        color = colors.surface
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Image(
-                painter = painterResource(imageRes),
-                contentDescription = null,
-                modifier = Modifier.size(width = 180.dp, height = 120.dp)
-            )
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Text(message, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(
+                modifier = Modifier
+                    .size(64.dp)
+                    .clip(CircleShape)
+                    .background(colors.soft(colors.primary)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = colors.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.ink)
+            Text(message, style = MaterialTheme.typography.bodyMedium, color = colors.muted)
         }
     }
 }

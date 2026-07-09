@@ -3,6 +3,7 @@ package com.choiyoonseo.automoney
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import com.choiyoonseo.automoney.ui.AppRoot
 import com.choiyoonseo.automoney.ui.theme.AutoMoneyTheme
 
@@ -11,7 +12,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val appContainer = (application as AutoMoneyApplication).container
         setContent {
-            AutoMoneyTheme {
+            AutoMoneyTheme(darkTheme = isSystemInDarkTheme()) {
                 AppRoot(
                     recordWalletTopupUsageUseCase = appContainer.recordWalletTopupUsageUseCase,
                     moneyRepository = appContainer.repository,

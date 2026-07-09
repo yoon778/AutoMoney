@@ -29,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.choiyoonseo.automoney.ui.model.DailySpendUi
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.model.MonthlySpendCalendarUi
 import com.choiyoonseo.automoney.ui.model.defaultSelectedDay
 import com.choiyoonseo.automoney.ui.model.formatWon
@@ -49,10 +50,11 @@ fun SpendingCalendarCard(
     }
     val selectedSpend = calendar.spendForDay(selectedDay)
 
+    val colors = MoneyTheme.colors
     ElevatedCard(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = Color.White)
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = colors.surface)
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -64,7 +66,7 @@ fun SpendingCalendarCard(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column {
-                    Text(title, fontWeight = FontWeight.Bold)
+                    Text(title, fontWeight = FontWeight.Bold, color = colors.ink)
                     Text(
                         calendar.monthTitle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -155,13 +157,14 @@ private fun CalendarDayCell(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val colors = MoneyTheme.colors
     val spendAccent = spend?.let { categoryAccentForName(it.label) } ?: MoneyBlue
     val background = when {
         selected -> spendAccent
-        spend != null -> spendAccent.copy(alpha = 0.12f)
-        else -> Color(0xFFF1F4F8)
+        spend != null -> colors.soft(spendAccent)
+        else -> colors.canvas
     }
-    val dayColor = if (selected) Color.White else MoneyInk
+    val dayColor = if (selected) Color.White else colors.ink
     val amountColor = if (selected) Color.White else spendAccent
 
     Column(
@@ -194,6 +197,7 @@ private fun CalendarDayCell(
 
 @Composable
 private fun CalendarSelectedSummary(day: Int, spend: DailySpendUi?) {
+    val colors = MoneyTheme.colors
     val accent = spend?.let { categoryAccentForName(it.label) } ?: MoneyBlue
     val summary = if (spend == null) {
         "${day}일 사용 기록 없음"
@@ -206,9 +210,9 @@ private fun CalendarSelectedSummary(day: Int, spend: DailySpendUi?) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(accent.copy(alpha = 0.10f))
+            .background(colors.soft(accent))
             .padding(horizontal = 12.dp, vertical = 10.dp),
-        color = MoneyInk,
+        color = colors.ink,
         fontWeight = FontWeight.Medium
     )
 }

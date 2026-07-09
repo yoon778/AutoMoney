@@ -41,9 +41,9 @@ Ownership legend: **[UI]** = Claude, **[LOGIC]** = Codex, **[SHARED]** = contrac
 
 | # | Item | Detail | Owner |
 |---|------|--------|-------|
-| C1 | Restyle remaining screens to tokens | `AssetsScreen`, `ReviewScreen`, `MonthlyReportScreen`, `SettingsScreen` still use legacy literals (`MoneyCanvas`, 8dp corners, light-only colors). Migrate them to `MoneyTheme.colors` + 18–20dp like Home/Transactions. Until then, tab switches feel like two different apps and dark mode cannot ship. | [UI] |
-| C2 | Replace legacy illustrations | `EmptyStateVisual` / `IllustratedSummaryCard` still use the old 3D-ish vector drawables (`illustration_*`), which clash with the new flat icon-chip style. Replace with colored icon chips; then delete unused drawables and legacy composables (`MonthlyFlowCardOld`, `MoneyHeroCard`, `MoneyFlowHeroCard`, `IllustratedSummaryCard` if unreferenced). | [UI] |
-| C3 | Enable live dark mode | `AutoMoneyTheme(darkTheme=)` already supports dark; it is intentionally not wired to the system setting until every screen is token-based. After C1/C2, flip `MainActivity` to `isSystemInDarkTheme()`. `MainActivity.kt` is a boundary zone — claim first. | [UI] |
+| C1 | ~~Restyle remaining screens to tokens~~ **DONE 2026-07-09:** Assets/Review/Report/Settings canvases, TabRow, InputCard, AssetRow, SpendingCalendar, ReviewActionCard, CategoryBar, MoneyFlowHeroCard/FlowPill all migrated to `MoneyTheme.colors` + 18–20dp. Dark previews added for all screens. | done |
+| C2 | ~~Replace legacy illustrations~~ **DONE 2026-07-09:** `EmptyStateVisual`/`IllustratedSummaryCard` now take an `icon: ImageVector` and render colored icon chips. Deleted unused `MoneyHeroCard`, `MonthlyFlowCardOld`, and drawables `illustration_{cash_flow,bank_mint,review_magnifier,notification_flow}`. Home hero keeps `illustration_wallet_coins` + flow images (approved look). | done |
+| C3 | ~~Enable live dark mode~~ **DONE 2026-07-09:** `MainActivity` now passes `isSystemInDarkTheme()`. Verified live on emulator (`cmd uimode night yes`): Home/Transactions/Review/Assets/Report/Settings all render dark correctly, including calendar and review empty state. | done |
 
 ### D. Later — housekeeping and scale
 

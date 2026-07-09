@@ -67,6 +67,38 @@ private fun SettingsPreview() {
     }
 }
 
+@Preview(name = "검토 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun ReviewDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        ReviewScreen(PaddingValues(0.dp))
+    }
+}
+
+@Preview(name = "자산 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun AssetsDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        com.choiyoonseo.automoney.ui.assets.AssetsScreen(PaddingValues(0.dp))
+    }
+}
+
+@Preview(name = "보고서 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun ReportDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        MonthlyReportScreen(PaddingValues(0.dp))
+    }
+}
+
+@Preview(name = "설정 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
+@Composable
+private fun SettingsDarkPreview() {
+    AutoMoneyTheme(darkTheme = true) {
+        SettingsScreen(PaddingValues(0.dp))
+    }
+}
+
 @Preview(name = "홈 · 다크", showBackground = true, widthDp = 390, heightDp = 844)
 @Composable
 private fun HomeDarkPreview() {

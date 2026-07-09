@@ -34,7 +34,6 @@ import com.choiyoonseo.automoney.ui.components.CategoryBar
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
-import com.choiyoonseo.automoney.ui.components.MoneyCanvas
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyFlowHeroCard
@@ -50,6 +49,7 @@ import com.choiyoonseo.automoney.ui.model.sampleSpendCalendar
 import com.choiyoonseo.automoney.ui.model.transactionsToRows
 import com.choiyoonseo.automoney.ui.model.transactionsToSpendCalendar
 import com.choiyoonseo.automoney.ui.model.transactionsToMonthlySummary
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.flow.flowOf
 import java.time.YearMonth
 
@@ -96,7 +96,7 @@ fun MonthlyReportScreen(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyCanvas)
+            .background(MoneyTheme.colors.canvas)
             .verticalScroll(rememberScrollState())
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
