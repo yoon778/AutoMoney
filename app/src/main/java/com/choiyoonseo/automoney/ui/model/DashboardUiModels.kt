@@ -26,6 +26,12 @@ data class TransactionRowUi(
     val sourceApp: SourceAppUi? = null
 )
 
+data class TransactionDateSectionUi(
+    val date: LocalDate,
+    val dateLabel: String,
+    val rows: List<TransactionRowUi>
+)
+
 enum class ReviewCardKind {
     TRANSFER,
     WALLET_TOPUP,
@@ -105,12 +111,12 @@ val sampleHomeSnapshot = HomeSnapshot(
     metrics = listOf(
         MetricTileUi("이번 달 지출", formatWon(898000), 0.72f, "예산 72%"),
         MetricTileUi("저축률", "64%", 0.64f, "목표까지 19.8만원"),
-        MetricTileUi("검토 필요", "5건", 0.5f, "송금/충전 확인")
+        MetricTileUi("검토 필요", "5건", 0.5f, "확인 필요")
     ),
     recentTransactions = listOf(
         TransactionRowUi("스타벅스 홍대입구", "카페/간식", -6100, "체크카드", "커"),
         TransactionRowUi("GS25 합정역점", "식비", -4800, "토스페이", "식"),
-        TransactionRowUi("네이버페이 충전", "지출 제외", 10000, "포인트", "충")
+        TransactionRowUi("쿠팡", "생활", -12900, "체크카드", "생")
     )
 )
 

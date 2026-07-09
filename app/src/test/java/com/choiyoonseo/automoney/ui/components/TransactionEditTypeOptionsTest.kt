@@ -6,12 +6,11 @@ import org.junit.Test
 
 class TransactionEditTypeOptionsTest {
     @Test
-    fun transactionEditTypeOptionsExposeReviewFriendlyTypes() {
+    fun transactionEditTypeOptionsExposeUserFacingTypesWithoutWalletTopup() {
         assertThat(transactionEditTypeOptions.map { it.type }).containsExactly(
             TransactionType.EXPENSE,
             TransactionType.INCOME,
             TransactionType.TRANSFER,
-            TransactionType.WALLET_TOPUP,
             TransactionType.SETTLEMENT,
             TransactionType.EXCLUDED
         ).inOrder()
@@ -21,6 +20,6 @@ class TransactionEditTypeOptionsTest {
     fun typeLabelForEditUsesFriendlyLabel() {
         assertThat(typeLabelForEdit(TransactionType.EXPENSE)).isEqualTo("지출")
         assertThat(typeLabelForEdit(TransactionType.TRANSFER)).isEqualTo("계좌 이동/송금")
-        assertThat(typeLabelForEdit(TransactionType.WALLET_TOPUP)).isEqualTo("충전/포인트")
+        assertThat(transactionEditTypeOptions.map { it.type }).doesNotContain(TransactionType.WALLET_TOPUP)
     }
 }

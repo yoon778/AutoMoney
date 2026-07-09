@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -11,8 +12,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,6 +27,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -31,13 +39,14 @@ import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyCanvas
-import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
 import com.choiyoonseo.automoney.ui.components.TransactionRow
+import com.choiyoonseo.automoney.ui.model.TransactionDateSectionUi
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
-import com.choiyoonseo.automoney.ui.model.transactionsToRows
+import com.choiyoonseo.automoney.ui.model.transactionsToDateSections
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.YearMonth
 
 @Composable
@@ -46,7 +55,8 @@ fun TransactionsScreen(
     moneyRepository: MoneyRepository? = null,
     saveManualTransactionUseCase: SaveManualTransactionUseCase? = null,
     editTransactionUseCase: EditTransactionUseCase? = null,
-    assetRepository: AssetRepository? = null
+    assetRepository: AssetRepository? = null,
+    walletTopupNoticeStore: WalletTopupNoticeStore? = null
 ) {
     val scope = rememberCoroutineScope()
     val month = remember { YearMonth.now() }
@@ -57,18 +67,33 @@ fun TransactionsScreen(
     val assetAccounts by remember(assetRepository) {
         assetRepository?.observeAccounts() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val rows = if (moneyRepository == null) {
-        sampleHomeSnapshot.recentTransactions
+    val dateSections = if (moneyRepository == null) {
+        listOf(
+            TransactionDateSectionUi(
+                date = LocalDate.now(),
+                dateLabel = "오늘",
+                rows = sampleHomeSnapshot.recentTransactions
+            )
+        )
     } else {
-        transactionsToRows(transactions)
+        transactionsToDateSections(transactions)
     }
     var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
     var manualFormMessage by remember { mutableStateOf<String?>(null) }
     var manualFormResetSignal by remember { mutableStateOf(0) }
+    var isManualFormVisible by remember { mutableStateOf(false) }
     var isSavingManual by remember { mutableStateOf(false) }
     var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
     var isEditingTransaction by remember { mutableStateOf(false) }
+    var showWalletTopupNotice by remember(walletTopupNoticeStore) {
+        mutableStateOf(walletTopupNoticeStore?.shouldShowNotice() == true)
+    }
+
+    fun dismissWalletTopupNotice() {
+        walletTopupNoticeStore?.markNoticeSeen()
+        showWalletTopupNotice = false
+    }
 
     Column(
         modifier = Modifier
@@ -79,10 +104,34 @@ fun TransactionsScreen(
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ScreenTitle(
-            title = "거래",
-            subtitle = "자동 기록된 결제와 직접 입력한 거래를 모아요."
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top
+        ) {
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = "거래",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = "날짜순으로 정리된 거래를 확인하고 직접 추가해요.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            IconButton(
+                onClick = {
+                    isManualFormVisible = true
+                    manualFormMessage = null
+                }
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "거래 추가")
+            }
+        }
         saveSuccessMessage?.let { message ->
             AssistChip(onClick = {}, label = { Text(message) })
         }
@@ -93,73 +142,97 @@ fun TransactionsScreen(
             accent = MoneyBlue,
             icon = Icons.AutoMirrored.Filled.List
         ) {
-            rows.forEach { transaction ->
-                TransactionRow(
-                    transaction = transaction,
-                    onClick = transaction.id?.let { transactionId ->
-                        if (editTransactionUseCase == null) {
-                            null
-                        } else {
-                            {
-                                activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
-                                editErrorMessage = null
+            dateSections.forEach { section ->
+                Text(
+                    text = section.dateLabel,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                section.rows.forEach { transaction ->
+                    TransactionRow(
+                        transaction = transaction,
+                        onClick = transaction.id?.let { transactionId ->
+                            if (editTransactionUseCase == null) {
+                                null
+                            } else {
+                                {
+                                    activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
+                                    editErrorMessage = null
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
-            if (rows.isEmpty()) {
+            if (dateSections.all { it.rows.isEmpty() }) {
                 Text("아직 이번 달 기록이 없어요.")
             }
         }
 
-        FinanceSectionCard(
-            title = "수동 입력",
-            subtitle = "자동 알림에 없는 거래만 직접 추가",
-            accent = MoneyBlue,
-            icon = Icons.AutoMirrored.Filled.List
-        ) {
-            manualFormMessage?.let { Text(it, fontWeight = FontWeight.Medium) }
-            ManualTransactionForm(
-                isSaving = isSavingManual,
-                resetSignal = manualFormResetSignal,
-                accountNames = assetAccounts.map { it.name }
-            ) { type, amountWon, category, memo, occurredAt, accountName ->
-                val useCase = saveManualTransactionUseCase
-                if (useCase == null) {
-                    saveSuccessMessage = null
-                    manualFormMessage = "미리보기에서는 저장하지 않아요."
-                    return@ManualTransactionForm
-                }
-
-                scope.launch {
-                    isSavingManual = true
-                    try {
-                        useCase.save(
-                            type = type,
-                            amountWon = amountWon,
-                            categoryText = category,
-                            memo = memo,
-                            occurredAt = occurredAt,
-                            paymentMethod = accountName
-                        )
-                        val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
-                        saveSuccessMessage = if (savedMonth == month) {
-                            "수동 거래를 저장했어요. 최근 거래에 반영했어요."
-                        } else {
-                            "수동 거래를 저장했어요. 선택한 달 기록에 반영했어요."
+        if (isManualFormVisible) {
+            FinanceSectionCard(
+                title = "수동 입력",
+                subtitle = "자동 알림에 없는 거래만 직접 추가",
+                accent = MoneyBlue,
+                icon = Icons.AutoMirrored.Filled.List
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        enabled = !isSavingManual,
+                        onClick = {
+                            isManualFormVisible = false
+                            manualFormMessage = null
                         }
-                        manualFormMessage = null
-                        manualFormResetSignal += 1
-                        scrollState.animateScrollTo(0)
-                    } catch (e: IllegalArgumentException) {
+                    ) {
+                        Text("닫기")
+                    }
+                }
+                manualFormMessage?.let { Text(it, fontWeight = FontWeight.Medium) }
+                ManualTransactionForm(
+                    isSaving = isSavingManual,
+                    resetSignal = manualFormResetSignal,
+                    accountNames = assetAccounts.map { it.name }
+                ) { type, amountWon, category, memo, occurredAt, accountName ->
+                    val useCase = saveManualTransactionUseCase
+                    if (useCase == null) {
                         saveSuccessMessage = null
-                        manualFormMessage = e.message ?: "입력값을 확인해 주세요."
-                    } catch (e: RuntimeException) {
-                        saveSuccessMessage = null
-                        manualFormMessage = "저장 중 문제가 생겼어요."
-                    } finally {
-                        isSavingManual = false
+                        manualFormMessage = "미리보기에서는 저장하지 않아요."
+                        return@ManualTransactionForm
+                    }
+
+                    scope.launch {
+                        isSavingManual = true
+                        try {
+                            useCase.save(
+                                type = type,
+                                amountWon = amountWon,
+                                categoryText = category,
+                                memo = memo,
+                                occurredAt = occurredAt,
+                                paymentMethod = accountName
+                            )
+                            val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
+                            saveSuccessMessage = if (savedMonth == month) {
+                                "수동 거래를 저장했어요. 최근 거래에 반영했어요."
+                            } else {
+                                "수동 거래를 저장했어요. 선택한 달 기록에 반영했어요."
+                            }
+                            manualFormMessage = null
+                            isManualFormVisible = false
+                            manualFormResetSignal += 1
+                            scrollState.animateScrollTo(0)
+                        } catch (e: IllegalArgumentException) {
+                            saveSuccessMessage = null
+                            manualFormMessage = e.message ?: "입력값을 확인해 주세요."
+                        } catch (e: RuntimeException) {
+                            saveSuccessMessage = null
+                            manualFormMessage = "저장 중 문제가 생겼어요."
+                        } finally {
+                            isSavingManual = false
+                        }
                     }
                 }
             }
@@ -224,6 +297,19 @@ fun TransactionsScreen(
                     } finally {
                         isEditingTransaction = false
                     }
+                }
+            }
+        )
+    }
+
+    if (showWalletTopupNotice) {
+        AlertDialog(
+            onDismissRequest = { dismissWalletTopupNotice() },
+            title = { Text("충전/포인트 안내") },
+            text = { Text("충전과 포인트 이동은 거래 목록에서 제외하고, 실제 사용 금액만 지출로 기록해요.") },
+            confirmButton = {
+                TextButton(onClick = { dismissWalletTopupNotice() }) {
+                    Text("확인")
                 }
             }
         )

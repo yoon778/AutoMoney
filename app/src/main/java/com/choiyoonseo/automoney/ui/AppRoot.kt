@@ -42,6 +42,7 @@ import com.choiyoonseo.automoney.ui.review.ReviewScreen
 import com.choiyoonseo.automoney.ui.settings.SettingsScreen
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.transactions.TransactionsScreen
+import com.choiyoonseo.automoney.ui.transactions.WalletTopupNoticeStore
 
 private enum class AppTab(val label: String, val icon: ImageVector) {
     HOME("홈", Icons.Filled.Home),
@@ -60,7 +61,8 @@ fun AppRoot(
     notificationIngestionUseCase: NotificationIngestionUseCase? = null,
     saveManualTransactionUseCase: SaveManualTransactionUseCase? = null,
     editTransactionUseCase: EditTransactionUseCase? = null,
-    notificationDiagnosticsStore: NotificationDiagnosticsStore? = null
+    notificationDiagnosticsStore: NotificationDiagnosticsStore? = null,
+    walletTopupNoticeStore: WalletTopupNoticeStore? = null
 ) {
     val colors = MoneyTheme.colors
     var selectedTab by remember { mutableStateOf(AppTab.HOME) }
@@ -124,7 +126,8 @@ fun AppRoot(
                 moneyRepository = moneyRepository,
                 saveManualTransactionUseCase = saveManualTransactionUseCase,
                 editTransactionUseCase = editTransactionUseCase,
-                assetRepository = assetRepository
+                assetRepository = assetRepository,
+                walletTopupNoticeStore = walletTopupNoticeStore
             )
             AppTab.REVIEW -> ReviewScreen(
                 padding = padding,

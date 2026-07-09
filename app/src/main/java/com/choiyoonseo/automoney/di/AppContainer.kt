@@ -17,9 +17,11 @@ import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
+import com.choiyoonseo.automoney.ui.transactions.SharedPreferencesWalletTopupNoticeStore
 
 class AppContainer(context: Context) {
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
+    val walletTopupNoticeStore = SharedPreferencesWalletTopupNoticeStore(context.applicationContext)
 
     val database: AppDatabase = Room.databaseBuilder(
         context.applicationContext,

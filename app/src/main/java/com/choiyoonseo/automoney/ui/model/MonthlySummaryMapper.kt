@@ -8,7 +8,10 @@ import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
 import com.choiyoonseo.automoney.domain.report.isReportableTransaction
+import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import kotlin.math.roundToInt
 
 data class MonthlySummaryUi(
@@ -83,7 +86,7 @@ fun transactionsToMonthlySummary(
                 title = "\uac80\ud1a0 \ud544\uc694",
                 value = "${reviewCount}\uac74",
                 progress = (reviewCount / 10f).coerceIn(0f, 1f),
-                helper = if (reviewCount == 0) "\uc815\ub9ac \uc644\ub8cc" else "\uc1a1\uae08/\ucda9\uc804 \ud655\uc778"
+                helper = if (reviewCount == 0) "\uc815\ub9ac \uc644\ub8cc" else "\ud655\uc778 \ud544\uc694"
             )
         ),
         recentTransactions = monthlyTransactions
@@ -115,8 +118,30 @@ fun transactionsToRows(
         .take(limit)
         .map { it.toTransactionRowUi() }
 
+fun transactionsToDateSections(
+    transactions: List<MoneyTransaction>,
+    limit: Int = Int.MAX_VALUE,
+    zoneId: ZoneId = ZoneId.systemDefault()
+): List<TransactionDateSectionUi> =
+    transactions
+        .filter { it.isVisibleInLedger() }
+        .sortedByDescending { it.occurredAt }
+        .take(limit)
+        .groupBy { LocalDate.ofInstant(it.occurredAt, zoneId) }
+        .map { (date, datedTransactions) ->
+            TransactionDateSectionUi(
+                date = date,
+                dateLabel = date.format(transactionSectionDateFormatter),
+                rows = datedTransactions.map { it.toTransactionRowUi() }
+            )
+        }
+
 fun MoneyTransaction.isVisibleInLedger(): Boolean =
-    status != TransactionStatus.NEEDS_REVIEW
+    status != TransactionStatus.NEEDS_REVIEW &&
+        type != TransactionType.WALLET_TOPUP
+
+private val transactionSectionDateFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("M월 d일")
 
 private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
     val displayAmount = if (direction == TransactionDirection.EXPENSE || type.countsAsMonthlyExpense) {

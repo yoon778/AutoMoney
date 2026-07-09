@@ -11,6 +11,7 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 import java.time.Instant
 import java.time.YearMonth
+import java.time.ZoneId
 
 class MonthlySummaryMapperTest {
     @Test
@@ -174,7 +175,7 @@ class MonthlySummaryMapperTest {
     }
 
     @Test
-    fun transactionsToRowsBuildsFullTransactionRowsIncludingTopups() {
+    fun transactionsToRowsBuildsFullTransactionRowsWithoutTopups() {
         val month = YearMonth.of(2026, 7)
         val rows = transactionsToRows(
             transactions = listOf(
@@ -187,13 +188,10 @@ class MonthlySummaryMapperTest {
 
         assertThat(rows.map { it.merchant }).containsExactly(
             "GS25 합정역점",
-            "네이버페이",
             "스타벅스"
         ).inOrder()
-        assertThat(rows.map { it.amountWon }).containsExactly(-4800L, 10000L, -6100L).inOrder()
-        assertThat(rows[1].category).isEqualTo("지출 제외")
-        assertThat(rows[1].isExcluded).isFalse()
-        assertThat(rows.map { it.id }).containsExactly(3L, 2L, 1L).inOrder()
+        assertThat(rows.map { it.amountWon }).containsExactly(-4800L, -6100L).inOrder()
+        assertThat(rows.map { it.id }).containsExactly(3L, 1L).inOrder()
     }
 
     @Test
@@ -277,6 +275,36 @@ class MonthlySummaryMapperTest {
     }
 
     @Test
+    fun transactionsToDateSectionsGroupsByLocalDateDescendingThenTimeDescending() {
+        val month = YearMonth.of(2026, 7)
+        val sections = transactionsToDateSections(
+            transactions = listOf(
+                tx("2026-07-01T01:00:00Z", 6100, TransactionType.EXPENSE, Category.CAFE_SNACK, month, "첫째 카페", id = 1),
+                tx("2026-07-03T03:00:00Z", 9000, TransactionType.EXPENSE, Category.FOOD, month, "셋째 늦은 식당", id = 2),
+                tx("2026-07-03T01:00:00Z", 4800, TransactionType.EXPENSE, Category.FOOD, month, "셋째 이른 편의점", id = 3),
+                tx(
+                    occurredAt = "2026-07-04T01:00:00Z",
+                    amountWon = 10_000,
+                    type = TransactionType.TRANSFER,
+                    category = null,
+                    month = month,
+                    merchant = "검토 전 송금",
+                    id = 4,
+                    status = TransactionStatus.NEEDS_REVIEW
+                )
+            ),
+            zoneId = ZoneId.of("UTC")
+        )
+
+        assertThat(sections.map { it.date.toString() }).containsExactly("2026-07-03", "2026-07-01").inOrder()
+        assertThat(sections[0].dateLabel).isEqualTo("7월 3일")
+        assertThat(sections[0].rows.map { it.merchant })
+            .containsExactly("셋째 늦은 식당", "셋째 이른 편의점")
+            .inOrder()
+        assertThat(sections.flatMap { it.rows }.map { it.merchant }).doesNotContain("검토 전 송금")
+    }
+
+    @Test
     fun transactionsToRowsUsesMemoAndTypeWhenTitleFieldsAreBlank() {
         val month = YearMonth.of(2026, 7)
         val rows = transactionsToRows(
@@ -292,22 +320,12 @@ class MonthlySummaryMapperTest {
                     status = TransactionStatus.USER_EDITED,
                     memo = "\uce5c\uad6c \uc815\uc0b0"
                 ),
-                tx(
-                    occurredAt = "2026-07-01T02:00:00Z",
-                    amountWon = 10000,
-                    type = TransactionType.WALLET_TOPUP,
-                    category = null,
-                    month = month,
-                    merchant = "",
-                    id = 8,
-                    status = TransactionStatus.USER_EDITED,
-                    memo = ""
-                )
+                tx("2026-07-01T02:00:00Z", 10000, TransactionType.INCOME, Category.SALARY, month, merchant = "", id = 8)
             )
         )
 
         assertThat(rows.map { it.merchant }).containsExactly(
-            "\ucda9\uc804/\ud3ec\uc778\ud2b8",
+            "\uc6d4\uae09",
             "\uce5c\uad6c \uc815\uc0b0"
         ).inOrder()
     }
