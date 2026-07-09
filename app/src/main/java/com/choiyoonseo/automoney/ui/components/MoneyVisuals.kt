@@ -52,13 +52,8 @@ import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 val MoneyBlue = Color(0xFF2F80ED)
 val MoneyGreen = Color(0xFF24A148)
 val MoneyCoral = Color(0xFFFF8A65)
-val MoneyInk = Color(0xFF172033)
 val MoneyMint = Color(0xFF19B59B)
 val MoneyMuted = Color(0xFF697386)
-val MoneyCanvas = Color(0xFFF7F9FC)
-val MoneySoftBlue = Color(0xFFEAF2FF)
-val MoneySoftMint = Color(0xFFEAF8F4)
-val MoneySoftCoral = Color(0xFFFFF0EA)
 
 @Composable
 fun ScreenTitle(title: String, subtitle: String? = null) {

@@ -3,7 +3,6 @@ package com.choiyoonseo.automoney.ui.components
 import androidx.compose.ui.graphics.Color
 
 val MoneyYellow = Color(0xFFFFC542)
-val MoneySoftYellow = Color(0xFFFFF7DE)
 
 private val fallbackAccents = listOf(MoneyBlue, MoneyMint, MoneyCoral, MoneyYellow, MoneyGreen)
 
