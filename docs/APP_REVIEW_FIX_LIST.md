@@ -26,7 +26,7 @@ Ownership legend: **[UI]** = Claude, **[LOGIC]** = Codex, **[SHARED]** = contrac
 |---|------|--------|-------|
 | A1 | First-run onboarding for notification access | If notification access is off, nothing gets recorded, but the only hint lives inside the Settings screen. Add a first-run notice (dialog or home banner) explaining "allow notification access → transactions record themselves", with a button that opens the system settings screen (`onOpenNotificationSettings` already exists in `AppRoot.kt`). Show until granted or explicitly dismissed. | [UI], may need a small "seen" store like `WalletTopupNoticeStore` [LOGIC] |
 | A2 | Actionable empty states | Empty lists currently say only "아직 이번 달 기록이 없어요." When the DB is empty AND access is off, the empty state should say automatic recording needs permission and offer the same settings button. `notificationAccessEnabled` is already computed in `AppRoot.kt` — needs passing down to Home/Transactions. | [UI] |
-| A3 | Settings is unreachable from the bottom nav | Bottom tabs are 홈/거래/검토/자산/보고서; `SettingsScreen` exists but has no visible entry point. Add a gear icon on the Home screen title row (top-right) that navigates to Settings. | [UI] (AppRoot is a boundary zone — claim before wiring navigation) |
+| A3 | ~~Settings is unreachable from the bottom nav~~ **CORRECTED 2026-07-09:** wrong — the live app has 6 tabs including 설정. Verified on emulator. No action needed. | — | — |
 
 ### B. Trust — "is the automatic record correct?"
 
@@ -34,6 +34,7 @@ Ownership legend: **[UI]** = Claude, **[LOGIC]** = Codex, **[SHARED]** = contrac
 |---|------|--------|-------|
 | B1 | Distinguish auto vs manual transactions | Rows look identical whether parsed from a notification or entered by hand. Add a small "자동" badge for notification-sourced rows. `TransactionRowUi` likely needs a source flag — that is a UI-model contract change: claim it, Codex updates the mapper, Claude renders it. | [SHARED] |
 | B2 | Status messages never disappear | Save/edit confirmations render as an `AssistChip` that stays forever and is not dismissible (`TransactionsScreen.kt`, `AssetsScreen.kt`, `ReviewScreen.kt`). Auto-dismiss after ~3s (or switch to Snackbar). | [UI] |
+| B4 | Timezone consistency between manual-entry date and list/home grouping | Observed on a UTC-timezone emulator (2026-07-09): a manual transaction saved with the "오늘" chip landed in the "7월 8일" date section, and Home's "오늘 사용" stayed 0원 while "최근 7일" showed the amount. Suggests the manual form's zone (`manualTransactionZoneId`) and the grouping zone (`ZoneId.systemDefault()` in `transactionsToDateSections` / home calculators) can disagree. Invisible on a KST device, but worth unifying on one zone source. | [LOGIC] |
 | B3 | Apply the pending review-flow corrections | The four items Codex documented in `docs/AI_COLLABORATION.md` → "Claude UI Notes": (1) `ACCOUNT_UNMATCHED` cards must route to an account-focused edit, not the generic memo confirm; (2) review actions should call the atomic review use cases from `AppContainer` instead of `updateTransaction()` + `resolveReviewItem()` separately; (3) account-transfer review should call the atomic transfer use case; (4) visual polish stays in `ReviewScreen.kt`. These are behavior-correctness issues. | [UI] consuming [LOGIC] use cases already exposed |
 
 ### C. Consistency — half the app wears the new design
@@ -53,6 +54,15 @@ Ownership legend: **[UI]** = Claude, **[LOGIC]** = Codex, **[SHARED]** = contrac
 | D3 | Build-config deprecation warnings | Gradle warns about `android.builtInKotlin=false`, `android.newDsl=false`, and the legacy `applicationVariants` API (AGP 10 removal). Not urgent; app-level build config. | [LOGIC] |
 
 ---
+
+## Verified Working (emulator run, 2026-07-09, Pixel_7 AVD)
+
+Manual end-to-end check on the debug build (commit `e69a112` era):
+- Install, launch, and full tab navigation (홈/거래/검토/자산/보고서/설정) — no crashes, empty crash buffer, process stable throughout.
+- Transactions: restyled header + blue `+` renders; one-time 충전/포인트 notice appeared exactly once on first visit; `+` opens the manual form; type chips are 지출/수입/이체 only (no WALLET_TOPUP).
+- Saved a manual 5,000원 expense end-to-end: success message shown, row appears in a date section (red negative amount), Home hero updates (지출 5,000원 / 남은 돈 -5,000원 / 최근 7일 5,000원), Report updates (지출 5,000원, calendar day badge "5천").
+- Settings correctly reports notification access off and offers the settings button.
+- B4 (timezone) was discovered during this run.
 
 ## Suggested Order
 
