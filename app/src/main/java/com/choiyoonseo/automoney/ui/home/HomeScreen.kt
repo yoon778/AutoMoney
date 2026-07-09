@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -209,15 +210,15 @@ fun HomeScreen(
     if (showNotificationOnboarding) {
         AlertDialog(
             onDismissRequest = onDismissNotificationOnboarding,
-            title = { Text("\uc54c\ub9bc \uad8c\ud55c \uc124\uc815") },
-            text = { Text("\uc790\ub3d9 \uae30\ub85d\uc744 \uc0ac\uc6a9\ud558\ub824\uba74 \uc54c\ub9bc \uc811\uadfc \uad8c\ud55c\uc774 \ud544\uc694\ud574\uc694") },
+            title = { Text("\uc54c\ub9bc\uc73c\ub85c \uc790\ub3d9 \uae30\ub85d") },
+            text = { Text("\uacb0\uc81c\u00b7\uc785\uae08 \uc54c\ub9bc\uc744 \uc77d\uc5b4\uc11c \uac70\ub798\ub97c \uc790\ub3d9\uc73c\ub85c \uae30\ub85d\ud574\uc694. \uad8c\ud55c\uc744 \ucf1c\uba74 \uc190\ub300\uc9c0 \uc54a\uc544\ub3c4 \uac00\uacc4\ubd80\uac00 \ucc44\uc6cc\uc838\uc694.") },
             confirmButton = {
                 Button(onClick = onOpenNotificationSettings) {
                     Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
                 }
             },
             dismissButton = {
-                Button(onClick = onDismissNotificationOnboarding) {
+                TextButton(onClick = onDismissNotificationOnboarding) {
                     Text("\ub098\uc911\uc5d0")
                 }
             }
