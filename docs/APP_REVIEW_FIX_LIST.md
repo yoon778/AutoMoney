@@ -95,6 +95,36 @@ Question: when a finance notification arrives, does the app recognize → parse 
 7. `app/src/main/java/com/choiyoonseo/automoney/notification/SampleNotificationScenarios.kt` — unused in-app; candidate for N3
 8. Tests mirroring each of the above under `app/src/test/java/com/choiyoonseo/automoney/{notification,domain/parser}/`
 
+## Code Audit — dead code & migrations (2026-07-09)
+
+Whole-repo pass (UI + Codex areas). Method: usage grep per public symbol + file-size scan + migration SQL vs entity declarations.
+
+**Dead code — [UI] Claude can delete:**
+| Item | Evidence | Action |
+|---|---|---|
+| `SoftShadowCard.kt` | 0 call sites (cards ended up on `Surface`) | delete, or adopt in Home cards — pick one |
+| Color vals `MoneyInk, MoneyCanvas, MoneySoftBlue, MoneySoftMint, MoneySoftCoral, MoneySoftYellow` (MoneyVisuals/FinancePalette) | 0 uses after token migration | delete vals |
+
+**Dead code — [LOGIC] Codex decision:**
+| Item | Evidence | Action |
+|---|---|---|
+| `export/CsvExporter.kt` | 0 prod call sites (only its own test) | delete, or wire an export button later — decide |
+| `notification/DailyReviewNotifier.kt` | 0 call sites; daily reminder never wired | delete, or wire (it was a captured requirement — "review reminder") |
+| `WalletDao` + `WalletEntity` + `wallets` table | dao exposed by `AppDatabase`, zero callers anywhere; topup flow uses transactions instead | code can go now; dropping the table needs migration v5 — fine to defer, harmless |
+
+**Oversized files (split candidates, [UI]):**
+- `ReviewScreen.kt` 862 lines — extract 4 dialogs (wallet usage, unused memo, review memo, account transfer) into own files (= existing D2)
+- `MoneyVisuals.kt` 725 lines — many unrelated components in one file; split by component when convenient
+
+**Not dead (checked, alive):** `accountOptionsForEdit`/`accountLabelForEdit`, `ManualTransactionFormDefaults`, `WalletTopupReviewService` (preview fallback + use case), all `FinancePalette` accent functions, sample data (previews).
+
+**Migrations re-check (v1→4): SOUND.**
+- `MIGRATION_1_2`: creates 3 asset tables — matches entities.
+- `MIGRATION_2_3`: dedupes `sourceNotificationHash` before unique index (keeps MIN id); rebuilds `review_items` with FK `ON DELETE CASCADE` + unique `transactionId`, keeping newest-unresolved row per transaction; drops orphans. Careful, correct.
+- `MIGRATION_3_4`: 4 perf indices — names/columns match entity `indices` declarations exactly (Room schema validation passes).
+- `exportSchema = true`, schema JSONs in repo, on-device `AppDatabaseMigrationTest` exists and passed (2026-07 run).
+- Only smell: `wallets` table is dead schema surface (above).
+
 ## Suggested Order
 
 **A1 → A2 → A3** (first impression) → **B3** (review-flow correctness) → **C1 → C2 → C3** (full visual consistency + dark) → **B1 → B2** → **D**.
