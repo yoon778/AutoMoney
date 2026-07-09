@@ -9,26 +9,23 @@ import com.choiyoonseo.automoney.data.local.dao.AssetDao
 import com.choiyoonseo.automoney.data.local.dao.ReviewItemDao
 import com.choiyoonseo.automoney.data.local.dao.RuleDao
 import com.choiyoonseo.automoney.data.local.dao.TransactionDao
-import com.choiyoonseo.automoney.data.local.dao.WalletDao
 import com.choiyoonseo.automoney.data.local.entity.AssetAccountEntity
 import com.choiyoonseo.automoney.data.local.entity.FixedExpenseEntity
 import com.choiyoonseo.automoney.data.local.entity.MonthlyPlanItemEntity
 import com.choiyoonseo.automoney.data.local.entity.ReviewItemEntity
 import com.choiyoonseo.automoney.data.local.entity.RuleEntity
 import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
-import com.choiyoonseo.automoney.data.local.entity.WalletEntity
 
 @Database(
     entities = [
         TransactionEntity::class,
         ReviewItemEntity::class,
         RuleEntity::class,
-        WalletEntity::class,
         AssetAccountEntity::class,
         FixedExpenseEntity::class,
         MonthlyPlanItemEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -36,7 +33,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun transactionDao(): TransactionDao
     abstract fun reviewItemDao(): ReviewItemDao
     abstract fun ruleDao(): RuleDao
-    abstract fun walletDao(): WalletDao
     abstract fun assetDao(): AssetDao
 
     companion object {
@@ -167,6 +163,12 @@ abstract class AppDatabase : RoomDatabase() {
                     ON rules(enabled)
                     """.trimIndent()
                 )
+            }
+        }
+
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("DROP TABLE IF EXISTS wallets")
             }
         }
     }

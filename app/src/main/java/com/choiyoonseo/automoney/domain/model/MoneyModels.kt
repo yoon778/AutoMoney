@@ -129,16 +129,3 @@ enum class RuleAction {
     MARK_AS_WALLET_TOPUP,
     MARK_AS_SETTLEMENT
 }
-
-data class Wallet(
-    val id: Long = 0,
-    val name: String,
-    val type: WalletType,
-    val balance: MoneyAmount
-)
-
-enum class WalletType {
-    PREPAID,
-    POINT,
-    CASH_LIKE
-}

@@ -21,7 +21,7 @@ class AppDatabaseMigrationTest {
     )
 
     @Test
-    fun migration2To4DeduplicatesHashesAndReviewItemsAndValidatesSchema() {
+    fun migration2To5DeduplicatesHashesAndReviewItemsDropsWalletsAndValidatesSchema() {
         helper.createDatabase(TEST_DB, 2).apply {
             insertTransaction(id = 1, sourceNotificationHash = "same-hash")
             insertTransaction(id = 2, sourceNotificationHash = "same-hash")
@@ -34,10 +34,11 @@ class AppDatabaseMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            4,
+            5,
             true,
             AppDatabase.MIGRATION_2_3,
-            AppDatabase.MIGRATION_3_4
+            AppDatabase.MIGRATION_3_4,
+            AppDatabase.MIGRATION_4_5
         )
 
         assertEquals("same-hash", db.singleString("SELECT sourceNotificationHash FROM transactions WHERE id = 1"))
@@ -46,6 +47,7 @@ class AppDatabaseMigrationTest {
         assertEquals(1, db.singleLong("SELECT transactionId FROM review_items"))
         assertEquals(11, db.singleLong("SELECT id FROM review_items"))
         assertEquals(0, db.singleLong("SELECT COUNT(*) FROM review_items WHERE transactionId = 999"))
+        assertEquals(0, db.singleLong("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'wallets'"))
     }
 
     private fun SupportSQLiteDatabase.insertTransaction(

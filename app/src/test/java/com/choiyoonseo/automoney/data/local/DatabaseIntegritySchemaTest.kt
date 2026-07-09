@@ -32,12 +32,14 @@ class DatabaseIntegritySchemaTest {
         val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
             .readText()
 
-        assertThat(database).contains("version = 4")
+        assertThat(database).contains("version = 5")
         assertThat(database).contains("MIGRATION_2_3")
         assertThat(database).contains("MIGRATION_3_4")
+        assertThat(database).contains("MIGRATION_4_5")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_4_5")
     }
 
     @Test
@@ -53,9 +55,25 @@ class DatabaseIntegritySchemaTest {
 
     @Test
     fun currentRoomSchemaFileIsGenerated() {
-        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/4.json")
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/5.json")
 
         assertThat(schema.exists()).isTrue()
+    }
+
+    @Test
+    fun walletSchemaSurfaceIsRemovedInCurrentDatabase() {
+        val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
+            .readText()
+        val database = File("src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt")
+            .readText()
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/5.json")
+
+        assertThat(File("src/main/java/com/choiyoonseo/automoney/data/local/dao/WalletDao.kt").exists()).isFalse()
+        assertThat(entities).doesNotContain("WalletEntity")
+        assertThat(database).doesNotContain("WalletEntity::class")
+        assertThat(database).doesNotContain("walletDao()")
+        assertThat(database).contains("DROP TABLE IF EXISTS wallets")
+        assertThat(schema.readText()).doesNotContain("\"tableName\": \"wallets\"")
     }
 
     @Test

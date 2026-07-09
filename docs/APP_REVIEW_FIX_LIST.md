@@ -108,9 +108,9 @@ Whole-repo pass (UI + Codex areas). Method: usage grep per public symbol + file-
 **Dead code — [LOGIC] Codex decision:**
 | Item | Evidence | Action |
 |---|---|---|
-| `export/CsvExporter.kt` | 0 prod call sites (only its own test) | delete, or wire an export button later — decide |
-| `notification/DailyReviewNotifier.kt` | 0 call sites; daily reminder never wired | delete, or wire (it was a captured requirement — "review reminder") |
-| `WalletDao` + `WalletEntity` + `wallets` table | dao exposed by `AppDatabase`, zero callers anywhere; topup flow uses transactions instead | code can go now; dropping the table needs migration v5 — fine to defer, harmless |
+| ~~`export/CsvExporter.kt`~~ | 0 prod call sites (only its own test) | **DONE 2026-07-09:** deleted exporter + orphan test |
+| ~~`notification/DailyReviewNotifier.kt`~~ | 0 call sites; daily reminder never wired | **DONE 2026-07-09:** deleted unwired notifier |
+| ~~`WalletDao` + `WalletEntity` + `wallets` table~~ | dao exposed by `AppDatabase`, zero callers anywhere; topup flow uses transactions instead | **DONE 2026-07-09:** removed DAO/entity/domain wallet model, bumped DB to v5, added `MIGRATION_4_5` to drop `wallets`, generated `5.json` |
 
 **Oversized files (split candidates, [UI]):**
 - `ReviewScreen.kt` 862 lines — extract 4 dialogs (wallet usage, unused memo, review memo, account transfer) into own files (= existing D2)
@@ -123,7 +123,7 @@ Whole-repo pass (UI + Codex areas). Method: usage grep per public symbol + file-
 - `MIGRATION_2_3`: dedupes `sourceNotificationHash` before unique index (keeps MIN id); rebuilds `review_items` with FK `ON DELETE CASCADE` + unique `transactionId`, keeping newest-unresolved row per transaction; drops orphans. Careful, correct.
 - `MIGRATION_3_4`: 4 perf indices — names/columns match entity `indices` declarations exactly (Room schema validation passes).
 - `exportSchema = true`, schema JSONs in repo, on-device `AppDatabaseMigrationTest` exists and passed (2026-07 run).
-- Only smell: `wallets` table is dead schema surface (above).
+- `wallets` table removed in v5 via `MIGRATION_4_5`; legacy `2.json`/`4.json` retained for migration validation.
 
 ## Suggested Order
 

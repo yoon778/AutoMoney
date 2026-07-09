@@ -15,7 +15,6 @@ import com.choiyoonseo.automoney.domain.model.RuleMatchType
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
-import com.choiyoonseo.automoney.domain.model.WalletType
 import java.time.Instant
 
 @Entity(
@@ -90,14 +89,6 @@ data class RuleEntity(
     val action: RuleAction,
     val targetValue: String,
     val enabled: Boolean
-)
-
-@Entity(tableName = "wallets")
-data class WalletEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    val name: String,
-    val type: WalletType,
-    val balanceWon: Long
 )
 
 @Entity(tableName = "asset_accounts")
