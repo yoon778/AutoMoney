@@ -15,8 +15,6 @@ class MoneyNotificationListenerService : NotificationListenerService() {
     private val snapshotBuilder = NotificationSnapshotBuilder()
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        if (!FinancialAppRegistry.isSupportedPackage(sbn.packageName)) return
-
         val extras = sbn.notification.extras
         val snapshot = snapshotBuilder.build(
             NotificationContentFields(
@@ -30,6 +28,16 @@ class MoneyNotificationListenerService : NotificationListenerService() {
                 postTimeMillis = sbn.postTime
             )
         )
+
+        if (!FinancialAppRegistry.isSupportedPackage(sbn.packageName)) {
+            scope.launch {
+                val app = applicationContext as AutoMoneyApplication
+                app.container.notificationDiagnosticsStore.save(
+                    LastNotificationDiagnostic.fromUnsupportedPackage(snapshot)
+                )
+            }
+            return
+        }
 
         scope.launch {
             val app = applicationContext as AutoMoneyApplication

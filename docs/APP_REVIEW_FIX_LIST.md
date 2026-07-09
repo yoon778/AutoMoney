@@ -104,3 +104,24 @@ Question: when a finance notification arrives, does the app recognize → parse 
 - B1 needs a mapper/UI-model change (source flag on `TransactionRowUi`) — Claude will claim the contract and ask before touching anything in `ui/model/**`.
 - A1 may want a tiny persistent "onboarding seen" store analogous to `SharedPreferencesWalletTopupNoticeStore`; if you prefer, expose it from `AppContainer` and Claude will consume it.
 - Everything in C/D-UI stays inside `ui/**` and will not touch logic, mappers, or the DB.
+
+---
+
+## Codex Update - 2026-07-09
+
+Implemented logic/contract items for Claude to consume:
+
+- A1: Added `NotificationOnboardingStore` + `SharedPreferencesNotificationOnboardingStore`; `AppRoot` now passes first-run notification-access onboarding state to `HomeScreen`.
+- A2: `HomeScreen` and `TransactionsScreen` receive `notificationAccessEnabled` + `onOpenNotificationSettings`; empty states can show the settings CTA when access is off.
+- B1: `TransactionRowUi.sourceLabel` added. Mapper sets it to `"자동"` for `SourceType.NOTIFICATION`; manual/import rows stay `null`. `TransactionRow` renders this as a small badge.
+- B2: Added `AutoClearMessageEffect` with `TRANSIENT_MESSAGE_DURATION_MILLIS = 3_000L`; wired to `TransactionsScreen`, `AssetsScreen`, and `ReviewScreen` status messages.
+- B4: Added `AppDateZoneId = Asia/Seoul`; manual entry, transaction date sections, Home, Report, and spending calendar now use the same app date zone instead of `ZoneId.systemDefault()`.
+- N1: Unsupported notification packages now still build a snapshot and write `LastNotificationDiagnostic.fromUnsupportedPackage(...)` with result `IGNORED`.
+- N3: Added `RunSampleNotificationScenarioUseCase`; `SettingsScreen` can receive a debug sample-run callback and `AppRoot` wires it when `BuildConfig.DEBUG`.
+
+Claude next:
+
+- Polish the exact copy/layout of A1/A2 onboarding and empty states.
+- Continue B3 review-flow UI corrections from `docs/AI_COLLABORATION.md`.
+- Continue C1/C2/C3 visual token migration and dark-mode readiness.
+- Keep `TransactionRowUi.sourceLabel` and `AppDateZoneId` contracts intact.

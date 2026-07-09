@@ -1,9 +1,11 @@
 package com.choiyoonseo.automoney.ui.model
 
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.model.SourceType
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
@@ -121,7 +123,7 @@ fun transactionsToRows(
 fun transactionsToDateSections(
     transactions: List<MoneyTransaction>,
     limit: Int = Int.MAX_VALUE,
-    zoneId: ZoneId = ZoneId.systemDefault()
+    zoneId: ZoneId = AppDateZoneId
 ): List<TransactionDateSectionUi> =
     transactions
         .filter { it.isVisibleInLedger() }
@@ -159,7 +161,8 @@ private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
         iconText = categoryText.take(1),
         id = id.takeIf { it > 0 },
         isExcluded = status == TransactionStatus.EXCLUDED || type == TransactionType.EXCLUDED,
-        sourceApp = sourceAppUiForPackage(sourceApp)
+        sourceApp = sourceAppUiForPackage(sourceApp),
+        sourceLabel = if (sourceType == SourceType.NOTIFICATION) "\uc790\ub3d9" else null
     )
 }
 

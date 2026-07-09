@@ -34,6 +34,7 @@ import com.choiyoonseo.automoney.ui.model.defaultSelectedDay
 import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.model.spendForDay
 import com.choiyoonseo.automoney.ui.model.totalSpendWon
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.LocalDate
 
 @Composable
@@ -41,7 +42,7 @@ fun SpendingCalendarCard(
     title: String,
     calendar: MonthlySpendCalendarUi,
     modifier: Modifier = Modifier,
-    currentDate: LocalDate = LocalDate.now()
+    currentDate: LocalDate = LocalDate.now(AppDateZoneId)
 ) {
     var selectedDay by remember(calendar.monthTitle, calendar.dailySpends, currentDate) {
         mutableStateOf(calendar.defaultSelectedDay(currentDate))

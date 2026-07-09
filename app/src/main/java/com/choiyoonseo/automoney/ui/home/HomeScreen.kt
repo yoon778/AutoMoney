@@ -30,6 +30,7 @@ import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
@@ -48,16 +49,19 @@ import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.flow.flowOf
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.ZoneId
 
 @Composable
 fun HomeScreen(
     padding: PaddingValues,
     moneyRepository: MoneyRepository? = null,
-    onReviewClick: () -> Unit = {}
+    onReviewClick: () -> Unit = {},
+    notificationAccessEnabled: Boolean? = null,
+    showNotificationOnboarding: Boolean = false,
+    onDismissNotificationOnboarding: () -> Unit = {},
+    onOpenNotificationSettings: () -> Unit = {}
 ) {
     val colors = MoneyTheme.colors
-    val month = remember { YearMonth.now() }
+    val month = remember { YearMonth.now(AppDateZoneId) }
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -70,7 +74,7 @@ fun HomeScreen(
         transactionsToMonthlySummary(month, transactions, reviewCount)
     }
     val dashboard = summary?.homeSnapshot ?: sampleHomeSnapshot
-    val today = remember { LocalDate.now() }
+    val today = remember { LocalDate.now(AppDateZoneId) }
     val todayExpenseWon = if (moneyRepository == null) 10900 else transactions.expenseWonOn(today)
     val weekExpenseWon = if (moneyRepository == null) 73400 else transactions.expenseWonSince(today.minusDays(6), today)
     val todayExpenseRows = if (moneyRepository == null) {
@@ -183,7 +187,14 @@ fun HomeScreen(
                 TransactionRow(transaction)
             }
             if (dashboard.recentTransactions.isEmpty()) {
-                Text("아직 이번 달 기록이 없어요")
+                if (notificationAccessEnabled == false) {
+                    Text("\uc54c\ub9bc \uad8c\ud55c\uc744 \ucf1c\uba74 \uacb0\uc81c/\uc785\uae08 \uc54c\ub9bc\uc744 \uc790\ub3d9 \uae30\ub85d\ud560 \uc218 \uc788\uc5b4\uc694")
+                    Button(onClick = onOpenNotificationSettings) {
+                        Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
+                    }
+                } else {
+                    Text("\uc544\uc9c1 \uc774\ubc88 \ub2ec \uae30\ub85d\uc774 \uc5c6\uc5b4\uc694")
+                }
             }
         }
     }
@@ -192,6 +203,24 @@ fun HomeScreen(
         HomeDetailDialog(
             detail = detail,
             onDismiss = { activeDetail = null }
+        )
+    }
+
+    if (showNotificationOnboarding) {
+        AlertDialog(
+            onDismissRequest = onDismissNotificationOnboarding,
+            title = { Text("\uc54c\ub9bc \uad8c\ud55c \uc124\uc815") },
+            text = { Text("\uc790\ub3d9 \uae30\ub85d\uc744 \uc0ac\uc6a9\ud558\ub824\uba74 \uc54c\ub9bc \uc811\uadfc \uad8c\ud55c\uc774 \ud544\uc694\ud574\uc694") },
+            confirmButton = {
+                Button(onClick = onOpenNotificationSettings) {
+                    Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
+                }
+            },
+            dismissButton = {
+                Button(onClick = onDismissNotificationOnboarding) {
+                    Text("\ub098\uc911\uc5d0")
+                }
+            }
         )
     }
 }
@@ -221,7 +250,7 @@ private fun List<MoneyTransaction>.expenseTransactionsSince(start: LocalDate, en
     }
 
 private fun MoneyTransaction.localDate(): LocalDate =
-    occurredAt.atZone(ZoneId.systemDefault()).toLocalDate()
+    occurredAt.atZone(AppDateZoneId).toLocalDate()
 
 private data class HomeDetailDialogState(
     val title: String,

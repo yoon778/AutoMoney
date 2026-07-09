@@ -1,6 +1,7 @@
 package com.choiyoonseo.automoney.ui.model
 
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.LocalDate
 import java.time.YearMonth
 import kotlin.math.roundToInt
@@ -23,7 +24,8 @@ data class TransactionRowUi(
     val iconText: String,
     val id: Long? = null,
     val isExcluded: Boolean = false,
-    val sourceApp: SourceAppUi? = null
+    val sourceApp: SourceAppUi? = null,
+    val sourceLabel: String? = null
 )
 
 data class TransactionDateSectionUi(
@@ -97,7 +99,7 @@ fun MonthlySpendCalendarUi.spendForDay(day: Int): DailySpendUi? =
 fun MonthlySpendCalendarUi.totalSpendWon(): Long =
     dailySpends.sumOf { it.amountWon }
 
-fun MonthlySpendCalendarUi.defaultSelectedDay(today: LocalDate = LocalDate.now()): Int {
+fun MonthlySpendCalendarUi.defaultSelectedDay(today: LocalDate = LocalDate.now(AppDateZoneId)): Int {
     if (yearMonth == YearMonth.from(today)) {
         return today.dayOfMonth.coerceIn(1, daysInMonth)
     }

@@ -29,6 +29,7 @@ import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.CategoryBar
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
@@ -57,7 +58,7 @@ fun MonthlyReportScreen(
     padding: PaddingValues,
     moneyRepository: MoneyRepository? = null
 ) {
-    var month by remember { mutableStateOf(YearMonth.now()) }
+    var month by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())

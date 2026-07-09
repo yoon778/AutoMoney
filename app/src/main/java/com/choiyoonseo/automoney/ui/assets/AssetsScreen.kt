@@ -58,6 +58,7 @@ import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
 import com.choiyoonseo.automoney.domain.assets.buildAssetOverview
 import com.choiyoonseo.automoney.domain.assets.updateAssetAccount
+import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
@@ -102,6 +103,9 @@ fun AssetsScreen(
     }
     var selectedSection by remember { mutableStateOf(AssetSection.ACCOUNTS) }
     var message by remember { mutableStateOf<String?>(null) }
+    AutoClearMessageEffect(message) {
+        message = null
+    }
 
     Column(
         modifier = Modifier

@@ -36,7 +36,8 @@ fun SettingsScreen(
     padding: PaddingValues,
     onOpenNotificationSettings: () -> Unit = {},
     notificationAccessEnabled: Boolean? = null,
-    lastNotificationDiagnostic: LastNotificationDiagnostic? = null
+    lastNotificationDiagnostic: LastNotificationDiagnostic? = null,
+    onRunSampleNotificationScenario: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -92,6 +93,14 @@ fun SettingsScreen(
             accent = MoneyCoral,
             icon = Icons.Filled.CheckCircle
         ) {
+            onRunSampleNotificationScenario?.let { runSample ->
+                Button(
+                    onClick = runSample,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("\ud14c\uc2a4\ud2b8 \uc54c\ub9bc \ub123\uae30")
+                }
+            }
             if (lastNotificationDiagnostic == null) {
                 Text("아직 처리한 금융 앱 알림이 없어요.")
                 Text("허용된 금융 앱 알림이 들어오면 여기에서 마지막 결과가 표시돼요.")

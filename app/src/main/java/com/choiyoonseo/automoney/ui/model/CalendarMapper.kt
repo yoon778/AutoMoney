@@ -2,6 +2,7 @@ package com.choiyoonseo.automoney.ui.model
 
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.YearMonth
 
 fun transactionsToSpendCalendar(
@@ -10,7 +11,7 @@ fun transactionsToSpendCalendar(
 ): MonthlySpendCalendarUi {
     val dailySpends = transactions
         .filter { it.monthKey == month && it.countsAsActualExpense() }
-        .groupBy { it.occurredAt.atZone(java.time.ZoneId.systemDefault()).dayOfMonth }
+        .groupBy { it.occurredAt.atZone(AppDateZoneId).dayOfMonth }
         .map { (day, dayTransactions) ->
             val label = if (dayTransactions.size == 1) {
                 dayTransactions.first().category?.displayName ?: "기타"

@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.ui.model
 
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -196,6 +197,29 @@ class CalendarMapperTest {
         )
 
         assertThat(calendar.spendForDay(8)?.amountWon).isEqualTo(6_100)
+    }
+
+    @Test
+    fun transactionsToSpendCalendarUsesAppDateZoneForManualDates() {
+        val month = YearMonth.of(2026, 7)
+        val manualDateInstant = LocalDate.of(2026, 7, 9)
+            .atStartOfDay(AppDateZoneId)
+            .toInstant()
+
+        val calendar = transactionsToSpendCalendar(
+            month = month,
+            transactions = listOf(
+                transaction(
+                    occurredAt = manualDateInstant.toString(),
+                    amountWon = 6100,
+                    type = TransactionType.EXPENSE,
+                    category = Category.CAFE_SNACK,
+                    month = month
+                )
+            )
+        )
+
+        assertThat(calendar.spendForDay(9)?.amountWon).isEqualTo(6100)
     }
 
     private fun transaction(

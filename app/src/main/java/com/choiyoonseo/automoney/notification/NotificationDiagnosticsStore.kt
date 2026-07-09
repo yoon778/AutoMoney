@@ -65,6 +65,18 @@ data class LastNotificationDiagnostic(
                 parsedType = null
             )
 
+        fun fromUnsupportedPackage(
+            snapshot: NotificationSnapshot,
+            receivedAt: Instant = Instant.now()
+        ): LastNotificationDiagnostic =
+            fromSnapshot(
+                snapshot = snapshot,
+                receivedAt = receivedAt,
+                result = NotificationDiagnosticResult.IGNORED,
+                message = "unsupported package",
+                parsedType = null
+            )
+
         private fun fromSnapshot(
             snapshot: NotificationSnapshot,
             receivedAt: Instant,

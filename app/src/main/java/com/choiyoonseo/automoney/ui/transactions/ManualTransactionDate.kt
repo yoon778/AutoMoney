@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.ui.transactions
 
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -7,7 +8,7 @@ import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-val manualTransactionZoneId: ZoneId = ZoneId.of("Asia/Seoul")
+val manualTransactionZoneId: ZoneId = AppDateZoneId
 
 private val pickerZoneId: ZoneId = ZoneOffset.UTC
 private val manualTransactionDateFormatter = DateTimeFormatter.ofPattern("M월 d일", Locale.KOREAN)

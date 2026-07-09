@@ -37,7 +37,9 @@ import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
+import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
@@ -58,11 +60,13 @@ fun TransactionsScreen(
     saveManualTransactionUseCase: SaveManualTransactionUseCase? = null,
     editTransactionUseCase: EditTransactionUseCase? = null,
     assetRepository: AssetRepository? = null,
-    walletTopupNoticeStore: WalletTopupNoticeStore? = null
+    walletTopupNoticeStore: WalletTopupNoticeStore? = null,
+    notificationAccessEnabled: Boolean? = null,
+    onOpenNotificationSettings: () -> Unit = {}
 ) {
     val colors = MoneyTheme.colors
     val scope = rememberCoroutineScope()
-    val month = remember { YearMonth.now() }
+    val month = remember { YearMonth.now(AppDateZoneId) }
     val scrollState = rememberScrollState()
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
@@ -73,7 +77,7 @@ fun TransactionsScreen(
     val dateSections = if (moneyRepository == null) {
         listOf(
             TransactionDateSectionUi(
-                date = LocalDate.now(),
+                date = LocalDate.now(AppDateZoneId),
                 dateLabel = "오늘",
                 rows = sampleHomeSnapshot.recentTransactions
             )
@@ -91,6 +95,9 @@ fun TransactionsScreen(
     var isEditingTransaction by remember { mutableStateOf(false) }
     var showWalletTopupNotice by remember(walletTopupNoticeStore) {
         mutableStateOf(walletTopupNoticeStore?.shouldShowNotice() == true)
+    }
+    AutoClearMessageEffect(saveSuccessMessage) {
+        saveSuccessMessage = null
     }
 
     fun dismissWalletTopupNotice() {
@@ -175,7 +182,14 @@ fun TransactionsScreen(
                 }
             }
             if (dateSections.all { it.rows.isEmpty() }) {
-                Text("아직 이번 달 기록이 없어요.", color = colors.muted)
+                if (notificationAccessEnabled == false) {
+                    Text("\uc54c\ub9bc \uad8c\ud55c\uc744 \ucf1c\uba74 \uac70\ub798\uac00 \uc790\ub3d9\uc73c\ub85c \ub4e4\uc5b4\uc640\uc694", color = colors.muted)
+                    TextButton(onClick = onOpenNotificationSettings) {
+                        Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
+                    }
+                } else {
+                    Text("아직 이번 달 기록이 없어요.", color = colors.muted)
+                }
             }
         }
 

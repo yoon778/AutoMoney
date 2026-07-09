@@ -80,6 +80,19 @@ class NotificationDiagnosticsStoreTest {
     }
 
     @Test
+    fun createsUnsupportedPackageDiagnostic() {
+        val diagnostic = LastNotificationDiagnostic.fromUnsupportedPackage(
+            snapshot = tossSnapshot().copy(packageName = "com.shopping.adapp"),
+            receivedAt = Instant.parse("2026-07-02T03:00:05Z")
+        )
+
+        assertThat(diagnostic.packageName).isEqualTo("com.shopping.adapp")
+        assertThat(diagnostic.result).isEqualTo(NotificationDiagnosticResult.IGNORED)
+        assertThat(diagnostic.message).isEqualTo("unsupported package")
+        assertThat(diagnostic.parsedType).isNull()
+    }
+
+    @Test
     fun preferenceMapRoundTripsDiagnostic() {
         val diagnostic = LastNotificationDiagnostic.fromIngestionResult(
             snapshot = tossSnapshot(),

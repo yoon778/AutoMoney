@@ -20,7 +20,9 @@ class MainActivity : ComponentActivity() {
                     saveManualTransactionUseCase = appContainer.saveManualTransactionUseCase,
                     editTransactionUseCase = appContainer.editTransactionUseCase,
                     notificationDiagnosticsStore = appContainer.notificationDiagnosticsStore,
-                    walletTopupNoticeStore = appContainer.walletTopupNoticeStore
+                    walletTopupNoticeStore = appContainer.walletTopupNoticeStore,
+                    notificationOnboardingStore = appContainer.notificationOnboardingStore,
+                    runSampleNotificationScenarioUseCase = appContainer.runSampleNotificationScenarioUseCase
                 )
             }
         }

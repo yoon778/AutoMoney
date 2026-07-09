@@ -54,6 +54,8 @@ import com.choiyoonseo.automoney.domain.review.WalletTopupReviewService
 import com.choiyoonseo.automoney.domain.review.WalletTopupUsageResult
 import com.choiyoonseo.automoney.domain.review.resolveReview
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
+import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.EmptyStateVisual
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
@@ -106,6 +108,9 @@ fun ReviewScreen(
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
     var isSaving by remember { mutableStateOf(false) }
+    AutoClearMessageEffect(resultMessage) {
+        resultMessage = null
+    }
 
     suspend fun resolveCard(
         card: ReviewCardUi,
@@ -750,7 +755,7 @@ private fun ReviewCardUi.toSampleTopupTransaction() = MoneyTransaction(
     sourceNotificationHash = null,
     status = TransactionStatus.NEEDS_REVIEW,
     confidence = 0.85,
-    monthKey = YearMonth.now()
+    monthKey = YearMonth.now(AppDateZoneId)
 )
 
 private fun WalletTopupUsageResult.toSummaryMessage(): String {

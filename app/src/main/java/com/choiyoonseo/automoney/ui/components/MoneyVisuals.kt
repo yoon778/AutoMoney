@@ -603,6 +603,9 @@ fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null)
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+                transaction.sourceLabel?.let { sourceLabel ->
+                    SourceLabelBadge(sourceLabel)
+                }
                 transaction.sourceApp?.let { sourceApp ->
                     SourceAppBadge(sourceApp)
                 }
@@ -613,6 +616,25 @@ fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null)
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.SemiBold,
             color = if (transaction.amountWon < 0) colors.negative else colors.positive
+        )
+    }
+}
+
+@Composable
+private fun SourceLabelBadge(label: String, modifier: Modifier = Modifier) {
+    val colors = MoneyTheme.colors
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = colors.primary.copy(alpha = 0.10f)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            color = colors.primary,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
         )
     }
 }

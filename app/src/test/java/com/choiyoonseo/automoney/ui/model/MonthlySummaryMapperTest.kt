@@ -241,6 +241,28 @@ class MonthlySummaryMapperTest {
                 badgeText = "KB"
             )
         )
+        assertThat(rows.single().sourceLabel).isEqualTo("\uc790\ub3d9")
+    }
+
+    @Test
+    fun transactionsToRowsDoesNotMarkManualRowsAsAutomatic() {
+        val month = YearMonth.of(2026, 7)
+        val rows = transactionsToRows(
+            transactions = listOf(
+                tx(
+                    occurredAt = "2026-07-01T01:00:00Z",
+                    amountWon = 6100,
+                    type = TransactionType.EXPENSE,
+                    category = Category.CAFE_SNACK,
+                    month = month,
+                    merchant = "\uc2a4\ud0c0\ubc85\uc2a4",
+                    id = 6,
+                    sourceType = SourceType.MANUAL
+                )
+            )
+        )
+
+        assertThat(rows.single().sourceLabel).isNull()
     }
 
     @Test
