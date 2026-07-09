@@ -146,6 +146,8 @@ fun AppRoot(
                 padding = padding,
                 moneyRepository = moneyRepository,
                 onReviewClick = { selectedTab = AppTab.REVIEW },
+                editTransactionUseCase = editTransactionUseCase,
+                assetRepository = assetRepository,
                 notificationAccessEnabled = notificationAccessEnabled,
                 showNotificationOnboarding = showNotificationOnboarding,
                 onDismissNotificationOnboarding = {

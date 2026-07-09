@@ -9,12 +9,18 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Button
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -22,11 +28,16 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
@@ -41,6 +52,7 @@ import com.choiyoonseo.automoney.ui.components.MonthlyFlowCard
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.model.MetricTileUi
 import com.choiyoonseo.automoney.ui.model.TransactionRowUi
+import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
 import com.choiyoonseo.automoney.ui.components.TransactionRow
 import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
@@ -48,6 +60,7 @@ import com.choiyoonseo.automoney.ui.model.transactionsToRows
 import com.choiyoonseo.automoney.ui.model.transactionsToMonthlySummary
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -56,6 +69,8 @@ fun HomeScreen(
     padding: PaddingValues,
     moneyRepository: MoneyRepository? = null,
     onReviewClick: () -> Unit = {},
+    editTransactionUseCase: EditTransactionUseCase? = null,
+    assetRepository: AssetRepository? = null,
     notificationAccessEnabled: Boolean? = null,
     showNotificationOnboarding: Boolean = false,
     onDismissNotificationOnboarding: () -> Unit = {},
@@ -101,6 +116,13 @@ fun HomeScreen(
         )
     }
     var activeDetail by remember { mutableStateOf<HomeDetailDialogState?>(null) }
+    val scope = rememberCoroutineScope()
+    val assetAccounts by remember(assetRepository) {
+        assetRepository?.observeAccounts() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+    var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }
+    var isEditingTransaction by remember { mutableStateOf(false) }
+    var editErrorMessage by remember { mutableStateOf<String?>(null) }
 
     Column(
         modifier = Modifier
@@ -126,11 +148,12 @@ fun HomeScreen(
             onClick = {
                 activeDetail = HomeDetailDialogState(
                     title = "이번 달 돈 흐름",
+                    headlineValue = formatWon(dashboard.netSavedWon),
+                    caption = "남은 돈",
                     summaryLines = listOf(
                         "수입 ${formatWon(summary?.incomeWon ?: 2_850_000)}",
                         "지출 ${formatWon(summary?.expenseWon ?: 2_318_000)}",
-                        "저축 ${formatWon(summary?.savingWon ?: 532_000)}",
-                        "남은 돈 ${formatWon(dashboard.netSavedWon)}"
+                        "저축 ${formatWon(summary?.savingWon ?: 532_000)}"
                     ),
                     rows = monthRows
                 )
@@ -148,7 +171,8 @@ fun HomeScreen(
                 onClick = {
                     activeDetail = HomeDetailDialogState(
                         title = "오늘 사용",
-                        summaryLines = listOf("합계 ${formatWon(todayExpenseWon)}"),
+                        headlineValue = formatWon(todayExpenseWon),
+                        caption = "${todayExpenseRows.size}건",
                         rows = todayExpenseRows
                     )
                 }
@@ -160,7 +184,8 @@ fun HomeScreen(
                 onClick = {
                     activeDetail = HomeDetailDialogState(
                         title = "최근 7일 사용",
-                        summaryLines = listOf("합계 ${formatWon(weekExpenseWon)}"),
+                        headlineValue = formatWon(weekExpenseWon),
+                        caption = "${weekExpenseRows.size}건",
                         rows = weekExpenseRows
                     )
                 }
@@ -201,10 +226,85 @@ fun HomeScreen(
     }
 
     activeDetail?.let { detail ->
-        HomeDetailDialog(
+        HomeDetailSheet(
             detail = detail,
-            onDismiss = { activeDetail = null }
+            onDismiss = { activeDetail = null },
+            onRowClick = if (editTransactionUseCase == null) {
+                null
+            } else {
+                { row ->
+                    row.id?.let { rowId ->
+                        transactions.firstOrNull { it.id == rowId }?.let {
+                            activeEditTransaction = it
+                            editErrorMessage = null
+                        }
+                    }
+                }
+            }
         )
+    }
+
+    activeEditTransaction?.let { transaction ->
+        val useCase = editTransactionUseCase
+        if (useCase != null) {
+            TransactionEditDialog(
+                transaction = transaction,
+                isSaving = isEditingTransaction,
+                errorMessage = editErrorMessage,
+                accountNames = assetAccounts.map { it.name },
+                onDismiss = {
+                    activeEditTransaction = null
+                    editErrorMessage = null
+                },
+                onSave = { amountWon, category, memo, occurredAt, paymentMethod, transactionType ->
+                    scope.launch {
+                        isEditingTransaction = true
+                        editErrorMessage = null
+                        try {
+                            useCase.update(transaction, amountWon, category, memo, occurredAt, paymentMethod, transactionType)
+                            activeEditTransaction = null
+                            activeDetail = null
+                        } catch (e: IllegalArgumentException) {
+                            editErrorMessage = e.message ?: "입력값을 확인해 주세요."
+                        } catch (e: RuntimeException) {
+                            editErrorMessage = "수정 중 문제가 생겼어요."
+                        } finally {
+                            isEditingTransaction = false
+                        }
+                    }
+                },
+                onExclude = {
+                    scope.launch {
+                        isEditingTransaction = true
+                        editErrorMessage = null
+                        try {
+                            useCase.exclude(transaction)
+                            activeEditTransaction = null
+                            activeDetail = null
+                        } catch (e: RuntimeException) {
+                            editErrorMessage = "제외 처리 중 문제가 생겼어요."
+                        } finally {
+                            isEditingTransaction = false
+                        }
+                    }
+                },
+                onDelete = {
+                    scope.launch {
+                        isEditingTransaction = true
+                        editErrorMessage = null
+                        try {
+                            useCase.delete(transaction)
+                            activeEditTransaction = null
+                            activeDetail = null
+                        } catch (e: RuntimeException) {
+                            editErrorMessage = "삭제 중 문제가 생겼어요."
+                        } finally {
+                            isEditingTransaction = false
+                        }
+                    }
+                }
+            )
+        }
     }
 
     if (showNotificationOnboarding) {
@@ -255,36 +355,106 @@ private fun MoneyTransaction.localDate(): LocalDate =
 
 private data class HomeDetailDialogState(
     val title: String,
-    val summaryLines: List<String>,
+    val headlineValue: String,
+    val caption: String? = null,
+    val summaryLines: List<String> = emptyList(),
     val rows: List<TransactionRowUi>
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun HomeDetailDialog(
+private fun HomeDetailSheet(
     detail: HomeDetailDialogState,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onRowClick: ((TransactionRowUi) -> Unit)? = null
 ) {
-    AlertDialog(
+    val colors = MoneyTheme.colors
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = { Text(detail.title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                detail.summaryLines.forEach { line ->
-                    Text(line, fontWeight = FontWeight.Medium)
+        containerColor = colors.surface
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 20.dp, end = 20.dp, bottom = 28.dp)
+        ) {
+            Text(
+                detail.title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.ink
+            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    detail.headlineValue,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink
+                )
+                detail.caption?.let { caption ->
+                    Text(
+                        caption,
+                        modifier = Modifier.padding(start = 6.dp, bottom = 4.dp),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = colors.muted
+                    )
                 }
-                if (detail.rows.isEmpty()) {
-                    Text("표시할 거래가 없어요")
-                } else {
-                    detail.rows.take(10).forEach { row ->
-                        Text("${row.merchant} · ${row.category} · ${formatWon(row.amountWon)}")
+            }
+            if (detail.summaryLines.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    detail.summaryLines.forEach { line ->
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = colors.soft(colors.primary)
+                        ) {
+                            Text(
+                                line,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = colors.primary,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
                     }
                 }
             }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("확인")
+            Column(modifier = Modifier.padding(top = 8.dp)) {
+                if (detail.rows.isEmpty()) {
+                    Text(
+                        "표시할 거래가 없어요",
+                        modifier = Modifier.padding(vertical = 16.dp),
+                        color = colors.muted
+                    )
+                } else {
+                    detail.rows.take(20).forEachIndexed { index, row ->
+                        if (index > 0) {
+                            HorizontalDivider(color = colors.divider)
+                        }
+                        TransactionRow(
+                            transaction = row,
+                            onClick = if (onRowClick != null && row.id != null) {
+                                { onRowClick(row) }
+                            } else {
+                                null
+                            }
+                        )
+                    }
+                }
+            }
+            if (onRowClick != null && detail.rows.any { it.id != null }) {
+                Text(
+                    "항목을 누르면 바로 수정할 수 있어요",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = colors.muted,
+                    textAlign = TextAlign.Center
+                )
             }
         }
-    )
+    }
 }
