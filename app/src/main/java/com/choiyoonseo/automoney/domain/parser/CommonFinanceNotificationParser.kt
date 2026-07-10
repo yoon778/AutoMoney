@@ -7,7 +7,6 @@ import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.notification.FinancialAppRegistry
-import java.security.MessageDigest
 
 class CommonFinanceNotificationParser : NotificationParser {
     override fun canParse(snapshot: NotificationSnapshot): Boolean =
@@ -28,7 +27,7 @@ class CommonFinanceNotificationParser : NotificationParser {
 
         val amountMatch = extractAmountMatch(text) ?: return ParseResult.Ignored("amount not found")
         val amount = amountMatch.amount
-        val hash = hash(text)
+        val hash = snapshot.sourceNotificationHash
         val merchant = extractMerchant(text, amountMatch)
         val memoSource = text.lineSequence().firstOrNull { it.contains(amountMatch.matchedText) } ?: text
         val maskedMemo = SensitiveTextMasker.mask(memoSource.trim())
@@ -178,11 +177,6 @@ class CommonFinanceNotificationParser : NotificationParser {
             lower.contains("starbucks") || lower.contains("coffee") -> Category.CAFE_SNACK
             else -> Category.OTHER
         }
-    }
-
-    private fun hash(text: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
-        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     companion object {

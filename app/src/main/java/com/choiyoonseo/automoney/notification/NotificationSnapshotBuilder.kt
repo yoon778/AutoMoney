@@ -5,6 +5,7 @@ import java.time.Instant
 
 data class NotificationContentFields(
     val packageName: String,
+    val notificationKey: String? = null,
     val postTimeMillis: Long,
     val title: String?,
     val text: String?,
@@ -31,7 +32,8 @@ class NotificationSnapshotBuilder {
             title = title,
             text = text,
             bigText = expandedLines.joinToString("\n").ifBlank { null },
-            postedAt = Instant.ofEpochMilli(fields.postTimeMillis)
+            postedAt = Instant.ofEpochMilli(fields.postTimeMillis),
+            notificationKey = fields.notificationKey
         )
     }
 

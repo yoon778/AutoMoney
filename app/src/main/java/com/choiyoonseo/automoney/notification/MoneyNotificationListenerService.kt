@@ -19,6 +19,7 @@ class MoneyNotificationListenerService : NotificationListenerService() {
         val snapshot = snapshotBuilder.build(
             NotificationContentFields(
                 packageName = sbn.packageName,
+                notificationKey = sbn.key,
                 title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
                 text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
                 bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),

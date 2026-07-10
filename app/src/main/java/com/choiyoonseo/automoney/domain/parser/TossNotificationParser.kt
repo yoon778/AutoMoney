@@ -6,7 +6,6 @@ import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
-import java.security.MessageDigest
 
 class TossNotificationParser : NotificationParser {
     override fun canParse(snapshot: NotificationSnapshot): Boolean =
@@ -19,7 +18,7 @@ class TossNotificationParser : NotificationParser {
 
         val text = snapshot.combinedText.trim()
         val amount = extractAmount(text) ?: return ParseResult.Ignored("amount not found")
-        val hash = hash(text)
+        val hash = snapshot.sourceNotificationHash
 
         if (text.contains("충전")) {
             val walletName = extractWalletName(text)
@@ -166,11 +165,6 @@ class TossNotificationParser : NotificationParser {
             merchant.contains("쿠팡") || merchant.contains("네이버페이") -> Category.SHOPPING
             else -> Category.OTHER
         }
-    }
-
-    private fun hash(text: String): String {
-        val bytes = MessageDigest.getInstance("SHA-256").digest(text.toByteArray())
-        return bytes.joinToString("") { "%02x".format(it) }
     }
 
     companion object {

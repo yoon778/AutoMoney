@@ -16,6 +16,7 @@ class NotificationSnapshotBuilderTest {
                 title = "토스",
                 text = "네이버페이 10,000원 충전",
                 bigText = null,
+                notificationKey = "bank-key",
                 textLines = listOf(
                     "네이버페이 10,000원 충전",
                     "충전 알림은 검토가 필요해요"
@@ -28,6 +29,7 @@ class NotificationSnapshotBuilderTest {
         assertThat(snapshot.text).isEqualTo("네이버페이 10,000원 충전")
         assertThat(snapshot.bigText).isEqualTo("충전 알림은 검토가 필요해요")
         assertThat(snapshot.postedAt).isEqualTo(Instant.parse("2026-07-02T03:00:00Z"))
+        assertThat(snapshot.notificationKey).isEqualTo("bank-key")
     }
 
     @Test

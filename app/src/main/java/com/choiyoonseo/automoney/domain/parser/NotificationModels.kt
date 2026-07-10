@@ -16,10 +16,14 @@ data class NotificationSnapshot(
     val title: String?,
     val text: String?,
     val bigText: String?,
-    val postedAt: Instant
+    val postedAt: Instant,
+    val notificationKey: String? = null
 ) {
     val combinedText: String
         get() = listOfNotNull(title, text, bigText).joinToString("\n")
+
+    val sourceNotificationHash: String
+        get() = notificationIdentityHash(this)
 }
 
 data class TransactionDraft(
