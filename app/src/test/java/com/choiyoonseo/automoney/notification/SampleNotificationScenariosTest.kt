@@ -14,9 +14,12 @@ class SampleNotificationScenariosTest {
             "wallet_topup",
             "transfer",
             "refund_cancel",
-            "payment_gateway"
+            "payment_gateway",
+            "kb_account_withdrawal",
+            "kb_account_deposit",
+            "kb_account_transfer"
         ).inOrder()
-        assertThat(sampleNotificationScenarios.map { it.label }).containsExactly(
+        assertThat(sampleNotificationScenarios.take(5).map { it.label }).containsExactly(
             "카드 결제",
             "포인트 충전",
             "친구 송금",
@@ -36,6 +39,41 @@ class SampleNotificationScenariosTest {
         assertThat(snapshot.text).isEqualTo("스타벅스 홍대입구 6,100원 결제")
         assertThat(snapshot.bigText).contains("06.27 12:47")
         assertThat(snapshot.postedAt).isEqualTo(Instant.parse("2026-07-01T01:00:00Z"))
+    }
+
+    @Test
+    fun sampleNotificationScenariosHaveUniqueIds() {
+        val ids = sampleNotificationScenarios.map { it.id }
+
+        assertThat(ids.distinct()).containsExactlyElementsIn(ids)
+    }
+
+    @Test
+    fun sampleNotificationScenarioPropagatesPackageAndNotificationKey() {
+        val scenario = sampleNotificationScenarios.last()
+        val snapshot = scenario.toSnapshot(
+            postedAt = Instant.parse("2026-07-01T01:00:00Z")
+        )
+
+        assertThat(snapshot.packageName).isEqualTo(scenario.packageName)
+        assertThat(snapshot.notificationKey).isEqualTo(scenario.notificationKey)
+    }
+
+    @Test
+    fun sampleNotificationScenarioIdentityHashIsStableForSameIdentity() {
+        val scenario = sampleNotificationScenarios.first()
+        val postedAt = Instant.parse("2026-07-01T01:00:00Z")
+
+        assertThat(scenario.toSnapshot(postedAt).sourceNotificationHash)
+            .isEqualTo(scenario.toSnapshot(postedAt).sourceNotificationHash)
+    }
+
+    @Test
+    fun sampleNotificationScenarioIdentityHashSeparatesDifferentPostTimes() {
+        val scenario = sampleNotificationScenarios.first()
+
+        assertThat(scenario.toSnapshot(Instant.parse("2026-07-01T01:00:00Z")).sourceNotificationHash)
+            .isNotEqualTo(scenario.toSnapshot(Instant.parse("2026-07-01T01:00:01Z")).sourceNotificationHash)
     }
 
     @Test
