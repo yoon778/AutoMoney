@@ -32,14 +32,16 @@ class DatabaseIntegritySchemaTest {
         val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
             .readText()
 
-        assertThat(database).contains("version = 5")
+        assertThat(database).contains("version = 6")
         assertThat(database).contains("MIGRATION_2_3")
         assertThat(database).contains("MIGRATION_3_4")
         assertThat(database).contains("MIGRATION_4_5")
+        assertThat(database).contains("MIGRATION_5_6")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_4_5")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_5_6")
     }
 
     @Test
@@ -55,7 +57,7 @@ class DatabaseIntegritySchemaTest {
 
     @Test
     fun currentRoomSchemaFileIsGenerated() {
-        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/5.json")
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/6.json")
 
         assertThat(schema.exists()).isTrue()
     }
@@ -117,6 +119,14 @@ class DatabaseIntegritySchemaTest {
         assertThat(database).contains("index_transactions_occurredAt")
         assertThat(database).contains("index_review_items_resolvedAt_createdAt")
         assertThat(database).contains("index_rules_enabled")
+    }
+
+    @Test
+    fun balanceMetadataUsesLinkedAccountIndex() {
+        val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
+            .readText()
+
+        assertThat(entities).contains("Index(value = [\"linkedAssetAccountId\"])")
     }
 
     @Test

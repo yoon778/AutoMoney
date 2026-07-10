@@ -34,10 +34,24 @@ class RoomAssetRepository(
 }
 
 private fun AssetAccountEntity.toDomain(): AssetAccount =
-    AssetAccount(id = id, name = name, balanceWon = balanceWon, kind = kind)
+    AssetAccount(
+        id = id,
+        name = name,
+        balanceWon = balanceWon,
+        kind = kind,
+        bankProvider = bankProvider,
+        accountLast4 = accountLast4
+    )
 
 private fun AssetAccount.toEntity(): AssetAccountEntity =
-    AssetAccountEntity(id = id, name = name, balanceWon = balanceWon, kind = kind)
+    AssetAccountEntity(
+        id = id,
+        name = name,
+        balanceWon = balanceWon,
+        kind = kind,
+        bankProvider = bankProvider,
+        accountLast4 = accountLast4
+    )
 
 private fun FixedExpenseEntity.toDomain(): FixedExpensePlan =
     FixedExpensePlan(id = id, name = name, amountWon = amountWon, withdrawalDay = withdrawalDay, accountName = accountName, active = active)

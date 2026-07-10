@@ -12,7 +12,9 @@ data class AssetAccount(
     val id: Long = 0,
     val name: String,
     val balanceWon: Long,
-    val kind: AssetAccountKind = AssetAccountKind.BANK
+    val kind: AssetAccountKind = AssetAccountKind.BANK,
+    val bankProvider: BankProvider? = null,
+    val accountLast4: String? = null
 )
 
 fun updateAssetAccount(

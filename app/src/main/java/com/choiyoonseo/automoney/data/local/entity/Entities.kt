@@ -7,6 +7,8 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import androidx.room.Relation
 import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
+import com.choiyoonseo.automoney.domain.assets.BankProvider
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.ReviewReason
@@ -22,7 +24,8 @@ import java.time.Instant
     indices = [
         Index(value = ["sourceNotificationHash"], unique = true),
         Index(value = ["monthKey", "occurredAt"]),
-        Index(value = ["occurredAt"])
+        Index(value = ["occurredAt"]),
+        Index(value = ["linkedAssetAccountId"])
     ]
 )
 data class TransactionEntity(
@@ -41,7 +44,9 @@ data class TransactionEntity(
     val sourceNotificationHash: String?,
     val status: TransactionStatus,
     val confidence: Double,
-    val monthKey: String
+    val monthKey: String,
+    val linkedAssetAccountId: Long? = null,
+    val balanceImpact: BalanceImpact? = null
 )
 
 @Entity(
@@ -96,7 +101,9 @@ data class AssetAccountEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val balanceWon: Long,
-    val kind: AssetAccountKind
+    val kind: AssetAccountKind,
+    val bankProvider: BankProvider? = null,
+    val accountLast4: String? = null
 )
 
 @Entity(tableName = "fixed_expenses")

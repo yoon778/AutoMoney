@@ -100,7 +100,10 @@ fun openReviewItemsToCards(items: List<OpenReviewItem>): List<ReviewCardUi> =
 
             ReviewReason.DUPLICATE_SUSPECTED,
             ReviewReason.LOW_CONFIDENCE_CATEGORY,
-            ReviewReason.PAYMENT_GATEWAY -> ReviewCardUi(
+            ReviewReason.PAYMENT_GATEWAY,
+            ReviewReason.ACCOUNT_AMBIGUOUS,
+            ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN,
+            ReviewReason.BALANCE_MISMATCH -> ReviewCardUi(
                 id = "review-${item.id}",
                 title = transaction.reviewName("\uac70\ub798 \ud655\uc778"),
                 message = "\uc790\ub3d9 \ubd84\ub958 \ud655\uc2e0\uc774 \ub0ae\uc544\uc11c \ud655\uc778\uc774 \ud544\uc694\ud574\uc694.",

@@ -21,7 +21,7 @@ class AppDatabaseMigrationTest {
     )
 
     @Test
-    fun migration2To5DeduplicatesHashesAndReviewItemsDropsWalletsAndValidatesSchema() {
+    fun migration2To6PreservesLegacyRowsAndValidatesSchema() {
         helper.createDatabase(TEST_DB, 2).apply {
             insertTransaction(id = 1, sourceNotificationHash = "same-hash")
             insertTransaction(id = 2, sourceNotificationHash = "same-hash")
@@ -29,16 +29,18 @@ class AppDatabaseMigrationTest {
             insertReviewItem(id = 10, transactionId = 1, resolvedAt = "2026-07-01T00:00:00Z")
             insertReviewItem(id = 11, transactionId = 1, resolvedAt = null)
             insertReviewItem(id = 12, transactionId = 999, resolvedAt = null)
+            insertAssetAccount(id = 20)
             close()
         }
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            5,
+            6,
             true,
             AppDatabase.MIGRATION_2_3,
             AppDatabase.MIGRATION_3_4,
-            AppDatabase.MIGRATION_4_5
+            AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6
         )
 
         assertEquals("same-hash", db.singleString("SELECT sourceNotificationHash FROM transactions WHERE id = 1"))
@@ -48,6 +50,10 @@ class AppDatabaseMigrationTest {
         assertEquals(11, db.singleLong("SELECT id FROM review_items"))
         assertEquals(0, db.singleLong("SELECT COUNT(*) FROM review_items WHERE transactionId = 999"))
         assertEquals(0, db.singleLong("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'wallets'"))
+        assertNull(db.singleString("SELECT bankProvider FROM asset_accounts WHERE id = 20"))
+        assertNull(db.singleString("SELECT accountLast4 FROM asset_accounts WHERE id = 20"))
+        assertNull(db.singleString("SELECT linkedAssetAccountId FROM transactions WHERE id = 1"))
+        assertNull(db.singleString("SELECT balanceImpact FROM transactions WHERE id = 1"))
     }
 
     private fun SupportSQLiteDatabase.insertTransaction(
@@ -80,6 +86,16 @@ class AppDatabaseMigrationTest {
             VALUES (?, ?, 'WALLET_TOPUP', '2026-07-01T00:00:00Z', ?)
             """.trimIndent(),
             arrayOf<Any?>(id, transactionId, resolvedAt)
+        )
+    }
+
+    private fun SupportSQLiteDatabase.insertAssetAccount(id: Long) {
+        execSQL(
+            """
+            INSERT INTO asset_accounts (id, name, balanceWon, kind)
+            VALUES (?, 'legacy account', 10000, 'BANK')
+            """.trimIndent(),
+            arrayOf<Any?>(id)
         )
     }
 

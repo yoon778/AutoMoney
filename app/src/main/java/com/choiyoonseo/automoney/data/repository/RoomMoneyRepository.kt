@@ -273,15 +273,31 @@ private fun MoneyTransaction.toEntity(): TransactionEntity {
         sourceNotificationHash = sourceNotificationHash,
         status = status,
         confidence = confidence,
-        monthKey = monthKey.toString()
+        monthKey = monthKey.toString(),
+        linkedAssetAccountId = linkedAssetAccountId,
+        balanceImpact = balanceImpact
     )
 }
 
 private fun AssetAccountEntity.toDomain(): AssetAccount =
-    AssetAccount(id = id, name = name, balanceWon = balanceWon, kind = kind)
+    AssetAccount(
+        id = id,
+        name = name,
+        balanceWon = balanceWon,
+        kind = kind,
+        bankProvider = bankProvider,
+        accountLast4 = accountLast4
+    )
 
 private fun AssetAccount.toEntity(): AssetAccountEntity =
-    AssetAccountEntity(id = id, name = name, balanceWon = balanceWon, kind = kind)
+    AssetAccountEntity(
+        id = id,
+        name = name,
+        balanceWon = balanceWon,
+        kind = kind,
+        bankProvider = bankProvider,
+        accountLast4 = accountLast4
+    )
 
 private fun TransactionEntity.toDomain(): MoneyTransaction {
     return MoneyTransaction(
@@ -300,7 +316,9 @@ private fun TransactionEntity.toDomain(): MoneyTransaction {
         sourceNotificationHash = sourceNotificationHash,
         status = status,
         confidence = confidence,
-        monthKey = YearMonth.parse(monthKey)
+        monthKey = YearMonth.parse(monthKey),
+        linkedAssetAccountId = linkedAssetAccountId,
+        balanceImpact = balanceImpact
     )
 }
 

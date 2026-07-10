@@ -25,7 +25,7 @@ import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
         FixedExpenseEntity::class,
         MonthlyPlanItemEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -169,6 +169,19 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("DROP TABLE IF EXISTS wallets")
+            }
+        }
+
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE asset_accounts ADD COLUMN bankProvider TEXT")
+                db.execSQL("ALTER TABLE asset_accounts ADD COLUMN accountLast4 TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN linkedAssetAccountId INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN balanceImpact TEXT")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_transactions_linkedAssetAccountId " +
+                        "ON transactions(linkedAssetAccountId)"
+                )
             }
         }
     }

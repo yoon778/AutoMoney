@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.domain.model
 
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import java.time.Instant
 import java.time.YearMonth
 
@@ -86,7 +87,9 @@ data class MoneyTransaction(
     val sourceNotificationHash: String?,
     val status: TransactionStatus,
     val confidence: Double,
-    val monthKey: YearMonth
+    val monthKey: YearMonth,
+    val linkedAssetAccountId: Long? = null,
+    val balanceImpact: BalanceImpact? = null
 )
 
 data class OpenReviewItem(
@@ -104,7 +107,10 @@ enum class ReviewReason {
     DUPLICATE_SUSPECTED,
     LOW_CONFIDENCE_CATEGORY,
     PAYMENT_GATEWAY,
-    ACCOUNT_UNMATCHED
+    ACCOUNT_UNMATCHED,
+    ACCOUNT_AMBIGUOUS,
+    ACCOUNT_MOVEMENT_UNKNOWN,
+    BALANCE_MISMATCH
 }
 
 data class Rule(
