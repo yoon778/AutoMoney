@@ -1,13 +1,16 @@
 package com.choiyoonseo.automoney.domain.parser
 
+import com.choiyoonseo.automoney.domain.assets.AccountMovementDirection
+import com.choiyoonseo.automoney.domain.assets.BankEventKind
+import com.choiyoonseo.automoney.domain.assets.BankProvider
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.google.common.truth.Truth.assertThat
-import org.junit.Test
 import java.time.Instant
+import org.junit.Test
 
 class TossNotificationParserTest {
     private val parser = TossNotificationParser()
@@ -30,6 +33,7 @@ class TossNotificationParserTest {
         assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
         assertThat(draft.category).isEqualTo(Category.CAFE_SNACK)
         assertThat(draft.status).isEqualTo(TransactionStatus.AUTO_CONFIRMED)
+        assertThat(draft.bankAccountHint).isNull()
     }
 
     @Test
@@ -49,6 +53,7 @@ class TossNotificationParserTest {
         assertThat(draft.counterparty).isEqualTo("김민수")
         assertThat(draft.type).isEqualTo(TransactionType.TRANSFER)
         assertThat(draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+        assertThat(draft.bankAccountHint).isNull()
     }
 
     @Test
@@ -173,5 +178,42 @@ class TossNotificationParserTest {
         assertThat(draft.type).isEqualTo(TransactionType.WALLET_TOPUP)
         assertThat(draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
         assertThat(draft.reviewReason).isEqualTo(ReviewReason.WALLET_TOPUP)
+    }
+
+    @Test
+    fun explicitTossBankMovementProducesHintAndUsesMovementAmount() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = "viva.republica.toss",
+                title = "잔액 90,000원",
+                text = "토스뱅크 계좌 123-***-4567\n10,000원 출금",
+                bigText = null,
+                postedAt = Instant.parse("2026-07-01T07:00:00Z")
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(10_000)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(draft.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(draft.reviewReason).isEqualTo(ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN)
+        assertThat(draft.bankAccountHint?.provider).isEqualTo(BankProvider.TOSS_BANK)
+        assertThat(draft.bankAccountHint?.direction).isEqualTo(AccountMovementDirection.DEBIT)
+        assertThat(draft.bankAccountHint?.eventKind).isEqualTo(BankEventKind.WITHDRAWAL)
+    }
+
+    @Test
+    fun tossPackageAndAccountTextAloneDoNotInferTossBank() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = "viva.republica.toss",
+                title = "토스",
+                text = "계좌 123-***-4567\n10,000원 출금",
+                bigText = null,
+                postedAt = Instant.parse("2026-07-01T08:00:00Z")
+            )
+        )
+
+        assertThat(result).isEqualTo(ParseResult.Ignored("unsupported toss notification"))
     }
 }

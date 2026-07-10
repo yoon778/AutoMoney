@@ -1,5 +1,8 @@
 package com.choiyoonseo.automoney.domain.parser
 
+import com.choiyoonseo.automoney.domain.assets.AccountMovementDirection
+import com.choiyoonseo.automoney.domain.assets.BankEventKind
+import com.choiyoonseo.automoney.domain.assets.ParsedBankMovement
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.ReviewReason
@@ -7,7 +10,9 @@ import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
 
-class TossNotificationParser : NotificationParser {
+class TossNotificationParser(
+    private val bankAccountHintExtractor: BankAccountHintExtractor = BankAccountHintExtractor()
+) : NotificationParser {
     override fun canParse(snapshot: NotificationSnapshot): Boolean =
         snapshot.packageName == TOSS_PACKAGE
 
@@ -19,6 +24,15 @@ class TossNotificationParser : NotificationParser {
         val text = snapshot.combinedText.trim()
         val amount = extractAmount(text) ?: return ParseResult.Ignored("amount not found")
         val hash = snapshot.sourceNotificationHash
+        val movement = if (text.contains("충전") || text.contains("취소") ||
+            text.contains("환불") || text.contains("결제")
+        ) {
+            null
+        } else {
+            bankAccountHintExtractor.resolveAggregatorProvider(text)?.let { provider ->
+                bankAccountHintExtractor.extract(provider, text)
+            }
+        }
 
         if (text.contains("충전")) {
             val walletName = extractWalletName(text)
@@ -41,6 +55,10 @@ class TossNotificationParser : NotificationParser {
                     reviewReason = ReviewReason.WALLET_TOPUP
                 )
             )
+        }
+
+        if (movement != null) {
+            return parsedMovement(snapshot, movement, hash)
         }
 
         if (text.contains("송금")) {
@@ -114,6 +132,64 @@ class TossNotificationParser : NotificationParser {
         return ParseResult.Ignored("unsupported toss notification")
     }
 
+    private fun parsedMovement(
+        snapshot: NotificationSnapshot,
+        movement: ParsedBankMovement,
+        hash: String
+    ): ParseResult.Parsed {
+        val (type, direction, reviewReason) = when {
+            movement.hint.eventKind == BankEventKind.DEPOSIT &&
+                movement.hint.direction == AccountMovementDirection.CREDIT ->
+                MovementSemantics(
+                    TransactionType.INCOME,
+                    TransactionDirection.INCOME,
+                    ReviewReason.INCOME_UNKNOWN
+                )
+
+            movement.hint.eventKind == BankEventKind.TRANSFER &&
+                movement.hint.direction != AccountMovementDirection.UNKNOWN ->
+                MovementSemantics(
+                    TransactionType.TRANSFER,
+                    TransactionDirection.NEUTRAL,
+                    ReviewReason.TRANSFER_UNKNOWN
+                )
+
+            movement.hint.eventKind == BankEventKind.WITHDRAWAL &&
+                movement.hint.direction == AccountMovementDirection.DEBIT ->
+                MovementSemantics(
+                    TransactionType.EXPENSE,
+                    TransactionDirection.EXPENSE,
+                    ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN
+                )
+
+            else -> MovementSemantics(
+                TransactionType.TRANSFER,
+                TransactionDirection.NEUTRAL,
+                ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN
+            )
+        }
+        return ParseResult.Parsed(
+            TransactionDraft(
+                occurredAt = snapshot.postedAt,
+                amount = MoneyAmount(movement.amountWon),
+                direction = direction,
+                type = type,
+                category = null,
+                paymentMethod = movement.hint.provider.badgeText,
+                merchant = null,
+                counterparty = null,
+                memo = null,
+                sourceApp = TOSS_PACKAGE,
+                sourceNotificationHash = hash,
+                status = TransactionStatus.NEEDS_REVIEW,
+                confidence = 0.7,
+                monthKey = snapshot.postedAt.toKoreanMonthKey(),
+                reviewReason = reviewReason,
+                bankAccountHint = movement.hint
+            )
+        )
+    }
+
     private fun extractAmount(text: String): MoneyAmount? {
         val match = AMOUNT_REGEX.find(text) ?: return null
         return MoneyAmount(match.groupValues[1].replace(",", "").toLong())
@@ -172,4 +248,10 @@ class TossNotificationParser : NotificationParser {
         private val AMOUNT_REGEX = Regex("""([0-9,]+)원""")
         private val PAYMENT_GATEWAYS = listOf("KCP", "NICE", "KG이니시스", "토스페이먼츠")
     }
+
+    private data class MovementSemantics(
+        val type: TransactionType,
+        val direction: TransactionDirection,
+        val reviewReason: ReviewReason
+    )
 }

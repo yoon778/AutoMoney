@@ -1,5 +1,9 @@
 package com.choiyoonseo.automoney.domain.parser
 
+import com.choiyoonseo.automoney.domain.assets.AccountMovementDirection
+import com.choiyoonseo.automoney.domain.assets.BankAccountHint
+import com.choiyoonseo.automoney.domain.assets.BankEventKind
+import com.choiyoonseo.automoney.domain.assets.ParsedBankMovement
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.ReviewReason
@@ -8,9 +12,11 @@ import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.notification.FinancialAppRegistry
 
-class CommonFinanceNotificationParser : NotificationParser {
+class CommonFinanceNotificationParser(
+    private val bankAccountHintExtractor: BankAccountHintExtractor = BankAccountHintExtractor()
+) : NotificationParser {
     override fun canParse(snapshot: NotificationSnapshot): Boolean =
-        snapshot.packageName == FinancialAppRegistry.KB_STAR_BANKING_PACKAGE
+        FinancialAppRegistry.infoForPackage(snapshot.packageName)?.bankProvider != null
 
     override fun parse(snapshot: NotificationSnapshot): ParseResult {
         if (!canParse(snapshot)) {
@@ -23,6 +29,14 @@ class CommonFinanceNotificationParser : NotificationParser {
         }
         if (isPromotion(text)) {
             return ParseResult.Ignored("promotional notification")
+        }
+
+        val provider = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)
+            ?: return ParseResult.Ignored("unsupported package")
+        val movement = if (containsAny(text, NON_MOVEMENT_HINT_KEYWORDS)) {
+            null
+        } else {
+            bankAccountHintExtractor.extract(provider, text)
         }
 
         val amountMatch = extractAmountMatch(text) ?: return ParseResult.Ignored("amount not found")
@@ -58,6 +72,8 @@ class CommonFinanceNotificationParser : NotificationParser {
                 memo = maskedMemo,
                 hash = hash
             )
+
+            movement != null -> parsedMovement(snapshot, movement, hash)
 
             containsAny(text, DEPOSIT_KEYWORDS) -> parsed(
                 snapshot = snapshot,
@@ -113,7 +129,8 @@ class CommonFinanceNotificationParser : NotificationParser {
         merchant: String? = null,
         counterparty: String? = null,
         memo: String?,
-        hash: String
+        hash: String,
+        bankAccountHint: BankAccountHint? = null
     ): ParseResult.Parsed = ParseResult.Parsed(
         TransactionDraft(
             occurredAt = snapshot.postedAt,
@@ -121,7 +138,7 @@ class CommonFinanceNotificationParser : NotificationParser {
             direction = direction,
             type = type,
             category = if (type == TransactionType.EXPENSE) guessCategory(merchant.orEmpty()) else null,
-            paymentMethod = "KB",
+            paymentMethod = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)?.badgeText,
             merchant = merchant,
             counterparty = counterparty,
             memo = memo,
@@ -130,9 +147,60 @@ class CommonFinanceNotificationParser : NotificationParser {
             status = status,
             confidence = confidence,
             monthKey = snapshot.postedAt.toKoreanMonthKey(),
-            reviewReason = reviewReason
+            reviewReason = reviewReason,
+            bankAccountHint = bankAccountHint
         )
     )
+
+    private fun parsedMovement(
+        snapshot: NotificationSnapshot,
+        movement: ParsedBankMovement,
+        hash: String
+    ): ParseResult.Parsed {
+        val (type, direction, reviewReason) = when {
+            movement.hint.eventKind == BankEventKind.DEPOSIT &&
+                movement.hint.direction == AccountMovementDirection.CREDIT ->
+                MovementSemantics(
+                    TransactionType.INCOME,
+                    TransactionDirection.INCOME,
+                    ReviewReason.INCOME_UNKNOWN
+                )
+
+            movement.hint.eventKind == BankEventKind.TRANSFER &&
+                movement.hint.direction != AccountMovementDirection.UNKNOWN ->
+                MovementSemantics(
+                    TransactionType.TRANSFER,
+                    TransactionDirection.NEUTRAL,
+                    ReviewReason.TRANSFER_UNKNOWN
+                )
+
+            movement.hint.eventKind == BankEventKind.WITHDRAWAL &&
+                movement.hint.direction == AccountMovementDirection.DEBIT ->
+                MovementSemantics(
+                    TransactionType.EXPENSE,
+                    TransactionDirection.EXPENSE,
+                    ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN
+                )
+
+            else -> MovementSemantics(
+                TransactionType.TRANSFER,
+                TransactionDirection.NEUTRAL,
+                ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN
+            )
+        }
+        return parsed(
+            snapshot = snapshot,
+            amount = MoneyAmount(movement.amountWon),
+            direction = direction,
+            type = type,
+            status = TransactionStatus.NEEDS_REVIEW,
+            confidence = 0.7,
+            reviewReason = reviewReason,
+            memo = null,
+            hash = hash,
+            bankAccountHint = movement.hint
+        )
+    }
 
     private fun extractAmountMatch(text: String): AmountMatch? {
         val match = AMOUNT_REGEX.find(text) ?: return null
@@ -191,10 +259,17 @@ class CommonFinanceNotificationParser : NotificationParser {
         private val PROMOTION_KEYWORDS = listOf("\ucfe0\ud3f0", "\ud61c\ud0dd", "\uc774\ubca4\ud2b8", "\uad11\uace0")
         private val NAME_NOISE_WORDS = PAYMENT_KEYWORDS + TRANSFER_KEYWORDS + DEPOSIT_KEYWORDS +
             TOPUP_KEYWORDS + REFUND_KEYWORDS + ACCOUNT_KEYWORDS
+        private val NON_MOVEMENT_HINT_KEYWORDS = PAYMENT_KEYWORDS + TOPUP_KEYWORDS + REFUND_KEYWORDS
     }
 
     private data class AmountMatch(
         val amount: MoneyAmount,
         val matchedText: String
+    )
+
+    private data class MovementSemantics(
+        val type: TransactionType,
+        val direction: TransactionDirection,
+        val reviewReason: ReviewReason
     )
 }

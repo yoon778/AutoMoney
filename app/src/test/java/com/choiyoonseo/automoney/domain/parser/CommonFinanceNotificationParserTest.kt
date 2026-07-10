@@ -1,9 +1,13 @@
 package com.choiyoonseo.automoney.domain.parser
 
+import com.choiyoonseo.automoney.domain.assets.AccountMovementDirection
+import com.choiyoonseo.automoney.domain.assets.BankEventKind
+import com.choiyoonseo.automoney.domain.assets.BankProvider
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
+import com.choiyoonseo.automoney.notification.FinancialAppRegistry
 import com.google.common.truth.Truth.assertThat
 import java.time.Instant
 import org.junit.Test
@@ -22,6 +26,7 @@ class CommonFinanceNotificationParserTest {
         assertThat(draft.status).isEqualTo(TransactionStatus.AUTO_CONFIRMED)
         assertThat(draft.merchant).isEqualTo("STARBUCKS")
         assertThat(draft.sourceApp).isEqualTo("com.kbstar.kbbank")
+        assertThat(draft.bankAccountHint).isNull()
     }
 
     @Test
@@ -112,6 +117,56 @@ class CommonFinanceNotificationParserTest {
         assertThat(result).isEqualTo(ParseResult.Ignored("unsupported package"))
     }
 
+    @Test
+    fun syntheticDedicatedPackageFixturesProduceTheirMappedHints() {
+        dedicatedBankFixtures.forEach { fixture ->
+            val result = parser.parse(
+                snapshot(
+                    packageName = fixture.packageName,
+                    text = "계좌 123-***-4567\n10,000원 출금"
+                )
+            )
+
+            val draft = (result as ParseResult.Parsed).draft
+            assertThat(draft.bankAccountHint?.provider).isEqualTo(fixture.provider)
+            assertThat(draft.bankAccountHint?.accountLast4).isEqualTo("4567")
+            assertThat(draft.bankAccountHint?.direction).isEqualTo(AccountMovementDirection.DEBIT)
+            assertThat(draft.bankAccountHint?.eventKind).isEqualTo(BankEventKind.WITHDRAWAL)
+        }
+    }
+
+    @Test
+    fun movementUsesTransactionAmountAndStableSnapshotHash() {
+        val notification = NotificationSnapshot(
+            packageName = FinancialAppRegistry.KB_STAR_BANKING_PACKAGE,
+            title = "잔액 90,000원",
+            text = "계좌 123-***-4567\n10,000원 출금",
+            bigText = null,
+            postedAt = Instant.parse("2026-07-03T01:00:00Z"),
+            notificationKey = "movement-key"
+        )
+
+        val draft = (parser.parse(notification) as ParseResult.Parsed).draft
+
+        assertThat(draft.amount.won).isEqualTo(10_000)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(draft.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(draft.reviewReason).isEqualTo(ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN)
+        assertThat(draft.sourceNotificationHash).isEqualTo(notification.sourceNotificationHash)
+    }
+
+    @Test
+    fun nearMatchPackageNeverProducesHint() {
+        val result = parser.parse(
+            snapshot(
+                packageName = "com.kbstar.kbbank.fake",
+                text = "계좌 123-***-4567\n10,000원 출금"
+            )
+        )
+
+        assertThat(result).isEqualTo(ParseResult.Ignored("unsupported package"))
+    }
+
     private fun snapshot(
         packageName: String = "com.kbstar.kbbank",
         text: String
@@ -124,6 +179,18 @@ class CommonFinanceNotificationParserTest {
     )
 
     companion object {
+        private val dedicatedBankFixtures = listOf(
+            DedicatedBankFixture(FinancialAppRegistry.KB_STAR_BANKING_PACKAGE, BankProvider.KB),
+            DedicatedBankFixture(FinancialAppRegistry.SHINHAN_BANKING_PACKAGE, BankProvider.SHINHAN),
+            DedicatedBankFixture(FinancialAppRegistry.SHINHAN_LEGACY_PACKAGE, BankProvider.SHINHAN),
+            DedicatedBankFixture(FinancialAppRegistry.HANA_BANKING_PACKAGE, BankProvider.HANA),
+            DedicatedBankFixture(FinancialAppRegistry.HANA_LEGACY_PACKAGE, BankProvider.HANA),
+            DedicatedBankFixture(FinancialAppRegistry.WOORI_BANKING_PACKAGE, BankProvider.WOORI),
+            DedicatedBankFixture(FinancialAppRegistry.NH_BANKING_PACKAGE, BankProvider.NH),
+            DedicatedBankFixture(FinancialAppRegistry.IBK_BANKING_PACKAGE, BankProvider.IBK),
+            DedicatedBankFixture(FinancialAppRegistry.KAKAO_BANKING_PACKAGE, BankProvider.KAKAO_BANK)
+        )
+
         private const val WON = "\uc6d0"
         private const val APPROVAL = "\uc2b9\uc778"
         private const val TRANSFER = "\uc774\uccb4"
@@ -133,4 +200,9 @@ class CommonFinanceNotificationParserTest {
         private const val CANCEL = "\ucde8\uc18c"
         private const val COUPON = "\ucfe0\ud3f0"
     }
+
+    private data class DedicatedBankFixture(
+        val packageName: String,
+        val provider: BankProvider
+    )
 }

@@ -6,6 +6,7 @@ import com.choiyoonseo.automoney.data.local.AppDatabase
 import com.choiyoonseo.automoney.data.repository.RoomAssetRepository
 import com.choiyoonseo.automoney.data.repository.RoomMoneyRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
+import com.choiyoonseo.automoney.domain.parser.BankAccountHintExtractor
 import com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.NotificationParserRouter
 import com.choiyoonseo.automoney.domain.parser.TossNotificationParser
@@ -51,11 +52,13 @@ class AppContainer(context: Context) {
 
     val resolveAccountTransferUseCase = ResolveAccountTransferUseCase(repository)
 
+    private val bankAccountHintExtractor = BankAccountHintExtractor()
+
     val notificationIngestionUseCase = NotificationIngestionUseCase(
         parser = NotificationParserRouter(
             listOf(
-                TossNotificationParser(),
-                CommonFinanceNotificationParser()
+                TossNotificationParser(bankAccountHintExtractor),
+                CommonFinanceNotificationParser(bankAccountHintExtractor)
             )
         ),
         categorizationEngine = CategorizationEngine(),

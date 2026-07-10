@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.domain.parser
 
+import com.choiyoonseo.automoney.domain.assets.BankAccountHint
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.ReviewReason
@@ -42,7 +43,8 @@ data class TransactionDraft(
     val status: TransactionStatus,
     val confidence: Double,
     val monthKey: YearMonth,
-    val reviewReason: ReviewReason?
+    val reviewReason: ReviewReason?,
+    val bankAccountHint: BankAccountHint? = null
 )
 
 sealed interface ParseResult {
