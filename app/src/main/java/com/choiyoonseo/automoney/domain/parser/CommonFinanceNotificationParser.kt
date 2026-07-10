@@ -33,10 +33,19 @@ class CommonFinanceNotificationParser(
 
         val provider = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)
             ?: return ParseResult.Ignored("unsupported package")
-        val movement = if (containsAny(text, NON_MOVEMENT_HINT_KEYWORDS)) {
+        val hasNonMovementKeyword = containsAny(text, NON_MOVEMENT_HINT_KEYWORDS)
+        val movement = if (hasNonMovementKeyword) {
             null
         } else {
             bankAccountHintExtractor.extract(provider, text)
+        }
+        if (
+            movement == null &&
+            !hasNonMovementKeyword &&
+            bankAccountHintExtractor.hasMovementCandidate(text) &&
+            bankAccountHintExtractor.hasAccountReference(text)
+        ) {
+            return ParseResult.Ignored("ambiguous bank movement")
         }
 
         val amountMatch = extractAmountMatch(text) ?: return ParseResult.Ignored("amount not found")

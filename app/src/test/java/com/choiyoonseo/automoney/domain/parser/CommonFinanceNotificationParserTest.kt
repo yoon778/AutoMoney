@@ -156,6 +156,17 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun ignoresAmbiguousAccountMovementRatherThanUsingBalanceAmount() {
+        val result = parser.parse(
+            snapshot(
+                text = "계좌 123-***-4567 10,000원 출금 잔액 90,000원"
+            )
+        )
+
+        assertThat(result).isEqualTo(ParseResult.Ignored("ambiguous bank movement"))
+    }
+
+    @Test
     fun nearMatchPackageNeverProducesHint() {
         val result = parser.parse(
             snapshot(

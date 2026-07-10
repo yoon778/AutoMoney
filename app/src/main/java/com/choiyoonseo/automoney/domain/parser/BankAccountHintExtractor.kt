@@ -7,6 +7,14 @@ import com.choiyoonseo.automoney.domain.assets.BankProvider
 import com.choiyoonseo.automoney.domain.assets.ParsedBankMovement
 
 class BankAccountHintExtractor {
+    fun hasMovementCandidate(text: String): Boolean =
+        text.lineSequence().any(::containsMovementKeyword)
+
+    fun hasAccountReference(text: String): Boolean =
+        text.contains("계좌") ||
+            text.contains("통장") ||
+            accountCandidateRegex.containsMatchIn(text)
+
     fun extract(provider: BankProvider, text: String): ParsedBankMovement? {
         val movementLines = text.lineSequence()
             .map(String::trim)

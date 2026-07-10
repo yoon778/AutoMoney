@@ -203,6 +203,21 @@ class TossNotificationParserTest {
     }
 
     @Test
+    fun ignoresAmbiguousExplicitTossBankMovementRatherThanUsingBalanceAmount() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = "viva.republica.toss",
+                title = "토스",
+                text = "토스뱅크 계좌 123-***-4567 10,000원 출금 잔액 90,000원",
+                bigText = null,
+                postedAt = Instant.parse("2026-07-01T07:30:00Z")
+            )
+        )
+
+        assertThat(result).isEqualTo(ParseResult.Ignored("ambiguous bank movement"))
+    }
+
+    @Test
     fun tossPackageAndAccountTextAloneDoNotInferTossBank() {
         val result = parser.parse(
             NotificationSnapshot(

@@ -24,14 +24,23 @@ class TossNotificationParser(
         val text = snapshot.combinedText.trim()
         val amount = extractAmount(text) ?: return ParseResult.Ignored("amount not found")
         val hash = snapshot.sourceNotificationHash
-        val movement = if (text.contains("충전") || text.contains("취소") ||
+        val hasNonMovementKeyword = text.contains("충전") || text.contains("취소") ||
             text.contains("환불") || text.contains("결제")
-        ) {
+        val movementProvider = if (hasNonMovementKeyword) {
             null
         } else {
-            bankAccountHintExtractor.resolveAggregatorProvider(text)?.let { provider ->
+            bankAccountHintExtractor.resolveAggregatorProvider(text)
+        }
+        val movement = movementProvider?.let { provider ->
                 bankAccountHintExtractor.extract(provider, text)
-            }
+        }
+        if (
+            movement == null &&
+            movementProvider != null &&
+            bankAccountHintExtractor.hasMovementCandidate(text) &&
+            bankAccountHintExtractor.hasAccountReference(text)
+        ) {
+            return ParseResult.Ignored("ambiguous bank movement")
         }
 
         if (text.contains("충전")) {
