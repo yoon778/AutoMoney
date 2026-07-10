@@ -10,7 +10,7 @@ enum class ReviewResolution(val defaultMemo: String) {
     SETTLEMENT("N분의1 정산으로 확인"),
     ACCOUNT_TRANSFER("내 계좌 이동으로 확인"),
     REFUND("환불/취소로 확인"),
-    EXCLUDE("지출 제외")
+    EXCLUDE("통계 제외")
 }
 
 fun MoneyTransaction.resolveReview(

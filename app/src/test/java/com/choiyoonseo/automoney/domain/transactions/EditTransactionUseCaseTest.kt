@@ -1,6 +1,7 @@
 package com.choiyoonseo.automoney.domain.transactions
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -221,7 +222,12 @@ class EditTransactionUseCaseTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)
 
-        useCase.exclude(transaction())
+        useCase.exclude(
+            transaction().copy(
+                linkedAssetAccountId = 7,
+                balanceImpact = BalanceImpact.DEBIT
+            )
+        )
 
         val updated = repository.updatedTransactions.single()
         assertThat(updated.id).isEqualTo(12)
@@ -230,6 +236,8 @@ class EditTransactionUseCaseTest {
         assertThat(updated.category).isNull()
         assertThat(updated.status).isEqualTo(TransactionStatus.EXCLUDED)
         assertThat(updated.confidence).isEqualTo(1.0)
+        assertThat(updated.linkedAssetAccountId).isEqualTo(7)
+        assertThat(updated.balanceImpact).isEqualTo(BalanceImpact.DEBIT)
         assertThat(updated.memo).contains("사용자 삭제")
     }
 

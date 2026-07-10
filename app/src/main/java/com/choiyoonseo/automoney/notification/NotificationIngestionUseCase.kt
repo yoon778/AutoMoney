@@ -50,16 +50,15 @@ class NotificationIngestionUseCase(
         }
 
         try {
-            if (finalDraft.status == TransactionStatus.NEEDS_REVIEW && finalDraft.reviewReason != null) {
-                repository.saveTransactionWithReview(finalDraft.toDomain(), finalDraft.reviewReason)
-            } else {
-                repository.saveTransaction(finalDraft.toDomain())
-            }
+            val saved = repository.saveNotificationTransaction(
+                transaction = finalDraft.toDomain(),
+                accountHint = finalDraft.bankAccountHint,
+                reviewReason = finalDraft.reviewReason
+            )
+            return IngestionResult.Saved(finalDraft.type, saved.reviewReason)
         } catch (e: DuplicateNotificationException) {
             return IngestionResult.Duplicate(finalDraft.type)
         }
-
-        return IngestionResult.Saved(finalDraft.type, finalDraft.reviewReason)
     }
 }
 

@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.domain.review
 
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -63,7 +64,38 @@ class ReviewResolutionTest {
         assertThat(updated.direction).isEqualTo(TransactionDirection.NEUTRAL)
         assertThat(updated.status).isEqualTo(TransactionStatus.EXCLUDED)
         assertThat(updated.category).isNull()
-        assertThat(updated.memo).isEqualTo("지출 제외 · 내 계좌 간 이동")
+        assertThat(updated.memo).isEqualTo("통계 제외 · 내 계좌 간 이동")
+    }
+
+    @Test
+    fun settlementKeepsAppliedCredit() {
+        val resolved = transaction(
+            type = TransactionType.INCOME,
+            direction = TransactionDirection.INCOME,
+            memo = null
+        ).copy(
+            linkedAssetAccountId = 7,
+            balanceImpact = BalanceImpact.CREDIT
+        ).resolveReview(ReviewResolution.SETTLEMENT, null)
+
+        assertThat(resolved.linkedAssetAccountId).isEqualTo(7)
+        assertThat(resolved.balanceImpact).isEqualTo(BalanceImpact.CREDIT)
+    }
+
+    @Test
+    fun statisticsExcludeKeepsAppliedDebit() {
+        val resolved = transaction(
+            type = TransactionType.EXPENSE,
+            direction = TransactionDirection.EXPENSE,
+            memo = null
+        ).copy(
+            linkedAssetAccountId = 7,
+            balanceImpact = BalanceImpact.DEBIT
+        ).resolveReview(ReviewResolution.EXCLUDE, null)
+
+        assertThat(resolved.type).isEqualTo(TransactionType.EXCLUDED)
+        assertThat(resolved.linkedAssetAccountId).isEqualTo(7)
+        assertThat(resolved.balanceImpact).isEqualTo(BalanceImpact.DEBIT)
     }
 
     @Test
