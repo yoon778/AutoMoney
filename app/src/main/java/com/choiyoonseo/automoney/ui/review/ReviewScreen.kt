@@ -137,6 +137,37 @@ fun ReviewScreen(
     fun reviewReasonFor(card: ReviewCardUi): ReviewReason? =
         openReviewItems.firstOrNull { it.id == card.reviewItemId }?.reason
 
+    fun presentedCard(card: ReviewCardUi): ReviewCardUi =
+        when (reviewReasonFor(card)) {
+            ReviewReason.ACCOUNT_AMBIGUOUS -> card.copy(
+                tag = "계좌",
+                iconText = "계",
+                message = "같은 은행, 같은 끝자리 계좌가 여러 개라 자동으로 연결하지 못했어요. 어떤 계좌인지 확인해 주세요.",
+                primaryAction = "계좌 확인"
+            )
+            ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN -> card.copy(
+                tag = "계좌",
+                iconText = "계",
+                message = "입금인지 출금인지 확인하지 못해 잔액에는 반영하지 않았어요. 내역을 확인해 주세요.",
+                primaryAction = "내역 확인"
+            )
+            ReviewReason.BALANCE_MISMATCH -> card.copy(
+                tag = "잔액",
+                iconText = "잔",
+                message = "계좌에 남은 돈보다 큰 금액이라 잔액에 자동 반영하지 않았어요. 금액과 계좌를 확인해 주세요.",
+                primaryAction = "내역 확인"
+            )
+            else -> card
+        }
+
+    fun opensAccountEdit(card: ReviewCardUi): Boolean =
+        reviewReasonFor(card) in setOf(
+            ReviewReason.ACCOUNT_UNMATCHED,
+            ReviewReason.ACCOUNT_AMBIGUOUS,
+            ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN,
+            ReviewReason.BALANCE_MISMATCH
+        )
+
     fun pairedIncomingReviewItem(card: ReviewCardUi) =
         card.sourceTransaction?.id?.let { transactionId ->
             accountTransferCandidates
@@ -316,12 +347,11 @@ fun ReviewScreen(
 
         reviewCards.forEach { card ->
             ReviewActionCard(
-                card = card,
+                card = presentedCard(card),
                 onPrimaryAction = {
-                    val isAccountUnmatched = reviewReasonFor(card) == ReviewReason.ACCOUNT_UNMATCHED
                     if (card.kind == ReviewCardKind.WALLET_TOPUP) {
                         activeWalletCard = card
-                    } else if (isAccountUnmatched && card.sourceTransaction != null && editTransactionUseCase != null) {
+                    } else if (opensAccountEdit(card) && card.sourceTransaction != null && editTransactionUseCase != null) {
                         activeEditReviewCard = card
                         editErrorMessage = null
                     } else {

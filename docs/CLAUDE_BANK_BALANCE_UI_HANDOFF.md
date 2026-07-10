@@ -80,3 +80,11 @@
 ```
 
 실제 은행 원문을 확인하지 못한 provider는 `UNVERIFIED`로 표시. 합성 fixture 통과를 실제 은행 UI 지원 증거로 표현하지 않음
+
+## Claude UI 완료 기록 (2026-07-10)
+
+- 잔액 반영 badge: `TransactionRow`에 `balanceImpact` 파라미터 추가(CREDIT "잔액+" 초록 / DEBIT "잔액-" 빨강). 홈 최근기록·홈 상세 시트·거래 목록에 연결. `ReviewActionCard`는 `card.sourceTransaction.balanceImpact`를 직접 읽어 "잔액 반영" 칩 표시 — 계약 변경 없음.
+- 검토 사유별 표현(화면 렌더 계층, mapper 미수정): `ACCOUNT_AMBIGUOUS`(중복 계좌 안내), `ACCOUNT_MOVEMENT_UNKNOWN`(방향 불명·미반영 안내), `BALANCE_MISMATCH`(잔액 부족·미반영 안내) 문구/태그/CTA 오버라이드. 네 가지 계좌 사유 모두 primary가 거래 수정 다이얼로그로 라우팅.
+- 자산 폼: 종류/은행 선택을 `MoneyPickerField`(라벨+값+화살표)로 통일, 저장된 suffix는 "등록된 계좌번호 ****XXXX" 안내로 표시, 오류 문구 negative 색. 계좌 수정 팝업을 `MoneyDialog` 공통 셸(취소/저장 2버튼)로 전환.
+- 수동 입력 "사용 계좌" 선택도 `MoneyPickerField`로 통일.
+- 검증: `:app:testDebugUnitTest` + `:app:assembleDebug` PASS. 에뮬레이터에서 은행 8종 드롭다운·계좌번호 필드 노출·픽커 스타일 확인. 전체 계좌번호·원문 알림은 UI state에 저장하지 않음(입력 필드의 임시 상태만, remember 비저장).

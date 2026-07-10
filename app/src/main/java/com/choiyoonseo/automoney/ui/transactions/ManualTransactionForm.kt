@@ -22,6 +22,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import com.choiyoonseo.automoney.ui.components.MoneyPickerField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -177,15 +178,12 @@ fun ManualTransactionForm(
             modifier = Modifier.fillMaxWidth()
         )
         if (entryType != ManualEntryType.TRANSFER && selectableAccounts.isNotEmpty()) {
-            Text("사용 계좌")
             Box(Modifier.fillMaxWidth()) {
-                Button(
-                    onClick = { accountMenuExpanded = true },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(selectedAccountName.ifBlank { "계좌 선택" }, modifier = Modifier.weight(1f))
-                    Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "계좌 선택")
-                }
+                MoneyPickerField(
+                    label = "사용 계좌",
+                    value = selectedAccountName.ifBlank { "계좌 선택" },
+                    onClick = { accountMenuExpanded = true }
+                )
                 DropdownMenu(
                     expanded = accountMenuExpanded,
                     onDismissRequest = { accountMenuExpanded = false },

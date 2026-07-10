@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
@@ -210,7 +211,12 @@ fun HomeScreen(
             icon = Icons.AutoMirrored.Filled.List
         ) {
             dashboard.recentTransactions.forEach { transaction ->
-                TransactionRow(transaction)
+                TransactionRow(
+                    transaction = transaction,
+                    balanceImpact = transaction.id?.let { rowId ->
+                        transactions.firstOrNull { it.id == rowId }?.balanceImpact
+                    }
+                )
             }
             if (dashboard.recentTransactions.isEmpty()) {
                 if (notificationAccessEnabled == false) {
@@ -229,6 +235,7 @@ fun HomeScreen(
         HomeDetailSheet(
             detail = detail,
             onDismiss = { activeDetail = null },
+            balanceImpactFor = { rowId -> transactions.firstOrNull { it.id == rowId }?.balanceImpact },
             onRowClick = if (editTransactionUseCase == null) {
                 null
             } else {
@@ -374,7 +381,8 @@ private data class HomeDetailDialogState(
 private fun HomeDetailSheet(
     detail: HomeDetailDialogState,
     onDismiss: () -> Unit,
-    onRowClick: ((TransactionRowUi) -> Unit)? = null
+    onRowClick: ((TransactionRowUi) -> Unit)? = null,
+    balanceImpactFor: ((Long) -> BalanceImpact?)? = null
 ) {
     val colors = MoneyTheme.colors
     ModalBottomSheet(
@@ -443,6 +451,7 @@ private fun HomeDetailSheet(
                         }
                         TransactionRow(
                             transaction = row,
+                            balanceImpact = row.id?.let { rowId -> balanceImpactFor?.invoke(rowId) },
                             onClick = if (onRowClick != null && row.id != null) {
                                 { onRowClick(row) }
                             } else {

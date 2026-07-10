@@ -69,6 +69,8 @@ import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
+import com.choiyoonseo.automoney.ui.components.MoneyDialog
+import com.choiyoonseo.automoney.ui.components.MoneyPickerField
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
@@ -279,12 +281,11 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
             modifier = Modifier.fillMaxWidth()
         )
         Box(Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = { kindExpanded = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text("종류: ${kind.label}")
-            }
+            MoneyPickerField(
+                label = "종류",
+                value = kind.label,
+                onClick = { kindExpanded = true }
+            )
             DropdownMenu(
                 expanded = kindExpanded,
                 onDismissRequest = { kindExpanded = false },
@@ -322,7 +323,9 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
                 )
             }
         }
-        errorMessage?.let { Text(it) }
+        errorMessage?.let {
+            Text(it, color = MoneyTheme.colors.negative, style = MaterialTheme.typography.bodySmall)
+        }
         Button(
             onClick = {
                 val amount = balance.cleanWonOrNull()
@@ -371,11 +374,44 @@ private fun AccountEditDialog(
     var accountNumberInput by remember(account.id) { mutableStateOf("") }
     var errorMessage by remember(account.id) { mutableStateOf<String?>(null) }
 
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("계좌 수정") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    MoneyDialog(
+        title = "계좌 수정",
+        subtitle = account.name,
+        onDismiss = onDismiss,
+        buttons = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    Text("취소")
+                }
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {
+                        val cleanBalance = balance.cleanWonOrNull()
+                        if (cleanBalance == null) {
+                            errorMessage = "잔액을 확인해 주세요."
+                            return@Button
+                        }
+                        try {
+                            onSave(
+                                updateAssetAccountFromForm(
+                                    account = account,
+                                    name = name,
+                                    balanceWon = cleanBalance,
+                                    kind = kind,
+                                    bankProvider = bankProvider,
+                                    accountNumberInput = accountNumberInput
+                                )
+                            )
+                        } catch (e: IllegalArgumentException) {
+                            errorMessage = e.message ?: "입력값을 확인해 주세요."
+                        }
+                    }
+                ) {
+                    Text("저장")
+                }
+            }
+        }
+    ) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -390,12 +426,11 @@ private fun AccountEditDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 Box(Modifier.fillMaxWidth()) {
-                    OutlinedButton(
-                        onClick = { kindExpanded = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("종류: ${kind.label}")
-                    }
+                    MoneyPickerField(
+                        label = "종류",
+                        value = kind.label,
+                        onClick = { kindExpanded = true }
+                    )
                     DropdownMenu(
                         expanded = kindExpanded,
                         onDismissRequest = { kindExpanded = false },
@@ -424,7 +459,11 @@ private fun AccountEditDialog(
                         onSelected = { bankProvider = it }
                     )
                     account.accountLast4?.let { last4 ->
-                        Text("등록된 계좌번호: ****$last4")
+                        Text(
+                            "등록된 계좌번호 ****$last4 · 바꾸려면 새 번호를 입력하세요",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MoneyTheme.colors.muted
+                        )
                     }
                     if (bankProvider != null) {
                         OutlinedTextField(
@@ -436,42 +475,10 @@ private fun AccountEditDialog(
                         )
                     }
                 }
-                errorMessage?.let { Text(it) }
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    val cleanBalance = balance.cleanWonOrNull()
-                    if (cleanBalance == null) {
-                        errorMessage = "잔액을 확인해 주세요."
-                        return@Button
-                    }
-                    try {
-                        onSave(
-                            updateAssetAccountFromForm(
-                                account = account,
-                                name = name,
-                                balanceWon = cleanBalance,
-                                kind = kind,
-                                bankProvider = bankProvider,
-                                accountNumberInput = accountNumberInput
-                            )
-                        )
-                    } catch (e: IllegalArgumentException) {
-                        errorMessage = e.message ?: "입력값을 확인해 주세요."
-                    }
+                errorMessage?.let {
+                    Text(it, color = MoneyTheme.colors.negative, style = MaterialTheme.typography.bodySmall)
                 }
-            ) {
-                Text("저장")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss) {
-                Text("취소")
-            }
-        }
-    )
+    }
 }
 
 @Composable
@@ -482,12 +489,11 @@ private fun BankProviderPicker(
     onSelected: (BankProvider) -> Unit
 ) {
     Box(Modifier.fillMaxWidth()) {
-        OutlinedButton(
-            onClick = { onExpandedChange(true) },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("은행: ${selectedProvider?.displayName ?: "선택 안 함"}")
-        }
+        MoneyPickerField(
+            label = "은행",
+            value = selectedProvider?.displayName ?: "선택 안 함",
+            onClick = { onExpandedChange(true) }
+        )
         DropdownMenu(
             expanded = expanded,
             onDismissRequest = { onExpandedChange(false) },

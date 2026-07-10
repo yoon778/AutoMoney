@@ -168,6 +168,9 @@ fun TransactionsScreen(
                 section.rows.forEach { transaction ->
                     TransactionRow(
                         transaction = transaction,
+                        balanceImpact = transaction.id?.let { rowId ->
+                            transactions.firstOrNull { it.id == rowId }?.balanceImpact
+                        },
                         onClick = transaction.id?.let { transactionId ->
                             if (editTransactionUseCase == null) {
                                 null

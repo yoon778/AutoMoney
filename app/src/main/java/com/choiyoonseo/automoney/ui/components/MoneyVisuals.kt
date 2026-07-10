@@ -41,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.choiyoonseo.automoney.R
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.ui.model.CategorySpendUi
 import com.choiyoonseo.automoney.ui.model.MetricTileUi
 import com.choiyoonseo.automoney.ui.model.ReviewCardUi
@@ -462,7 +463,11 @@ fun MetricTile(
 }
 
 @Composable
-fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null) {
+fun TransactionRow(
+    transaction: TransactionRowUi,
+    onClick: (() -> Unit)? = null,
+    balanceImpact: BalanceImpact? = null
+) {
     val colors = MoneyTheme.colors
     val accent = categoryAccentForName(transaction.category)
     val rowModifier = if (onClick == null) {
@@ -501,6 +506,11 @@ fun TransactionRow(transaction: TransactionRowUi, onClick: (() -> Unit)? = null)
                 transaction.sourceLabel?.let { sourceLabel ->
                     SourceLabelBadge(sourceLabel)
                 }
+                when (balanceImpact) {
+                    BalanceImpact.CREDIT -> BalanceImpactBadge("잔액+", colors.positive)
+                    BalanceImpact.DEBIT -> BalanceImpactBadge("잔액-", colors.negative)
+                    else -> Unit
+                }
                 transaction.sourceApp?.let { sourceApp ->
                     SourceAppBadge(sourceApp)
                 }
@@ -527,6 +537,25 @@ private fun SourceLabelBadge(label: String, modifier: Modifier = Modifier) {
             text = label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
             color = colors.primary,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            maxLines = 1
+        )
+    }
+}
+
+@Composable
+private fun BalanceImpactBadge(label: String, accent: Color, modifier: Modifier = Modifier) {
+    val colors = MoneyTheme.colors
+    Surface(
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = colors.soft(accent)
+    ) {
+        Text(
+            text = label,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
+            color = accent,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             maxLines = 1
@@ -563,6 +592,11 @@ fun ReviewActionCard(
                         Text(card.tag, style = MaterialTheme.typography.labelMedium, color = accent)
                         card.sourceApp?.let { sourceApp ->
                             SourceAppBadge(sourceApp)
+                        }
+                        when (card.sourceTransaction?.balanceImpact) {
+                            BalanceImpact.CREDIT -> BalanceImpactBadge("잔액 반영", colors.positive)
+                            BalanceImpact.DEBIT -> BalanceImpactBadge("잔액 반영", colors.negative)
+                            else -> Unit
                         }
                     }
                 }
