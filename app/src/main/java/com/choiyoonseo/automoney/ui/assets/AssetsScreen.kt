@@ -56,13 +56,13 @@ import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
+import com.choiyoonseo.automoney.domain.assets.BankProvider
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
 import com.choiyoonseo.automoney.domain.assets.assetOverviewBalanceHelper
 import com.choiyoonseo.automoney.domain.assets.buildAssetOverview
 import com.choiyoonseo.automoney.domain.assets.fixedExpenseWithdrawalDayOptions
-import com.choiyoonseo.automoney.domain.assets.updateAssetAccount
 import com.choiyoonseo.automoney.domain.assets.validatedForSave
 import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
@@ -231,7 +231,7 @@ private fun AccountsPanel(
             accounts.forEach { account ->
                 AssetRow(
                     title = account.name,
-                    subtitle = account.kind.label,
+                    subtitle = assetAccountMetadataLabel(account),
                     amountWon = account.balanceWon,
                     ratio = account.balanceWon.toFloat() / maxBalance.toFloat(),
                     accent = accountAccentForName(account.name),
@@ -264,6 +264,10 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
     var balance by remember { mutableStateOf("") }
     var kind by remember { mutableStateOf(AssetAccountKind.BANK) }
     var kindExpanded by remember { mutableStateOf(false) }
+    var bankProvider by remember { mutableStateOf<BankProvider?>(null) }
+    var bankExpanded by remember { mutableStateOf(false) }
+    var accountNumberInput by remember { mutableStateOf("") }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
     InputCard(title = "계좌 추가") {
         OutlinedTextField(name, { name = it }, label = { Text("계좌 이름") }, modifier = Modifier.fillMaxWidth())
@@ -291,19 +295,58 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
                         text = { Text(option.label) },
                         onClick = {
                             kind = option
+                            if (option != AssetAccountKind.BANK) {
+                                bankProvider = null
+                                accountNumberInput = ""
+                            }
                             kindExpanded = false
                         }
                     )
                 }
             }
         }
+        if (kind == AssetAccountKind.BANK) {
+            BankProviderPicker(
+                selectedProvider = bankProvider,
+                expanded = bankExpanded,
+                onExpandedChange = { bankExpanded = it },
+                onSelected = { bankProvider = it }
+            )
+            if (bankProvider != null) {
+                OutlinedTextField(
+                    value = accountNumberInput,
+                    onValueChange = { accountNumberInput = it },
+                    label = { Text("계좌번호") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+        errorMessage?.let { Text(it) }
         Button(
             onClick = {
                 val amount = balance.cleanWonOrNull()
                 if (name.isNotBlank() && amount != null) {
-                    onSave(AssetAccount(name = name.trim(), balanceWon = amount, kind = kind))
-                    name = ""
-                    balance = ""
+                    try {
+                        onSave(
+                            createAssetAccountFromForm(
+                                name = name,
+                                balanceWon = amount,
+                                kind = kind,
+                                bankProvider = bankProvider,
+                                accountNumberInput = accountNumberInput
+                            )
+                        )
+                        name = ""
+                        balance = ""
+                        bankProvider = null
+                        accountNumberInput = ""
+                        errorMessage = null
+                    } catch (e: IllegalArgumentException) {
+                        errorMessage = e.message ?: "입력값을 확인해 주세요."
+                    }
+                } else {
+                    errorMessage = "계좌 이름과 잔액을 확인해 주세요."
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -323,6 +366,9 @@ private fun AccountEditDialog(
     var balance by remember(account.id) { mutableStateOf(account.balanceWon.toString()) }
     var kind by remember(account.id) { mutableStateOf(account.kind) }
     var kindExpanded by remember(account.id) { mutableStateOf(false) }
+    var bankProvider by remember(account.id) { mutableStateOf(account.bankProvider) }
+    var bankExpanded by remember(account.id) { mutableStateOf(false) }
+    var accountNumberInput by remember(account.id) { mutableStateOf("") }
     var errorMessage by remember(account.id) { mutableStateOf<String?>(null) }
 
     AlertDialog(
@@ -360,10 +406,34 @@ private fun AccountEditDialog(
                                 text = { Text(option.label) },
                                 onClick = {
                                     kind = option
+                                    if (option != AssetAccountKind.BANK) {
+                                        bankProvider = null
+                                        accountNumberInput = ""
+                                    }
                                     kindExpanded = false
                                 }
                             )
                         }
+                    }
+                }
+                if (kind == AssetAccountKind.BANK) {
+                    BankProviderPicker(
+                        selectedProvider = bankProvider,
+                        expanded = bankExpanded,
+                        onExpandedChange = { bankExpanded = it },
+                        onSelected = { bankProvider = it }
+                    )
+                    account.accountLast4?.let { last4 ->
+                        Text("등록된 계좌번호: ****$last4")
+                    }
+                    if (bankProvider != null) {
+                        OutlinedTextField(
+                            value = accountNumberInput,
+                            onValueChange = { accountNumberInput = it },
+                            label = { Text("새 계좌번호") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
                 errorMessage?.let { Text(it) }
@@ -378,7 +448,16 @@ private fun AccountEditDialog(
                         return@Button
                     }
                     try {
-                        onSave(updateAssetAccount(account, name, cleanBalance, kind))
+                        onSave(
+                            updateAssetAccountFromForm(
+                                account = account,
+                                name = name,
+                                balanceWon = cleanBalance,
+                                kind = kind,
+                                bankProvider = bankProvider,
+                                accountNumberInput = accountNumberInput
+                            )
+                        )
                     } catch (e: IllegalArgumentException) {
                         errorMessage = e.message ?: "입력값을 확인해 주세요."
                     }
@@ -393,6 +472,38 @@ private fun AccountEditDialog(
             }
         }
     )
+}
+
+@Composable
+private fun BankProviderPicker(
+    selectedProvider: BankProvider?,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onSelected: (BankProvider) -> Unit
+) {
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedButton(
+            onClick = { onExpandedChange(true) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("은행: ${selectedProvider?.displayName ?: "선택 안 함"}")
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            BankProvider.entries.forEach { provider ->
+                DropdownMenuItem(
+                    text = { Text(provider.displayName) },
+                    onClick = {
+                        onSelected(provider)
+                        onExpandedChange(false)
+                    }
+                )
+            }
+        }
+    }
 }
 
 @Composable

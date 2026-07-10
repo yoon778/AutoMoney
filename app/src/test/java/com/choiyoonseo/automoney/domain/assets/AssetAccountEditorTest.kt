@@ -42,4 +42,25 @@ class AssetAccountEditorTest {
 
         assertThat(error).isInstanceOf(IllegalArgumentException::class.java)
     }
+
+    @Test
+    fun updateAssetAccountClearsMetadataWhenChangingToNonBank() {
+        val original = AssetAccount(
+            id = 12,
+            name = "KB",
+            balanceWon = 100_000,
+            bankProvider = BankProvider.KB,
+            accountLast4 = "9012"
+        )
+
+        val updated = updateAssetAccount(
+            account = original,
+            name = "Wallet",
+            balanceWon = 123_456,
+            kind = AssetAccountKind.PAY
+        )
+
+        assertThat(updated.bankProvider).isNull()
+        assertThat(updated.accountLast4).isNull()
+    }
 }

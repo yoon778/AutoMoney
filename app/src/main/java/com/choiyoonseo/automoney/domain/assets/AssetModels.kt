@@ -22,15 +22,28 @@ fun updateAssetAccount(
     name: String,
     balanceWon: Long,
     kind: AssetAccountKind
-): AssetAccount {
+): AssetAccount = account.copy(
+    name = name,
+    balanceWon = balanceWon,
+    kind = kind,
+    bankProvider = account.bankProvider.takeIf { kind == AssetAccountKind.BANK },
+    accountLast4 = account.accountLast4.takeIf { kind == AssetAccountKind.BANK }
+).validatedForSave()
+
+fun AssetAccount.validatedForSave(): AssetAccount {
     val cleanName = name.trim()
     require(cleanName.isNotBlank()) { "계좌 이름을 입력해 주세요." }
     require(balanceWon >= 0) { "잔액은 0원 이상이어야 해요." }
-    return account.copy(
-        name = cleanName,
-        balanceWon = balanceWon,
-        kind = kind
-    )
+    if (kind == AssetAccountKind.BANK) {
+        require((bankProvider == null) == (accountLast4 == null)) {
+            "은행과 계좌번호 끝 네 자리를 함께 입력해 주세요."
+        }
+    } else {
+        require(bankProvider == null && accountLast4 == null) {
+            "은행 계좌가 아닌 자산에는 계좌 정보를 저장할 수 없어요."
+        }
+    }
+    return copy(name = cleanName)
 }
 
 data class FixedExpensePlan(
