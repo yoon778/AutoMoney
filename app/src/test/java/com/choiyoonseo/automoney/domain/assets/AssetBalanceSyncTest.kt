@@ -68,6 +68,49 @@ class AssetBalanceSyncTest {
     }
 
     @Test
+    fun explicitDebitUsesIdEvenDuringReview() {
+        val accounts = listOf(
+            AssetAccount(id = 1, name = "Salary", balanceWon = 100_000),
+            AssetAccount(id = 2, name = "Living", balanceWon = 50_000)
+        )
+        val transaction = transaction(
+            amountWon = 10_000,
+            status = TransactionStatus.NEEDS_REVIEW
+        ).copy(
+            linkedAssetAccountId = 2,
+            balanceImpact = BalanceImpact.DEBIT
+        )
+
+        val updated = applyTransactionBalance(accounts, transaction)
+
+        assertThat(updated.map(AssetAccount::balanceWon))
+            .containsExactly(100_000L, 40_000L).inOrder()
+    }
+
+    @Test
+    fun explicitNoneNeverFallsBackToNameMatching() {
+        val accounts = listOf(AssetAccount(id = 1, name = "KB", balanceWon = 100_000))
+        val transaction = transaction(paymentMethod = "KB")
+            .copy(balanceImpact = BalanceImpact.NONE)
+
+        assertThat(applyTransactionBalance(accounts, transaction)).isEqualTo(accounts)
+    }
+
+    @Test
+    fun replacingExplicitCreditValidatesOnlyFinalBalance() {
+        val accounts = listOf(AssetAccount(id = 1, name = "Living", balanceWon = 50))
+        val old = transaction(amountWon = 100).copy(
+            linkedAssetAccountId = 1,
+            balanceImpact = BalanceImpact.CREDIT
+        )
+        val new = old.copy(amount = MoneyAmount(50))
+
+        val updated = replaceTransactionBalance(accounts, oldTransaction = old, newTransaction = new)
+
+        assertThat(updated.single().balanceWon).isEqualTo(0)
+    }
+
+    @Test
     fun reviewedWalletTopupMovesBalanceFromSourceAccountToWalletAccount() {
         val accounts = listOf(
             AssetAccount(id = 1, name = "\uad6d\ubbfc\uc740\ud589", balanceWon = 100_000),

@@ -9,7 +9,9 @@ import com.choiyoonseo.automoney.data.local.entity.ReviewItemWithTransaction
 import com.choiyoonseo.automoney.data.local.entity.RuleEntity
 import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.domain.assets.BankAccountHint
 import com.choiyoonseo.automoney.domain.assets.applyTransactionBalance
+import com.choiyoonseo.automoney.domain.assets.decideAccountBalance
 import com.choiyoonseo.automoney.domain.assets.needsAccountMatchReview
 import com.choiyoonseo.automoney.domain.assets.removeTransactionBalance
 import com.choiyoonseo.automoney.domain.assets.replaceTransactionBalance
@@ -52,12 +54,46 @@ class RoomMoneyRepository(
         return db.ruleDao().enabledRules().map { it.toDomain() }
     }
 
+    override suspend fun saveNotificationTransaction(
+        transaction: MoneyTransaction,
+        accountHint: BankAccountHint?,
+        reviewReason: ReviewReason?
+    ): NotificationSaveResult {
+        return try {
+            db.withTransaction {
+                val currentAccounts = db.assetDao().accountsOnce().map { it.toDomain() }
+                val decision = decideAccountBalance(currentAccounts, accountHint, transaction.amount.won)
+                val effectiveReason = decision.reviewReason ?: reviewReason
+                val transactionToSave = transaction.copy(
+                    linkedAssetAccountId = decision.linkedAssetAccountId,
+                    balanceImpact = decision.balanceImpact,
+                    status = if (effectiveReason != null) {
+                        TransactionStatus.NEEDS_REVIEW
+                    } else {
+                        transaction.status
+                    }
+                )
+                val id = saveTransactionInternal(
+                    transaction = transactionToSave,
+                    currentAccounts = currentAccounts,
+                    needsAccountReview = false
+                ).id
+                if (effectiveReason != null) {
+                    insertReviewItem(id, effectiveReason)
+                }
+                NotificationSaveResult(id, effectiveReason)
+            }
+        } catch (e: SQLiteConstraintException) {
+            throw duplicateNotificationExceptionOrOriginal(transaction, e)
+        }
+    }
+
     override suspend fun saveTransaction(transaction: MoneyTransaction): Long {
         return try {
             db.withTransaction {
                 val currentAccounts = db.assetDao().accountsOnce().map { it.toDomain() }
                 val needsAccountReview = transaction.status != TransactionStatus.NEEDS_REVIEW &&
-                    needsAccountReview(currentAccounts, transaction)
+                    needsLegacyAccountReview(currentAccounts, transaction)
                 val transactionToSave = transaction.withAccountReviewStatus(needsAccountReview)
                 val result = saveTransactionInternal(
                     transaction = transactionToSave,
@@ -81,7 +117,7 @@ class RoomMoneyRepository(
         return try {
             db.withTransaction {
                 val currentAccounts = db.assetDao().accountsOnce().map { it.toDomain() }
-                val needsAccountReview = needsAccountReview(currentAccounts, transaction)
+                val needsAccountReview = needsLegacyAccountReview(currentAccounts, transaction)
                 val transactionToSave = transaction.withAccountReviewStatus(needsAccountReview)
                 val effectiveReason = reason.withAccountReviewPriority(needsAccountReview)
                 val id = saveTransactionInternal(
@@ -127,7 +163,7 @@ class RoomMoneyRepository(
         val id = db.transactionDao().insert(transaction.toEntity())
         val transactionWithId = transaction.copy(id = id)
         val accounts = currentAccounts ?: db.assetDao().accountsOnce().map { it.toDomain() }
-        val shouldReviewAccount = needsAccountReview ?: needsAccountReview(accounts, transactionWithId)
+        val shouldReviewAccount = needsAccountReview ?: needsLegacyAccountReview(accounts, transactionWithId)
         syncAssetAccounts(accounts) { accounts ->
             applyTransactionBalance(accounts, transactionWithId)
         }
@@ -231,11 +267,12 @@ private data class SaveTransactionResult(
     val needsAccountReview: Boolean
 )
 
-private fun needsAccountReview(
+private fun needsLegacyAccountReview(
     accounts: List<AssetAccount>,
     transaction: MoneyTransaction
 ): Boolean =
-    transaction.sourceType == SourceType.NOTIFICATION &&
+    transaction.balanceImpact == null &&
+        transaction.sourceType == SourceType.NOTIFICATION &&
         needsAccountMatchReview(accounts, transaction.asResolvedForAccountReview())
 
 private fun MoneyTransaction.asResolvedForAccountReview(): MoneyTransaction =

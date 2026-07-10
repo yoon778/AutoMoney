@@ -20,6 +20,9 @@ fun replaceTransactionBalance(
     oldTransaction: MoneyTransaction?,
     newTransaction: MoneyTransaction
 ): List<AssetAccount> {
+    if (oldTransaction?.balanceImpact != null && newTransaction.balanceImpact != null) {
+        return replaceExplicitBalance(accounts, oldTransaction, newTransaction)
+    }
     val restored = oldTransaction?.let { removeTransactionBalance(accounts, it) } ?: accounts
     return applyTransactionBalance(restored, newTransaction)
 }
@@ -46,6 +49,38 @@ private fun applyBalanceEffect(
     transaction: MoneyTransaction,
     multiplier: Int
 ): List<AssetAccount> {
+    val impact = transaction.balanceImpact
+    if (impact != null) {
+        return applyExplicitBalanceEffect(accounts, transaction, impact, multiplier)
+    }
+    return applyLegacyBalanceEffect(accounts, transaction, multiplier)
+}
+
+private fun applyExplicitBalanceEffect(
+    accounts: List<AssetAccount>,
+    transaction: MoneyTransaction,
+    impact: BalanceImpact,
+    multiplier: Int
+): List<AssetAccount> {
+    if (impact == BalanceImpact.NONE) return accounts
+    val accountId = requireNotNull(transaction.linkedAssetAccountId) {
+        "Explicit balance effect requires a linked account"
+    }
+    val accountIndex = accounts.indexOfFirst { account -> account.id == accountId }
+    require(accountIndex >= 0) { "Linked account not found" }
+    val sign = if (impact == BalanceImpact.CREDIT) 1 else -1
+    val nextBalance = accounts[accountIndex].balanceWon + transaction.amount.won * sign * multiplier
+    require(nextBalance >= 0) { "Balance effect cannot make an account negative" }
+    return accounts.mapIndexed { index, account ->
+        if (index == accountIndex) account.copy(balanceWon = nextBalance) else account
+    }
+}
+
+private fun applyLegacyBalanceEffect(
+    accounts: List<AssetAccount>,
+    transaction: MoneyTransaction,
+    multiplier: Int
+): List<AssetAccount> {
     if (transaction.type == TransactionType.WALLET_TOPUP) {
         return applyWalletTopup(accounts, transaction, multiplier)
     }
@@ -63,6 +98,36 @@ private fun applyBalanceEffect(
         } else {
             account
         }
+    }
+}
+
+private fun replaceExplicitBalance(
+    accounts: List<AssetAccount>,
+    oldTransaction: MoneyTransaction,
+    newTransaction: MoneyTransaction
+): List<AssetAccount> {
+    val deltas = mutableMapOf<Long, Long>()
+
+    fun add(transaction: MoneyTransaction, multiplier: Int) {
+        val impact = requireNotNull(transaction.balanceImpact)
+        if (impact == BalanceImpact.NONE) return
+        val accountId = requireNotNull(transaction.linkedAssetAccountId) {
+            "Explicit balance effect requires a linked account"
+        }
+        val sign = if (impact == BalanceImpact.CREDIT) 1 else -1
+        deltas[accountId] = deltas.getOrDefault(accountId, 0L) +
+            transaction.amount.won * sign * multiplier
+    }
+
+    add(oldTransaction, multiplier = -1)
+    add(newTransaction, multiplier = 1)
+    require(deltas.keys.all { id -> accounts.any { account -> account.id == id } }) {
+        "Linked account not found"
+    }
+    return accounts.map { account ->
+        val nextBalance = account.balanceWon + deltas.getOrDefault(account.id, 0L)
+        require(nextBalance >= 0) { "Balance effect cannot make an account negative" }
+        account.copy(balanceWon = nextBalance)
     }
 }
 

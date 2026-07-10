@@ -1,12 +1,19 @@
 package com.choiyoonseo.automoney.data.repository
 
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
+import com.choiyoonseo.automoney.domain.assets.BankAccountHint
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.OpenReviewItem
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.Rule
 import kotlinx.coroutines.flow.Flow
 import java.time.YearMonth
+
+data class NotificationSaveResult(
+    val transactionId: Long,
+    val reviewReason: ReviewReason?
+)
 
 interface MoneyRepository {
     suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction>
@@ -19,6 +26,22 @@ interface MoneyRepository {
         val transactionId = saveTransaction(transaction)
         createReviewItem(transactionId, reason)
         return transactionId
+    }
+    suspend fun saveNotificationTransaction(
+        transaction: MoneyTransaction,
+        accountHint: BankAccountHint?,
+        reviewReason: ReviewReason?
+    ): NotificationSaveResult {
+        val explicitNone = transaction.copy(
+            linkedAssetAccountId = null,
+            balanceImpact = BalanceImpact.NONE
+        )
+        val transactionId = if (reviewReason == null) {
+            saveTransaction(explicitNone)
+        } else {
+            saveTransactionWithReview(explicitNone, reviewReason)
+        }
+        return NotificationSaveResult(transactionId, reviewReason)
     }
     suspend fun updateTransaction(transaction: MoneyTransaction)
     suspend fun deleteTransaction(transactionId: Long)
