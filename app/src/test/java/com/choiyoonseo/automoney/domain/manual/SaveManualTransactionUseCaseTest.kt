@@ -153,6 +153,8 @@ class SaveManualTransactionUseCaseTest {
         assertThat(saved.amount.won).isEqualTo(100000)
         assertThat(saved.direction).isEqualTo(TransactionDirection.NEUTRAL)
         assertThat(saved.type).isEqualTo(TransactionType.TRANSFER)
+        assertThat(saved.linkedAssetAccountId).isNull()
+        assertThat(saved.balanceImpact).isEqualTo(BalanceImpact.NONE)
         assertThat(saved.category).isNull()
         assertThat(saved.paymentMethod).isEqualTo("수동 입력")
         assertThat(saved.merchant).isNull()

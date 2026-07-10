@@ -107,8 +107,8 @@ class SaveManualTransactionUseCase(
                 status = TransactionStatus.USER_EDITED,
                 confidence = 1.0,
                 monthKey = monthKey,
-                linkedAssetAccountId = accountId,
-                balanceImpact = impact
+                linkedAssetAccountId = null,
+                balanceImpact = BalanceImpact.NONE
             )
         }
 

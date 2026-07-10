@@ -114,6 +114,29 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun editingExplicitTransferWithoutAccountKeepsExistingEffect() = runTest {
+        val repository = FakeMoneyRepository()
+        val useCase = EditTransactionUseCase(repository)
+        val original = transaction().copy(
+            type = TransactionType.TRANSFER,
+            linkedAssetAccountId = 7,
+            balanceImpact = BalanceImpact.DEBIT
+        )
+
+        useCase.update(
+            transaction = original,
+            amountWon = original.amount.won,
+            categoryText = Category.OTHER.name,
+            memo = "",
+            account = null,
+            transactionType = TransactionType.TRANSFER
+        )
+
+        assertThat(repository.updatedTransactions.single().balanceImpact)
+            .isEqualTo(BalanceImpact.DEBIT)
+    }
+
+    @Test
     fun editingToExcludedKeepsExistingBalanceEffect() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)

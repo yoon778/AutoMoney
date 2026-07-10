@@ -58,7 +58,7 @@ class EditTransactionUseCase(
             TransactionType.SETTLEMENT,
             TransactionType.REFUND,
             TransactionType.WALLET_TOPUP ->
-                if (accountId == null) BalanceImpact.NONE else transaction.balanceImpact ?: BalanceImpact.NONE
+                transaction.balanceImpact ?: BalanceImpact.NONE
             TransactionType.EXCLUDED -> transaction.balanceImpact ?: BalanceImpact.NONE
         }
         val updatedTransaction = transaction.copy(
