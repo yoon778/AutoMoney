@@ -1,6 +1,7 @@
 package com.choiyoonseo.automoney.domain.transactions
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
@@ -86,6 +87,52 @@ class EditTransactionUseCaseTest {
 
         assertThat(repository.updatedTransactions.single().paymentMethod)
             .isEqualTo("국민은행 통장")
+    }
+
+    @Test
+    fun editingIncomingTransferKeepsCredit() = runTest {
+        val repository = FakeMoneyRepository()
+        val useCase = EditTransactionUseCase(repository)
+        val original = transaction().copy(
+            type = TransactionType.TRANSFER,
+            linkedAssetAccountId = 7,
+            balanceImpact = BalanceImpact.CREDIT
+        )
+
+        useCase.update(
+            transaction = original,
+            amountWon = original.amount.won,
+            categoryText = Category.OTHER.name,
+            memo = "",
+            account = AssetAccount(id = 7, name = "Primary", balanceWon = 100_000),
+            transactionType = TransactionType.TRANSFER
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.linkedAssetAccountId).isEqualTo(7)
+        assertThat(updated.balanceImpact).isEqualTo(BalanceImpact.CREDIT)
+    }
+
+    @Test
+    fun editingToExcludedKeepsExistingBalanceEffect() = runTest {
+        val repository = FakeMoneyRepository()
+        val useCase = EditTransactionUseCase(repository)
+        val original = transaction().copy(
+            linkedAssetAccountId = 7,
+            balanceImpact = BalanceImpact.DEBIT
+        )
+
+        useCase.update(
+            transaction = original,
+            amountWon = original.amount.won,
+            categoryText = Category.OTHER.name,
+            memo = "",
+            transactionType = TransactionType.EXCLUDED
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.linkedAssetAccountId).isEqualTo(7)
+        assertThat(updated.balanceImpact).isEqualTo(BalanceImpact.DEBIT)
     }
 
     @Test

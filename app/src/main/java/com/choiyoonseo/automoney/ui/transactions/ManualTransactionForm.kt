@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.manual.ManualEntryType
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import java.time.Instant
 import java.time.LocalDate
 
@@ -38,14 +39,14 @@ import java.time.LocalDate
 fun ManualTransactionForm(
     isSaving: Boolean = false,
     resetSignal: Int = 0,
-    accountNames: List<String> = emptyList(),
+    accounts: List<AssetAccount> = emptyList(),
     onSave: (
         type: ManualEntryType,
         amountWon: Long,
         category: String,
         memo: String,
         occurredAt: Instant,
-        accountName: String?
+        account: AssetAccount?
     ) -> Unit
 ) {
     val defaults = remember(resetSignal) {
@@ -60,9 +61,12 @@ fun ManualTransactionForm(
     var inputError by remember(resetSignal) { mutableStateOf(defaults.inputError) }
     var categoryMenuExpanded by remember(resetSignal) { mutableStateOf(defaults.isCategoryMenuExpanded) }
     var accountMenuExpanded by remember(resetSignal) { mutableStateOf(false) }
-    var selectedAccountName by remember(resetSignal, accountNames) {
-        mutableStateOf(accountNames.firstOrNull().orEmpty())
+    val selectableAccounts = accounts.filter { it.id > 0 }
+    var selectedAccountId by remember(resetSignal, selectableAccounts) {
+        mutableStateOf(selectableAccounts.firstOrNull()?.id)
     }
+    val selectedAccount = selectableAccounts.firstOrNull { account -> account.id == selectedAccountId }
+    val selectedAccountName = selectedAccount?.name.orEmpty()
     var isDatePickerOpen by remember(resetSignal) { mutableStateOf(defaults.isDatePickerOpen) }
 
     if (isDatePickerOpen) {
@@ -172,7 +176,7 @@ fun ManualTransactionForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-        if (entryType == ManualEntryType.EXPENSE && accountNames.isNotEmpty()) {
+        if (entryType != ManualEntryType.TRANSFER && selectableAccounts.isNotEmpty()) {
             Text("사용 계좌")
             Box(Modifier.fillMaxWidth()) {
                 Button(
@@ -187,11 +191,11 @@ fun ManualTransactionForm(
                     onDismissRequest = { accountMenuExpanded = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    accountNames.forEach { accountName ->
+                    selectableAccounts.forEach { account ->
                         DropdownMenuItem(
-                            text = { Text(accountName) },
+                            text = { Text(account.name) },
                             onClick = {
-                                selectedAccountName = accountName
+                                selectedAccountId = account.id
                                 accountMenuExpanded = false
                             }
                         )
@@ -267,7 +271,7 @@ fun ManualTransactionForm(
                             categoryForSave,
                             memo,
                             selectedDate.toManualTransactionInstant(),
-                            selectedAccountName.takeIf { entryType == ManualEntryType.EXPENSE && it.isNotBlank() }
+                            selectedAccount.takeIf { entryType != ManualEntryType.TRANSFER }
                         )
                     }
                 },

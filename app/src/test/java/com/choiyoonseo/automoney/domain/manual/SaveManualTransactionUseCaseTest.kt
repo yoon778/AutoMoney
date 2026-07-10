@@ -1,6 +1,8 @@
 package com.choiyoonseo.automoney.domain.manual
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.OpenReviewItem
@@ -82,6 +84,26 @@ class SaveManualTransactionUseCaseTest {
         )
 
         assertThat(repository.savedTransactions.single().paymentMethod).isEqualTo("국민은행")
+    }
+
+    @Test
+    fun manualExpenseStoresStableIdAndDebit() = runTest {
+        val repository = FakeMoneyRepository()
+        val useCase = SaveManualTransactionUseCase(repository)
+        val account = AssetAccount(id = 7, name = "Primary", balanceWon = 100_000)
+
+        useCase.save(
+            type = ManualEntryType.EXPENSE,
+            amountWon = 12_000,
+            categoryText = Category.FOOD.name,
+            memo = "lunch",
+            account = account
+        )
+
+        val saved = repository.savedTransactions.single()
+        assertThat(saved.paymentMethod).isEqualTo("Primary")
+        assertThat(saved.linkedAssetAccountId).isEqualTo(7)
+        assertThat(saved.balanceImpact).isEqualTo(BalanceImpact.DEBIT)
     }
 
     @Test

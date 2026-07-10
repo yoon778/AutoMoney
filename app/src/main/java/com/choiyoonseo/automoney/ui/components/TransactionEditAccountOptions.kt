@@ -1,39 +1,35 @@
 package com.choiyoonseo.automoney.ui.components
 
-import com.choiyoonseo.automoney.domain.assets.canonicalMoneyNameKey
-import com.choiyoonseo.automoney.domain.assets.moneyNamesMatch
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
+
+data class TransactionAccountOption(
+    val accountId: Long?,
+    val label: String
+)
 
 fun accountOptionsForEdit(
-    accountNames: List<String>,
+    accounts: List<AssetAccount>,
+    linkedAssetAccountId: Long?,
     currentPaymentMethod: String?
-): List<String> {
-    val registered = accountNames
-        .mapNotNull { it.cleanAccountNameOrNull() }
-        .distinctBy { it.canonicalMoneyNameKey() }
-    val current = currentPaymentMethod.cleanAccountNameOrNull()
-    val registeredMatch = current?.let { paymentMethod ->
-        registered.firstOrNull { accountName -> moneyNamesMatch(accountName, paymentMethod) }
-    }
-    return when {
-        current == null -> registered
-        registeredMatch != null -> registered
-        else -> listOf(current) + registered
+): List<TransactionAccountOption> {
+    val registered = accounts
+        .filter { it.id > 0 }
+        .map { account -> TransactionAccountOption(account.id, account.name) }
+    val current = currentPaymentMethod?.trim()?.takeIf { it.isNotBlank() }
+    val linkedAccountExists = linkedAssetAccountId != null &&
+        registered.any { it.accountId == linkedAssetAccountId }
+
+    return if (linkedAccountExists || current == null) {
+        registered
+    } else {
+        listOf(TransactionAccountOption(accountId = null, label = current)) + registered
     }
 }
 
-fun accountLabelForEdit(
-    paymentMethod: String?,
-    accountNames: List<String>
-): String? {
-    val current = paymentMethod.cleanAccountNameOrNull()
-    val registered = accountNames
-        .mapNotNull { it.cleanAccountNameOrNull() }
-        .distinctBy { it.canonicalMoneyNameKey() }
-    return when {
-        current == null -> registered.firstOrNull()
-        else -> registered.firstOrNull { moneyNamesMatch(it, current) } ?: current
-    }
-}
-
-private fun String?.cleanAccountNameOrNull(): String? =
-    this?.trim()?.takeIf { it.isNotBlank() }
+fun selectedAccountOptionForEdit(
+    options: List<TransactionAccountOption>,
+    linkedAssetAccountId: Long?
+): TransactionAccountOption? =
+    options.firstOrNull { it.accountId == linkedAssetAccountId && linkedAssetAccountId != null }
+        ?: options.firstOrNull { it.accountId == null }
+        ?: options.firstOrNull()

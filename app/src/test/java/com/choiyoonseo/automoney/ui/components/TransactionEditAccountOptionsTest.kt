@@ -1,60 +1,41 @@
 package com.choiyoonseo.automoney.ui.components
 
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class TransactionEditAccountOptionsTest {
     @Test
-    fun accountOptionsForEditUsesRegisteredAccounts() {
+    fun accountOptionsForEditUsesStableAccountIds() {
         assertThat(
             accountOptionsForEdit(
-                accountNames = listOf("국민은행 통장", "토스뱅크 통장"),
+                accounts = listOf(
+                    AssetAccount(id = 7, name = "Primary", balanceWon = 0),
+                    AssetAccount(id = 9, name = "Savings", balanceWon = 0)
+                ),
+                linkedAssetAccountId = null,
                 currentPaymentMethod = null
             )
-        ).containsExactly("국민은행 통장", "토스뱅크 통장").inOrder()
+        ).containsExactly(
+            TransactionAccountOption(accountId = 7, label = "Primary"),
+            TransactionAccountOption(accountId = 9, label = "Savings")
+        ).inOrder()
     }
 
     @Test
-    fun accountOptionsForEditKeepsCurrentPaymentMethodWhenNotRegistered() {
+    fun accountOptionsForEditKeepsLegacyNameWhenStableIdIsMissingOrInvalid() {
         assertThat(
             accountOptionsForEdit(
-                accountNames = listOf("토스뱅크 통장"),
-                currentPaymentMethod = "KB"
+                accounts = listOf(
+                    AssetAccount(id = 0, name = "Unsaved", balanceWon = 0),
+                    AssetAccount(id = 9, name = "Savings", balanceWon = 0)
+                ),
+                linkedAssetAccountId = 7,
+                currentPaymentMethod = "Legacy account"
             )
-        ).containsExactly("KB", "토스뱅크 통장").inOrder()
-    }
-
-    @Test
-    fun accountLabelForEditSelectsCurrentOrFirstAccount() {
-        assertThat(
-            accountLabelForEdit(
-                paymentMethod = "국민은행 통장",
-                accountNames = listOf("국민은행 통장", "토스뱅크 통장")
-            )
-        ).isEqualTo("국민은행 통장")
-
-        assertThat(
-            accountLabelForEdit(
-                paymentMethod = null,
-                accountNames = listOf("국민은행 통장", "토스뱅크 통장")
-            )
-        ).isEqualTo("국민은행 통장")
-    }
-
-    @Test
-    fun accountOptionsForEditTreatsKbAndKookminAsSameBank() {
-        assertThat(
-            accountOptionsForEdit(
-                accountNames = listOf("국민은행 통장", "KB"),
-                currentPaymentMethod = "KB국민은행"
-            )
-        ).containsExactly("국민은행 통장").inOrder()
-
-        assertThat(
-            accountLabelForEdit(
-                paymentMethod = "KB",
-                accountNames = listOf("국민은행 통장", "토스뱅크 통장")
-            )
-        ).isEqualTo("국민은행 통장")
+        ).containsExactly(
+            TransactionAccountOption(accountId = null, label = "Legacy account"),
+            TransactionAccountOption(accountId = 9, label = "Savings")
+        ).inOrder()
     }
 }

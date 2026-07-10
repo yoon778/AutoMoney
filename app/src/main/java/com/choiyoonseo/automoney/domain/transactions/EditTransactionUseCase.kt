@@ -1,6 +1,8 @@
 package com.choiyoonseo.automoney.domain.transactions
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -23,6 +25,7 @@ class EditTransactionUseCase(
         categoryText: String,
         memo: String,
         occurredAt: Instant = transaction.occurredAt,
+        account: AssetAccount? = null,
         paymentMethod: String? = transaction.paymentMethod,
         transactionType: TransactionType = transaction.type
     ) {
@@ -30,13 +33,41 @@ class EditTransactionUseCase(
 
         val cleanMemo = memo.trim()
         val cleanPaymentMethod = paymentMethod?.trim()?.takeIf { it.isNotBlank() }
+        val accountId = account?.id?.takeIf { it > 0 }
+        val accountPaymentMethod = account
+            ?.takeIf { it.id == accountId }
+            ?.name
+            ?.trim()
+            ?.takeIf { it.isNotBlank() }
+            ?: cleanPaymentMethod
+        val linkedAssetAccountId = if (transactionType == TransactionType.EXCLUDED) {
+            transaction.linkedAssetAccountId
+        } else {
+            accountId
+        }
+        val nextImpact = when (transactionType) {
+            TransactionType.INCOME ->
+                accountId?.let { BalanceImpact.CREDIT } ?: BalanceImpact.NONE
+            TransactionType.EXPENSE,
+            TransactionType.FIXED_EXPENSE,
+            TransactionType.SAVING,
+            TransactionType.INVESTMENT,
+            TransactionType.WALLET_SPEND ->
+                accountId?.let { BalanceImpact.DEBIT } ?: BalanceImpact.NONE
+            TransactionType.TRANSFER,
+            TransactionType.SETTLEMENT,
+            TransactionType.REFUND,
+            TransactionType.WALLET_TOPUP ->
+                if (accountId == null) BalanceImpact.NONE else transaction.balanceImpact ?: BalanceImpact.NONE
+            TransactionType.EXCLUDED -> transaction.balanceImpact ?: BalanceImpact.NONE
+        }
         val updatedTransaction = transaction.copy(
             occurredAt = occurredAt,
             amount = MoneyAmount(amountWon),
             direction = transactionType.defaultDirection,
             type = transactionType,
             category = categoryText.toCategoryFor(transactionType),
-            paymentMethod = cleanPaymentMethod,
+            paymentMethod = accountPaymentMethod,
             memo = cleanMemo.ifBlank { null },
             status = if (transactionType == TransactionType.EXCLUDED) {
                 TransactionStatus.EXCLUDED
@@ -44,7 +75,9 @@ class EditTransactionUseCase(
                 TransactionStatus.USER_EDITED
             },
             confidence = 1.0,
-            monthKey = YearMonth.from(occurredAt.atZone(koreanZoneId))
+            monthKey = YearMonth.from(occurredAt.atZone(koreanZoneId)),
+            linkedAssetAccountId = linkedAssetAccountId,
+            balanceImpact = nextImpact
         )
         repository.updateTransaction(updatedTransaction)
         saveLearnedRules(transaction, updatedTransaction)

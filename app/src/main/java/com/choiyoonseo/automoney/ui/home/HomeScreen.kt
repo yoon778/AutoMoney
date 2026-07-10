@@ -251,17 +251,25 @@ fun HomeScreen(
                 transaction = transaction,
                 isSaving = isEditingTransaction,
                 errorMessage = editErrorMessage,
-                accountNames = assetAccounts.map { it.name },
+                accounts = assetAccounts,
                 onDismiss = {
                     activeEditTransaction = null
                     editErrorMessage = null
                 },
-                onSave = { amountWon, category, memo, occurredAt, paymentMethod, transactionType ->
+                onSave = { amountWon, category, memo, occurredAt, account, transactionType ->
                     scope.launch {
                         isEditingTransaction = true
                         editErrorMessage = null
                         try {
-                            useCase.update(transaction, amountWon, category, memo, occurredAt, paymentMethod, transactionType)
+                            useCase.update(
+                                transaction,
+                                amountWon,
+                                category,
+                                memo,
+                                occurredAt,
+                                account = account,
+                                transactionType = transactionType
+                            )
                             activeEditTransaction = null
                             activeDetail = null
                         } catch (e: IllegalArgumentException) {

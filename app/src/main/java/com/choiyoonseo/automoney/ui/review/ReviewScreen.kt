@@ -435,17 +435,25 @@ fun ReviewScreen(
                 transaction = transaction,
                 isSaving = isSaving,
                 errorMessage = editErrorMessage,
-                accountNames = assetAccounts.map { it.name },
+                accounts = assetAccounts,
                 onDismiss = {
                     activeEditReviewCard = null
                     editErrorMessage = null
                 },
-                onSave = { amountWon, category, memo, occurredAt, paymentMethod, transactionType ->
+                onSave = { amountWon, category, memo, occurredAt, account, transactionType ->
                     scope.launch {
                         isSaving = true
                         editErrorMessage = null
                         try {
-                            useCase.update(transaction, amountWon, category, memo, occurredAt, paymentMethod, transactionType)
+                            useCase.update(
+                                transaction,
+                                amountWon,
+                                category,
+                                memo,
+                                occurredAt,
+                                account = account,
+                                transactionType = transactionType
+                            )
                             if (moneyRepository != null && card.reviewItemId != null) {
                                 moneyRepository.resolveReviewItem(card.reviewItemId)
                             } else {
@@ -462,6 +470,8 @@ fun ReviewScreen(
                         }
                     }
                 },
+                excludeLabel = "거래 제외",
+                deleteLabel = "거래 삭제",
                 onDelete = {
                     scope.launch {
                         isSaving = true

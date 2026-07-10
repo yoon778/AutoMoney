@@ -30,6 +30,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.domain.model.TransactionType
@@ -41,18 +42,20 @@ fun TransactionEditDialog(
     transaction: MoneyTransaction,
     isSaving: Boolean,
     errorMessage: String?,
-    accountNames: List<String> = emptyList(),
+    accounts: List<AssetAccount> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (
         amountWon: Long,
         category: String,
         memo: String,
         occurredAt: Instant,
-        paymentMethod: String?,
+        account: AssetAccount?,
         transactionType: TransactionType
     ) -> Unit,
     onExclude: () -> Unit,
-    onDelete: (() -> Unit)? = null
+    onDelete: (() -> Unit)? = null,
+    excludeLabel: String = "\uc9c0\ucd9c\uc5d0\uc11c \uc81c\uc678",
+    deleteLabel: String = "\uc0ad\uc81c"
 ) {
     var amountText by remember(transaction.id) { mutableStateOf(transaction.amount.won.toString()) }
     var selectedDate by remember(transaction.id) {
@@ -69,12 +72,18 @@ fun TransactionEditDialog(
     }
     var categoryMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
     var typeMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
-    val accountOptions = remember(transaction.id, accountNames, transaction.paymentMethod) {
-        accountOptionsForEdit(accountNames, transaction.paymentMethod)
+    val accountOptions = remember(
+        transaction.id,
+        accounts,
+        transaction.linkedAssetAccountId,
+        transaction.paymentMethod
+    ) {
+        accountOptionsForEdit(accounts, transaction.linkedAssetAccountId, transaction.paymentMethod)
     }
-    var selectedAccountLabel by remember(transaction.id, accountOptions) {
-        mutableStateOf(accountLabelForEdit(transaction.paymentMethod, accountNames))
+    var selectedAccountOption by remember(transaction.id, accountOptions) {
+        mutableStateOf(selectedAccountOptionForEdit(accountOptions, transaction.linkedAssetAccountId))
     }
+    val selectedAccountLabel = selectedAccountOption?.label
     var accountMenuExpanded by remember(transaction.id, accountOptions) { mutableStateOf(false) }
     var memoText by remember(transaction.id) {
         mutableStateOf(transaction.memo ?: "")
@@ -155,7 +164,7 @@ fun TransactionEditDialog(
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.negative)
                     ) {
-                        Text("삭제")
+                        Text(deleteLabel)
                     }
                 }
                 OutlinedButton(
@@ -163,7 +172,7 @@ fun TransactionEditDialog(
                     enabled = !isSaving,
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("지출 제외")
+                    Text(excludeLabel)
                 }
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -189,7 +198,9 @@ fun TransactionEditDialog(
                                     selectedCategoryLabel,
                                     memoText,
                                     occurredAt,
-                                    selectedAccountLabel,
+                                    selectedAccountOption?.accountId?.let { accountId ->
+                                        accounts.firstOrNull { it.id == accountId }
+                                    },
                                     selectedType
                                 )
                             }
@@ -283,11 +294,11 @@ fun TransactionEditDialog(
                     onDismissRequest = { accountMenuExpanded = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    accountOptions.forEach { accountName ->
+                    accountOptions.forEach { accountOption ->
                         DropdownMenuItem(
-                            text = { Text(accountName) },
+                            text = { Text(accountOption.label) },
                             onClick = {
-                                selectedAccountLabel = accountName
+                                selectedAccountOption = accountOption
                                 accountMenuExpanded = false
                             }
                         )

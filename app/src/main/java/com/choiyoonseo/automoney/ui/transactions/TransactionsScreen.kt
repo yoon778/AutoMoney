@@ -218,8 +218,8 @@ fun TransactionsScreen(
                 ManualTransactionForm(
                     isSaving = isSavingManual,
                     resetSignal = manualFormResetSignal,
-                    accountNames = assetAccounts.map { it.name }
-                ) { type, amountWon, category, memo, occurredAt, accountName ->
+                    accounts = assetAccounts
+                ) { type, amountWon, category, memo, occurredAt, account ->
                     val useCase = saveManualTransactionUseCase
                     if (useCase == null) {
                         saveSuccessMessage = null
@@ -236,7 +236,7 @@ fun TransactionsScreen(
                                 categoryText = category,
                                 memo = memo,
                                 occurredAt = occurredAt,
-                                paymentMethod = accountName
+                                account = account
                             )
                             val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
                             saveSuccessMessage = if (savedMonth == month) {
@@ -268,18 +268,26 @@ fun TransactionsScreen(
             transaction = transaction,
             isSaving = isEditingTransaction,
             errorMessage = editErrorMessage,
-            accountNames = assetAccounts.map { it.name },
+            accounts = assetAccounts,
             onDismiss = {
                 activeEditTransaction = null
                 editErrorMessage = null
             },
-            onSave = { amountWon, category, memo, occurredAt, paymentMethod, transactionType ->
+            onSave = { amountWon, category, memo, occurredAt, account, transactionType ->
                 val useCase = editTransactionUseCase ?: return@TransactionEditDialog
                 scope.launch {
                     isEditingTransaction = true
                     editErrorMessage = null
                     try {
-                        useCase.update(transaction, amountWon, category, memo, occurredAt, paymentMethod, transactionType)
+                        useCase.update(
+                            transaction,
+                            amountWon,
+                            category,
+                            memo,
+                            occurredAt,
+                            account = account,
+                            transactionType = transactionType
+                        )
                         saveSuccessMessage = "거래를 수정했어요. 최근 거래에 반영했어요."
                         activeEditTransaction = null
                     } catch (e: IllegalArgumentException) {
