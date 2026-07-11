@@ -16,11 +16,11 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
   - `AppDatabase.kt`: version 7, `MIGRATION_6_7` = ALTER TABLE asset_accounts ADD COLUMN providerLabel TEXT. `AppContainer`에 등록.
   - schema `7.json` 생성 확인. `AppDatabaseMigrationTest`에 6→7 케이스(레거시 행 providerLabel null 유지).
   - 검증: `:app:testDebugUnitTest --tests "*AssetAccountForm*" --tests "*DatabaseIntegrity*"` + `:app:assembleDebug`
-- [ ] **Task 2: 폼 변환 로직**
+- [x] **Task 2: 폼 변환 로직**
   - `AssetAccountForm.kt`: `createAssetAccountFromForm`/`updateAssetAccountFromForm`에 `providerLabel: String? = null` 파라미터. SECURITIES/PAY일 때만 저장, BANK/CASH/OTHER는 null.
   - `assetAccountMetadataLabel`: bankProvider 없으면 providerLabel 사용.
   - `AssetAccountFormTest`에 케이스 3개(증권 라벨 저장, 은행이면 무시, 빈 문자열→null).
-- [ ] **Task 3: 자산 폼 UI**
+- [x] **Task 3: 자산 폼 UI**
   - `AssetsScreen.kt` AccountInputCard + AccountEditDialog: kind가 SECURITIES/PAY면 "회사" 선택 영역 노출 — 프리셋 칩(FlowRow) + "직접 입력" OutlinedTextField. 프리셋 상수는 `ui/assets/ProviderPresets.kt` (`securitiesProviderPresets`, `payProviderPresets`).
   - 계좌 행 라벨에 반영 확인(assetAccountMetadataLabel 사용처).
   - 검증: assembleDebug + 기기 스크린샷.

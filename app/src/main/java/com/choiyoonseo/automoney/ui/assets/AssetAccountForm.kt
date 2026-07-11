@@ -12,7 +12,8 @@ fun createAssetAccountFromForm(
     balanceWon: Long,
     kind: AssetAccountKind,
     bankProvider: BankProvider?,
-    accountNumberInput: String
+    accountNumberInput: String,
+    providerLabel: String? = null
 ): AssetAccount {
     val provider = bankProvider.takeIf { kind == AssetAccountKind.BANK }
     val last4 = provider?.let { normalizeAccountLast4(accountNumberInput) }
@@ -21,7 +22,8 @@ fun createAssetAccountFromForm(
         balanceWon = balanceWon,
         kind = kind,
         bankProvider = provider,
-        accountLast4 = last4
+        accountLast4 = last4,
+        providerLabel = providerLabel
     ).validatedForSave()
 }
 
@@ -31,7 +33,8 @@ fun updateAssetAccountFromForm(
     balanceWon: Long,
     kind: AssetAccountKind,
     bankProvider: BankProvider?,
-    accountNumberInput: String
+    accountNumberInput: String,
+    providerLabel: String? = null
 ): AssetAccount {
     val provider = bankProvider.takeIf { kind == AssetAccountKind.BANK }
     val last4 = when {
@@ -45,13 +48,14 @@ fun updateAssetAccountFromForm(
         balanceWon = balanceWon,
         kind = kind,
         bankProvider = provider,
-        accountLast4 = last4
+        accountLast4 = last4,
+        providerLabel = providerLabel ?: account.providerLabel
     ).validatedForSave()
 }
 
 fun assetAccountMetadataLabel(account: AssetAccount): String =
     listOfNotNull(
         account.kind.label,
-        account.bankProvider?.displayName,
+        account.bankProvider?.displayName ?: account.providerLabel,
         maskedAccountLast4(account.accountLast4)
     ).joinToString(" · ")

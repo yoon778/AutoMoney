@@ -3,6 +3,8 @@ package com.choiyoonseo.automoney.ui.assets
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -269,6 +271,7 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
     var bankProvider by remember { mutableStateOf<BankProvider?>(null) }
     var bankExpanded by remember { mutableStateOf(false) }
     var accountNumberInput by remember { mutableStateOf("") }
+    var providerLabelInput by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     InputCard(title = "계좌 추가") {
@@ -300,6 +303,9 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
                                 bankProvider = null
                                 accountNumberInput = ""
                             }
+                            if (option != AssetAccountKind.SECURITIES && option != AssetAccountKind.PAY) {
+                                providerLabelInput = ""
+                            }
                             kindExpanded = false
                         }
                     )
@@ -323,6 +329,13 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
                 )
             }
         }
+        if (kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY) {
+            ProviderLabelSection(
+                kind = kind,
+                value = providerLabelInput,
+                onValueChange = { providerLabelInput = it }
+            )
+        }
         errorMessage?.let {
             Text(it, color = MoneyTheme.colors.negative, style = MaterialTheme.typography.bodySmall)
         }
@@ -337,13 +350,15 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
                                 balanceWon = amount,
                                 kind = kind,
                                 bankProvider = bankProvider,
-                                accountNumberInput = accountNumberInput
+                                accountNumberInput = accountNumberInput,
+                                providerLabel = providerLabelInput
                             )
                         )
                         name = ""
                         balance = ""
                         bankProvider = null
                         accountNumberInput = ""
+                        providerLabelInput = ""
                         errorMessage = null
                     } catch (e: IllegalArgumentException) {
                         errorMessage = e.message ?: "입력값을 확인해 주세요."
@@ -372,6 +387,7 @@ private fun AccountEditDialog(
     var bankProvider by remember(account.id) { mutableStateOf(account.bankProvider) }
     var bankExpanded by remember(account.id) { mutableStateOf(false) }
     var accountNumberInput by remember(account.id) { mutableStateOf("") }
+    var providerLabelInput by remember(account.id) { mutableStateOf(account.providerLabel ?: "") }
     var errorMessage by remember(account.id) { mutableStateOf<String?>(null) }
 
     MoneyDialog(
@@ -475,9 +491,58 @@ private fun AccountEditDialog(
                         )
                     }
                 }
+                if (kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY) {
+                    ProviderLabelSection(
+                        kind = kind,
+                        value = providerLabelInput,
+                        onValueChange = { providerLabelInput = it }
+                    )
+                }
                 errorMessage?.let {
                     Text(it, color = MoneyTheme.colors.negative, style = MaterialTheme.typography.bodySmall)
                 }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ProviderLabelSection(
+    kind: AssetAccountKind,
+    value: String,
+    onValueChange: (String) -> Unit
+) {
+    val colors = MoneyTheme.colors
+    val presets = providerPresetsFor(kind.label)
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            presets.forEach { preset ->
+                val selected = value.trim() == preset
+                Surface(
+                    modifier = Modifier.clickable { onValueChange(preset) },
+                    shape = RoundedCornerShape(50),
+                    color = if (selected) colors.soft(colors.primary) else colors.canvas
+                ) {
+                    Text(
+                        preset,
+                        color = if (selected) colors.primary else colors.muted,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+        OutlinedTextField(
+            value = value,
+            onValueChange = onValueChange,
+            label = { Text("회사 이름 (직접 입력 가능)") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

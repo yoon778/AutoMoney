@@ -58,4 +58,44 @@ class AssetAccountFormTest {
         assertThat(account.bankProvider).isNull()
         assertThat(account.accountLast4).isNull()
     }
+
+    @Test
+    fun securitiesAccountStoresProviderLabel() {
+        val account = createAssetAccountFromForm(
+            name = "주식계좌",
+            balanceWon = 500_000,
+            kind = AssetAccountKind.SECURITIES,
+            bankProvider = null,
+            accountNumberInput = "",
+            providerLabel = "키움증권"
+        )
+        assertThat(account.providerLabel).isEqualTo("키움증권")
+        assertThat(assetAccountMetadataLabel(account)).isEqualTo("증권 · 키움증권")
+    }
+
+    @Test
+    fun bankAccountIgnoresProviderLabel() {
+        val account = createAssetAccountFromForm(
+            name = "생활비",
+            balanceWon = 100_000,
+            kind = AssetAccountKind.BANK,
+            bankProvider = BankProvider.KB,
+            accountNumberInput = "123-456-789012",
+            providerLabel = "무시되어야 함"
+        )
+        assertThat(account.providerLabel).isNull()
+    }
+
+    @Test
+    fun blankProviderLabelBecomesNull() {
+        val account = createAssetAccountFromForm(
+            name = "포인트",
+            balanceWon = 0,
+            kind = AssetAccountKind.PAY,
+            bankProvider = null,
+            accountNumberInput = "",
+            providerLabel = "   "
+        )
+        assertThat(account.providerLabel).isNull()
+    }
 }
