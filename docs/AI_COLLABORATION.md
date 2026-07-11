@@ -72,6 +72,17 @@ These four spots are where the two agents can collide. Before editing any of the
 
 When a task genuinely needs both a contract change and UI work, do the contract change first (Codex), merge it to `main`, then let Claude build UI on top.
 
+## Shared Plan Relay (2026-07-11, replaces strict layer split)
+
+두 에이전트는 이제 **계획서 릴레이** 방식으로 협업한다. 층(logic/UI) 분담은 선호일 뿐 벽이 아니다 — 누구든 어떤 층이든 작업할 수 있다.
+
+1. **계획서가 단일 진실**: 여러 단계 작업은 반드시 `docs/superpowers/plans/YYYY-MM-DD-<이름>.md`에 계획서를 만든다. 헤더에 `Status:`(in-progress/complete)와 `Owner:`(현재 작업자), 태스크는 `- [ ]` 체크박스.
+2. **시작 전**: `git fetch` 후 main 최신에서 시작, 계획서의 `Owner:`를 자기 이름으로 바꾸고 커밋(=착수 선언).
+3. **진행 중**: 태스크 하나 끝날 때마다 해당 커밋에 체크 `- [x]`를 포함(또는 직후 커밋)하고 **즉시 main까지 push** — 상대가 언제든 최신 상태를 본다.
+4. **토큰 소진으로 중단되면**: 체크박스 + git log가 이어달리기 바통. 이어받는 쪽은 계획서를 읽고 첫 미체크 태스크부터 계속한다. 커밋 안 된 절반 작업은 `git status`로 확인 후 완성하거나 stash 메모를 계획서에 남긴다.
+5. **검증 규칙 동일**: 태스크마다 관련 테스트 + `:app:assembleDebug`, TDD 우선, 경계 파일은 아래 Claims에 기록.
+6. 완료 시 `Status: complete` 로 바꾸고 APP_REVIEW_FIX_LIST.md 상태 갱신.
+
 ## Shared File Claims
 
 Append a line before you start editing a shared/boundary file; remove it after the change is merged to `main`.
