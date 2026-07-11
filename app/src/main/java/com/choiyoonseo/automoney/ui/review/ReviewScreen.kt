@@ -1,6 +1,8 @@
 package com.choiyoonseo.automoney.ui.review
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -167,6 +169,21 @@ fun ReviewScreen(
             ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN,
             ReviewReason.BALANCE_MISMATCH
         )
+
+    fun filterKindFor(card: ReviewCardUi): ReviewFilterKind = when {
+        card.kind == ReviewCardKind.WALLET_TOPUP -> ReviewFilterKind.TOPUP
+        card.kind == ReviewCardKind.TRANSFER -> ReviewFilterKind.TRANSFER
+        opensAccountEdit(card) -> ReviewFilterKind.ACCOUNT
+        reviewReasonFor(card) == ReviewReason.DUPLICATE_SUSPECTED -> ReviewFilterKind.DUPLICATE
+        else -> ReviewFilterKind.OTHER
+    }
+
+    var selectedFilter by remember { mutableStateOf(ReviewFilterKind.ALL) }
+    val filteredCards = if (selectedFilter == ReviewFilterKind.ALL) {
+        reviewCards
+    } else {
+        reviewCards.filter { filterKindFor(it) == selectedFilter }
+    }
 
     fun pairedIncomingReviewItem(card: ReviewCardUi) =
         card.sourceTransaction?.id?.let { transactionId ->
@@ -338,14 +355,32 @@ fun ReviewScreen(
             icon = Icons.Filled.Search
         )
 
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            ReviewFilterChip("전체 ${reviewCards.size}", selected = true, accent = MoneyCoral, modifier = Modifier.weight(1f))
-            ReviewFilterChip("지출 아님", selected = false, accent = MoneyMuted, modifier = Modifier.weight(1f))
-            ReviewFilterChip("송금", selected = false, accent = reviewAccentForLabel("송금"), modifier = Modifier.weight(1f))
-            ReviewFilterChip("중복", selected = false, accent = reviewAccentForLabel("중복"), modifier = Modifier.weight(1f))
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val chipEntries = buildList {
+                add(Triple(ReviewFilterKind.ALL, "전체 ${reviewCards.size}", MoneyCoral))
+                val counts = reviewCards.groupingBy { filterKindFor(it) }.eachCount()
+                counts[ReviewFilterKind.TRANSFER]?.let { add(Triple(ReviewFilterKind.TRANSFER, "송금 $it", reviewAccentForLabel("송금"))) }
+                counts[ReviewFilterKind.TOPUP]?.let { add(Triple(ReviewFilterKind.TOPUP, "충전 $it", reviewAccentForLabel("충전"))) }
+                counts[ReviewFilterKind.ACCOUNT]?.let { add(Triple(ReviewFilterKind.ACCOUNT, "계좌 $it", reviewAccentForLabel("확인"))) }
+                counts[ReviewFilterKind.DUPLICATE]?.let { add(Triple(ReviewFilterKind.DUPLICATE, "중복 $it", reviewAccentForLabel("중복"))) }
+                counts[ReviewFilterKind.OTHER]?.let { add(Triple(ReviewFilterKind.OTHER, "기타 $it", MoneyMuted)) }
+            }
+            chipEntries.forEach { (kind, label, accent) ->
+                ReviewFilterChip(
+                    label = label,
+                    selected = selectedFilter == kind,
+                    accent = accent,
+                    onClick = { selectedFilter = kind }
+                )
+            }
         }
 
-        reviewCards.forEach { card ->
+        filteredCards.forEach { card ->
             ReviewActionCard(
                 card = presentedCard(card),
                 onPrimaryAction = {
@@ -385,6 +420,16 @@ fun ReviewScreen(
                 } else {
                     null
                 }
+            )
+        }
+
+        if (reviewCards.isNotEmpty() && filteredCards.isEmpty()) {
+            Text(
+                "이 분류의 검토가 없어요.",
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                color = MoneyTheme.colors.muted
             )
         }
 
@@ -549,20 +594,30 @@ fun ReviewScreen(
 }
 
 @Composable
-private fun ReviewFilterChip(label: String, selected: Boolean, accent: Color, modifier: Modifier = Modifier) {
+private fun ReviewFilterChip(
+    label: String,
+    selected: Boolean,
+    accent: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val colors = MoneyTheme.colors
     Surface(
-        modifier = modifier,
+        modifier = modifier.clickable(onClick = onClick),
         shape = RoundedCornerShape(50),
-        color = if (selected) accent.copy(alpha = 0.14f) else accent.copy(alpha = 0.07f)
+        color = if (selected) colors.soft(accent) else accent.copy(alpha = 0.07f)
     ) {
         Text(
             text = label,
-            color = if (selected) accent else MoneyMuted,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
+            color = if (selected) accent else colors.muted,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
             maxLines = 1
         )
     }
 }
+
+enum class ReviewFilterKind { ALL, TRANSFER, TOPUP, ACCOUNT, DUPLICATE, OTHER }
 
 @Composable
 private fun AccountTransferDialog(

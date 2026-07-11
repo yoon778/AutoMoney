@@ -297,10 +297,11 @@ private fun FlowStep(step: HomeFlowStepVisual, modifier: Modifier = Modifier) {
                 .background(colors.soft(step.accent)),
             contentAlignment = Alignment.Center
         ) {
-            Image(
-                painter = painterResource(step.imageRes),
+            Icon(
+                imageVector = step.icon,
                 contentDescription = null,
-                modifier = Modifier.size(34.dp)
+                tint = step.accent,
+                modifier = Modifier.size(26.dp)
             )
         }
         Text(step.label, color = colors.muted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
@@ -487,7 +488,11 @@ fun TransactionRow(
         modifier = rowModifier,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconBadge(text = transaction.iconText, color = softAccentColor(accent), textColor = accent)
+        IconBadge(
+            text = displayInitial(transaction.merchant, transaction.iconText),
+            color = softAccentColor(accent),
+            textColor = accent
+        )
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(transaction.merchant, style = MaterialTheme.typography.bodyLarge, color = colors.ink, maxLines = 1)
@@ -581,7 +586,11 @@ fun ReviewActionCard(
     ) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                IconBadge(text = card.iconText, color = colors.soft(accent), textColor = accent)
+                IconBadge(
+                    text = displayInitial(card.title, card.iconText),
+                    color = colors.soft(accent),
+                    textColor = accent
+                )
                 Spacer(Modifier.width(12.dp))
                 Column(modifier = Modifier.weight(1f)) {
                     Text(card.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.ink)
@@ -701,6 +710,9 @@ fun EmptyStateVisual(
         }
     }
 }
+
+fun displayInitial(preferred: String?, fallback: String): String =
+    preferred?.trim()?.firstOrNull { it.isLetterOrDigit() }?.toString() ?: fallback
 
 @Composable
 private fun IconBadge(text: String, color: Color, textColor: Color) {

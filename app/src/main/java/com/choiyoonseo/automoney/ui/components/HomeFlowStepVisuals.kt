@@ -1,14 +1,17 @@
 package com.choiyoonseo.automoney.ui.components
 
-import androidx.annotation.DrawableRes
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.ui.graphics.Color
-import com.choiyoonseo.automoney.R
+import androidx.compose.ui.graphics.vector.ImageVector
 
 data class HomeFlowStepVisual(
     val label: String,
     val value: String,
     val accent: Color,
-    @param:DrawableRes val imageRes: Int
+    val icon: ImageVector
 )
 
 fun homeFlowStepVisuals(
@@ -17,21 +20,21 @@ fun homeFlowStepVisuals(
     savingsValue: String
 ): List<HomeFlowStepVisual> = listOf(
     HomeFlowStepVisual(
-        label = "\uc218\uc785",
+        label = "수입",
         value = incomeValue,
         accent = MoneyBlue,
-        imageRes = R.drawable.illustration_flow_income
+        icon = Icons.AutoMirrored.Filled.TrendingUp
     ),
     HomeFlowStepVisual(
-        label = "\uc9c0\ucd9c",
+        label = "지출",
         value = expenseValue,
         accent = MoneyCoral,
-        imageRes = R.drawable.illustration_flow_expense
+        icon = Icons.Filled.ShoppingCart
     ),
     HomeFlowStepVisual(
-        label = "\uc800\ucd95/\uc774\uccb4",
+        label = "저축/이체",
         value = savingsValue,
         accent = MoneyMint,
-        imageRes = R.drawable.illustration_flow_saving
+        icon = Icons.Filled.Savings
     )
 )

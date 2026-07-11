@@ -1,32 +1,35 @@
 package com.choiyoonseo.automoney.ui.components
 
-import com.choiyoonseo.automoney.R
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.Savings
+import androidx.compose.material.icons.filled.ShoppingCart
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class HomeFlowStepVisualsTest {
     @Test
-    fun homeFlowStepsExposeIncomeExpenseAndSavingsIllustrations() {
+    fun homeFlowStepsExposeIncomeExpenseAndSavingsIcons() {
         val steps = homeFlowStepVisuals(
-            incomeValue = "1,000\uc6d0",
-            expenseValue = "600\uc6d0",
-            savingsValue = "400\uc6d0"
+            incomeValue = "1,000원",
+            expenseValue = "600원",
+            savingsValue = "400원"
         )
 
         assertThat(steps.map { it.label })
-            .containsExactly("\uc218\uc785", "\uc9c0\ucd9c", "\uc800\ucd95/\uc774\uccb4")
+            .containsExactly("수입", "지출", "저축/이체")
             .inOrder()
         assertThat(steps.map { it.value })
-            .containsExactly("1,000\uc6d0", "600\uc6d0", "400\uc6d0")
+            .containsExactly("1,000원", "600원", "400원")
             .inOrder()
         assertThat(steps.map { it.accent })
             .containsExactly(MoneyBlue, MoneyCoral, MoneyMint)
             .inOrder()
-        assertThat(steps.map { it.imageRes })
+        assertThat(steps.map { it.icon })
             .containsExactly(
-                R.drawable.illustration_flow_income,
-                R.drawable.illustration_flow_expense,
-                R.drawable.illustration_flow_saving
+                Icons.AutoMirrored.Filled.TrendingUp,
+                Icons.Filled.ShoppingCart,
+                Icons.Filled.Savings
             )
             .inOrder()
     }
