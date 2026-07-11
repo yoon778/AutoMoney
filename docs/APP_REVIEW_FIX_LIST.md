@@ -155,3 +155,16 @@ Claude next:
 - Continue B3 review-flow UI corrections from `docs/AI_COLLABORATION.md`.
 - Continue C1/C2/C3 visual token migration and dark-mode readiness.
 - Keep `TransactionRowUi.sourceLabel` and `AppDateZoneId` contracts intact.
+
+---
+
+## User Feedback Round 2 (2026-07-11, real-device)
+
+| # | Item | Split | Status |
+|---|------|-------|--------|
+| F1 | 분류(카테고리)를 설정에서 사용자가 직접 추가/수정/삭제 | [LOGIC] Codex: 카테고리 저장소(Room 또는 prefs) + 수입/지출별 사용자 정의 목록을 `transactionEditCategoryOptionsFor`/수동입력 옵션에 합쳐서 노출 + AppContainer 배선. [UI] Claude: 설정 화면에 "분류 관리" 섹션(목록/추가/삭제) — Codex 계약 나오면 바로 구현 | Codex 대기 |
+| F2 | 자산 종류 세분화: 증권사·페이(포인트) 몇 곳 기본 제공 + 사용자 직접 추가 | [LOGIC] Codex: `AssetAccountKind` 확장 또는 provider 목록의 사용자 정의화(증권: 키움/미래에셋/토스증권 등, 페이: 네이버페이/카카오페이 등). 알림 매칭 로직과 무관한 표시용 provider는 자유 입력 허용 검토. [UI] Claude: 폼 반영 | Codex 대기 |
+| F3 | 검토 필터 칩(전체/지출아님/송금/중복)이 장식이었음 | [UI] **DONE 2026-07-11**: 칩이 실제 필터로 동작. 전체/송금/충전/계좌/중복/기타 — 건수 표시, 0건 분류는 숨김, 선택 시 목록 필터링 | done |
+| F4 | 거래 아이콘 원 안 글자가 처리유형 첫 글자였음 → 상호명 첫 글자로 | [UI] **DONE 2026-07-11**: `displayInitial()` — 상호명(스타벅스→"스") 첫 글자 우선, 없으면 기존 글자. 거래 행 + 검토 카드 적용. 이미지 로고는 추후 검토(브랜드 아이콘 라이선스/용량 이슈) | done |
+| F5 | 홈 수입/지출/저축 그림 여백 불균형·잘린 느낌 | [UI] **DONE 2026-07-11**: 일러스트 3장을 균일한 벡터 아이콘(추세/장바구니/저금통)으로 교체 — 여백 완전 균일, 잘림 없음. drawable 3개 삭제 | done |
+| F6 | N분의1 정산 재설계 — "내 몫 + 받을 돈" 모델 | 현재 SETTLEMENT는 지출 통계에서 전액 제외될 뿐, 사용자의 실제 부담금이 어디에도 안 잡힘. 목표 흐름: (1) 정산 선택 시 내 몫 입력(기본값 금액÷인원) → 지출 통계에 내 몫만 반영, 나머지는 "받을 돈"(receivable)으로 기록. (2) 이후 들어오는 입금을 검토에서 "정산 받은 돈"으로 해당 정산에 연결 → 받을 돈 차감, 수입 통계에는 미포함(원금 회수이므로). (3) 전액 회수 시 정산 완료. [LOGIC] Codex: SETTLEMENT에 내몫/받을돈 필드(또는 연결 테이블), 리포트 규칙에서 내 몫만 실지출 포함, 입금-정산 연결 use case, 잔여 receivable 계산. [UI] Claude: 정산 다이얼로그(내 몫 입력, 인원수 나누기 헬퍼), 카드에 "내 몫 X원 반영 · 받을 돈 Y/Z원 수령" 진행 표시, 검토의 입금 카드에 "정산 받은 돈" CTA. | Codex 대기 |
