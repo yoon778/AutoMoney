@@ -22,6 +22,9 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :transactionId LIMIT 1")
     suspend fun transactionById(transactionId: Long): TransactionEntity?
 
+    @Query("UPDATE transactions SET customCategoryName = :name WHERE customCategoryId = :categoryId")
+    suspend fun updateCustomCategoryName(categoryId: Long, name: String)
+
     @Query("SELECT * FROM transactions WHERE monthKey = :monthKey ORDER BY occurredAt DESC")
     suspend fun transactionsForMonth(monthKey: String): List<TransactionEntity>
 

@@ -21,7 +21,7 @@ class AppDatabaseMigrationTest {
     )
 
     @Test
-    fun migration2To6PreservesLegacyRowsAndValidatesSchema() {
+    fun migration2To7PreservesLegacyRowsAndValidatesSchema() {
         helper.createDatabase(TEST_DB, 2).apply {
             insertTransaction(id = 1, sourceNotificationHash = "same-hash")
             insertTransaction(id = 2, sourceNotificationHash = "same-hash")
@@ -35,7 +35,7 @@ class AppDatabaseMigrationTest {
 
         val db = helper.runMigrationsAndValidate(
             TEST_DB,
-            6,
+            7,
             true,
             AppDatabase.MIGRATION_2_3,
             AppDatabase.MIGRATION_3_4,
@@ -55,6 +55,32 @@ class AppDatabaseMigrationTest {
         assertNull(db.singleString("SELECT accountLast4 FROM asset_accounts WHERE id = 20"))
         assertNull(db.singleString("SELECT linkedAssetAccountId FROM transactions WHERE id = 1"))
         assertNull(db.singleString("SELECT balanceImpact FROM transactions WHERE id = 1"))
+    }
+
+    @Test
+    fun migration7To8AddsCustomCategoryAndSettlementFields() {
+        helper.createDatabase(SECOND_TEST_DB, 7).apply {
+            insertTransaction(id = 1, sourceNotificationHash = "legacy-hash")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            SECOND_TEST_DB,
+            8,
+            true,
+            AppDatabase.MIGRATION_7_8
+        )
+
+        assertEquals(0, db.singleLong("SELECT COUNT(*) FROM user_categories"))
+        assertNull(db.singleString("SELECT customCategoryName FROM transactions WHERE id = 1"))
+        assertNull(db.singleString("SELECT settlementMyShareWon FROM transactions WHERE id = 1"))
+        assertEquals(0, db.singleLong("SELECT settlementTrackingHidden FROM transactions WHERE id = 1"))
+        assertEquals(
+            1,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_transactions_settlementParentId'"
+            )
+        )
     }
 
     private fun SupportSQLiteDatabase.insertTransaction(
@@ -115,5 +141,6 @@ class AppDatabaseMigrationTest {
 
     private companion object {
         const val TEST_DB = "migration-test"
+        const val SECOND_TEST_DB = "migration-test-7-8"
     }
 }

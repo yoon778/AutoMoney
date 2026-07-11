@@ -9,12 +9,14 @@ import com.choiyoonseo.automoney.data.local.dao.AssetDao
 import com.choiyoonseo.automoney.data.local.dao.ReviewItemDao
 import com.choiyoonseo.automoney.data.local.dao.RuleDao
 import com.choiyoonseo.automoney.data.local.dao.TransactionDao
+import com.choiyoonseo.automoney.data.local.dao.UserCategoryDao
 import com.choiyoonseo.automoney.data.local.entity.AssetAccountEntity
 import com.choiyoonseo.automoney.data.local.entity.FixedExpenseEntity
 import com.choiyoonseo.automoney.data.local.entity.MonthlyPlanItemEntity
 import com.choiyoonseo.automoney.data.local.entity.ReviewItemEntity
 import com.choiyoonseo.automoney.data.local.entity.RuleEntity
 import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
+import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
 
 @Database(
     entities = [
@@ -23,9 +25,10 @@ import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
         RuleEntity::class,
         AssetAccountEntity::class,
         FixedExpenseEntity::class,
-        MonthlyPlanItemEntity::class
+        MonthlyPlanItemEntity::class,
+        UserCategoryEntity::class
     ],
-    version = 7,
+    version = 8,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -34,6 +37,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun reviewItemDao(): ReviewItemDao
     abstract fun ruleDao(): RuleDao
     abstract fun assetDao(): AssetDao
+    abstract fun userCategoryDao(): UserCategoryDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -188,6 +192,42 @@ abstract class AppDatabase : RoomDatabase() {
         val MIGRATION_6_7 = object : Migration(6, 7) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE asset_accounts ADD COLUMN providerLabel TEXT")
+            }
+        }
+
+        val MIGRATION_7_8 = object : Migration(7, 8) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS user_categories (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        kind TEXT NOT NULL,
+                        name TEXT NOT NULL,
+                        normalizedName TEXT NOT NULL,
+                        active INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS index_user_categories_kind_normalizedName " +
+                        "ON user_categories(kind, normalizedName)"
+                )
+                db.execSQL("ALTER TABLE transactions ADD COLUMN customCategoryId INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN customCategoryName TEXT")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN settlementPartyCount INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN settlementMyShareWon INTEGER")
+                db.execSQL("ALTER TABLE transactions ADD COLUMN settlementParentId INTEGER")
+                db.execSQL(
+                    "ALTER TABLE transactions ADD COLUMN settlementTrackingHidden INTEGER NOT NULL DEFAULT 0"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_transactions_customCategoryId " +
+                        "ON transactions(customCategoryId)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_transactions_settlementParentId " +
+                        "ON transactions(settlementParentId)"
+                )
             }
         }
     }

@@ -17,6 +17,7 @@ import com.choiyoonseo.automoney.domain.model.RuleMatchType
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
+import com.choiyoonseo.automoney.domain.category.UserCategoryKind
 import java.time.Instant
 
 @Entity(
@@ -25,7 +26,9 @@ import java.time.Instant
         Index(value = ["sourceNotificationHash"], unique = true),
         Index(value = ["monthKey", "occurredAt"]),
         Index(value = ["occurredAt"]),
-        Index(value = ["linkedAssetAccountId"])
+        Index(value = ["linkedAssetAccountId"]),
+        Index(value = ["customCategoryId"]),
+        Index(value = ["settlementParentId"])
     ]
 )
 data class TransactionEntity(
@@ -46,7 +49,13 @@ data class TransactionEntity(
     val confidence: Double,
     val monthKey: String,
     val linkedAssetAccountId: Long? = null,
-    val balanceImpact: BalanceImpact? = null
+    val balanceImpact: BalanceImpact? = null,
+    val customCategoryId: Long? = null,
+    val customCategoryName: String? = null,
+    val settlementPartyCount: Int? = null,
+    val settlementMyShareWon: Long? = null,
+    val settlementParentId: Long? = null,
+    val settlementTrackingHidden: Boolean = false
 )
 
 @Entity(
@@ -123,4 +132,16 @@ data class MonthlyPlanItemEntity(
     val label: String,
     val amountWon: Long,
     val type: MonthlyPlanItemType
+)
+
+@Entity(
+    tableName = "user_categories",
+    indices = [Index(value = ["kind", "normalizedName"], unique = true)]
+)
+data class UserCategoryEntity(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val kind: UserCategoryKind,
+    val name: String,
+    val normalizedName: String,
+    val active: Boolean
 )

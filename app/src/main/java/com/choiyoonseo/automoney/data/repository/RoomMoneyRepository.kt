@@ -312,7 +312,13 @@ private fun MoneyTransaction.toEntity(): TransactionEntity {
         confidence = confidence,
         monthKey = monthKey.toString(),
         linkedAssetAccountId = linkedAssetAccountId,
-        balanceImpact = balanceImpact
+        balanceImpact = balanceImpact,
+        customCategoryId = customCategoryId,
+        customCategoryName = customCategoryName,
+        settlementPartyCount = settlementPartyCount ?: settlementDetails?.peopleCount,
+        settlementMyShareWon = settlementMyShareWon ?: settlementDetails?.myShareWon,
+        settlementParentId = settlementParentId ?: recoveryOfSettlementTransactionId,
+        settlementTrackingHidden = settlementTrackingHidden || settlementDetails?.receivableHidden == true
     )
 }
 
@@ -355,7 +361,23 @@ private fun TransactionEntity.toDomain(): MoneyTransaction {
         confidence = confidence,
         monthKey = YearMonth.parse(monthKey),
         linkedAssetAccountId = linkedAssetAccountId,
-        balanceImpact = balanceImpact
+        balanceImpact = balanceImpact,
+        customCategoryId = customCategoryId,
+        customCategoryName = customCategoryName,
+        settlementPartyCount = settlementPartyCount,
+        settlementMyShareWon = settlementMyShareWon,
+        settlementParentId = settlementParentId,
+        settlementTrackingHidden = settlementTrackingHidden,
+        settlementDetails = settlementPartyCount?.let { count ->
+            settlementMyShareWon?.let { share ->
+                com.choiyoonseo.automoney.domain.model.SettlementDetails(
+                    peopleCount = count,
+                    myShareWon = share,
+                    receivableHidden = settlementTrackingHidden
+                )
+            }
+        },
+        recoveryOfSettlementTransactionId = settlementParentId
     )
 }
 
