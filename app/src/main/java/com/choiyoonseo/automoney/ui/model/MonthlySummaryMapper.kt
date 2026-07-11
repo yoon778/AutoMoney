@@ -1,6 +1,7 @@
 package com.choiyoonseo.automoney.ui.model
 
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.model.categoryDisplayName
 import com.choiyoonseo.automoney.domain.model.SourceType
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
@@ -50,7 +51,7 @@ fun transactionsToMonthlySummary(
     }
     val categorySpends = expenseTransactions
         .mapNotNull { transaction ->
-            transaction.category?.let { it.displayName to transaction.effectiveExpenseWon() }
+            transaction.categoryDisplayName()?.let { it to transaction.effectiveExpenseWon() }
         }
         .groupBy({ it.first }, { it.second })
         .mapValues { (_, amounts) -> amounts.sum() }
@@ -152,7 +153,7 @@ private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
     } else {
         amount.won
     }
-    val categoryText = category?.displayName ?: if (type.countsAsMonthlyExpense) "\uae30\ud0c0" else "\uc9c0\ucd9c \uc81c\uc678"
+    val categoryText = categoryDisplayName() ?: if (type.countsAsMonthlyExpense) "\uae30\ud0c0" else "\uc9c0\ucd9c \uc81c\uc678"
 
     return TransactionRowUi(
         merchant = displayTitle(),
@@ -176,7 +177,7 @@ private fun MoneyTransaction.displayTitle(): String =
     ).firstOrNull() ?: fallbackTitle()
 
 private fun MoneyTransaction.incomeCategoryTitle(): String? =
-    category?.displayName?.takeIf { direction == TransactionDirection.INCOME }
+    categoryDisplayName()?.takeIf { direction == TransactionDirection.INCOME }
 
 private fun MoneyTransaction.fallbackTitle(): String =
     when (type) {

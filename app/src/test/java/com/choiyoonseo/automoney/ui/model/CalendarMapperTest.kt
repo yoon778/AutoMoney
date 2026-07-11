@@ -222,6 +222,26 @@ class CalendarMapperTest {
     }
 
     @Test
+    fun transactionsToSpendCalendarUsesStoredCustomCategoryNameForSingleSpend() {
+        val month = YearMonth.of(2026, 7)
+        val calendar = transactionsToSpendCalendar(
+            month = month,
+            transactions = listOf(
+                transaction(
+                    occurredAt = "2026-07-08T01:00:00Z",
+                    amountWon = 25_000,
+                    type = TransactionType.EXPENSE,
+                    category = Category.OTHER,
+                    month = month,
+                    customCategoryName = "데이트비용"
+                )
+            )
+        )
+
+        assertThat(calendar.spendForDay(8)?.label).isEqualTo("데이트비용")
+    }
+
+    @Test
     fun transactionsToSpendCalendarUsesAppDateZoneForManualDates() {
         val month = YearMonth.of(2026, 7)
         val manualDateInstant = LocalDate.of(2026, 7, 9)
@@ -251,7 +271,8 @@ class CalendarMapperTest {
         category: Category?,
         month: YearMonth,
         status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED,
-        settlementMyShareWon: Long? = null
+        settlementMyShareWon: Long? = null,
+        customCategoryName: String? = null
     ) = MoneyTransaction(
         occurredAt = Instant.parse(occurredAt),
         amount = MoneyAmount(amountWon),
@@ -269,6 +290,7 @@ class CalendarMapperTest {
         status = status,
         confidence = 1.0,
         monthKey = month,
-        settlementMyShareWon = settlementMyShareWon
+        settlementMyShareWon = settlementMyShareWon,
+        customCategoryName = customCategoryName
     )
 }

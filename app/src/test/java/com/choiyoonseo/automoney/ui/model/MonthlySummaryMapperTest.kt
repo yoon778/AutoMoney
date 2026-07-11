@@ -209,6 +209,28 @@ class MonthlySummaryMapperTest {
     }
 
     @Test
+    fun transactionsToMonthlySummaryGroupsCustomCategoryByItsStoredName() {
+        val month = YearMonth.of(2026, 7)
+        val summary = transactionsToMonthlySummary(
+            month = month,
+            transactions = listOf(
+                tx(
+                    occurredAt = "2026-07-08T01:00:00Z",
+                    amountWon = 25_000,
+                    type = TransactionType.EXPENSE,
+                    category = Category.OTHER,
+                    month = month,
+                    merchant = "저녁",
+                    customCategoryName = "데이트비용"
+                )
+            ),
+            reviewCount = 0
+        )
+
+        assertThat(summary.categorySpends).containsExactly(CategorySpendUi("데이트비용", 25_000, 1f))
+    }
+
+    @Test
     fun transactionsToRowsBuildsFullTransactionRowsWithoutTopups() {
         val month = YearMonth.of(2026, 7)
         val rows = transactionsToRows(
@@ -399,7 +421,8 @@ class MonthlySummaryMapperTest {
         sourceApp: String? = null,
         sourceType: SourceType = SourceType.MANUAL,
         settlementMyShareWon: Long? = null,
-        settlementParentId: Long? = null
+        settlementParentId: Long? = null,
+        customCategoryName: String? = null
     ) = MoneyTransaction(
         id = id,
         occurredAt = Instant.parse(occurredAt),
@@ -418,6 +441,7 @@ class MonthlySummaryMapperTest {
         confidence = 1.0,
         monthKey = month,
         settlementMyShareWon = settlementMyShareWon,
-        settlementParentId = settlementParentId
+        settlementParentId = settlementParentId,
+        customCategoryName = customCategoryName
     )
 }

@@ -1,9 +1,10 @@
 package com.choiyoonseo.automoney.domain.manual
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.BalanceImpact
-import com.choiyoonseo.automoney.domain.model.Category
+import com.choiyoonseo.automoney.domain.category.TransactionCategoryResolver
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.SourceType
@@ -21,8 +22,11 @@ enum class ManualEntryType(val label: String) {
 }
 
 class SaveManualTransactionUseCase(
-    private val repository: MoneyRepository
+    private val repository: MoneyRepository,
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
+    private val categoryResolver = TransactionCategoryResolver(userCategoryRepository)
+
     suspend fun save(
         type: ManualEntryType,
         amountWon: Long,
@@ -50,13 +54,19 @@ class SaveManualTransactionUseCase(
             type == ManualEntryType.INCOME -> BalanceImpact.CREDIT
             else -> BalanceImpact.NONE
         }
+        val transactionType = when (type) {
+            ManualEntryType.EXPENSE -> TransactionType.EXPENSE
+            ManualEntryType.INCOME -> TransactionType.INCOME
+            ManualEntryType.TRANSFER -> TransactionType.TRANSFER
+        }
+        val categoryAssignment = categoryResolver.resolve(categoryText, transactionType)
         val transaction = when (type) {
             ManualEntryType.EXPENSE -> MoneyTransaction(
                 occurredAt = occurredAt,
                 amount = MoneyAmount(amountWon),
                 direction = TransactionDirection.EXPENSE,
                 type = TransactionType.EXPENSE,
-                category = categoryText.toCategory(),
+                category = categoryAssignment.category,
                 paymentMethod = accountPaymentMethod,
                 merchant = cleanMemo.ifBlank { "수동 입력" },
                 counterparty = null,
@@ -68,7 +78,9 @@ class SaveManualTransactionUseCase(
                 confidence = 1.0,
                 monthKey = monthKey,
                 linkedAssetAccountId = accountId,
-                balanceImpact = impact
+                balanceImpact = impact,
+                customCategoryId = categoryAssignment.customCategoryId,
+                customCategoryName = categoryAssignment.customCategoryName
             )
 
             ManualEntryType.INCOME -> MoneyTransaction(
@@ -76,7 +88,7 @@ class SaveManualTransactionUseCase(
                 amount = MoneyAmount(amountWon),
                 direction = TransactionDirection.INCOME,
                 type = TransactionType.INCOME,
-                category = categoryText.toCategory(),
+                category = categoryAssignment.category,
                 paymentMethod = accountPaymentMethod,
                 merchant = cleanMemo.ifBlank { "수동 수입" },
                 counterparty = null,
@@ -88,7 +100,9 @@ class SaveManualTransactionUseCase(
                 confidence = 1.0,
                 monthKey = monthKey,
                 linkedAssetAccountId = accountId,
-                balanceImpact = impact
+                balanceImpact = impact,
+                customCategoryId = categoryAssignment.customCategoryId,
+                customCategoryName = categoryAssignment.customCategoryName
             )
 
             ManualEntryType.TRANSFER -> MoneyTransaction(
@@ -128,10 +142,4 @@ class SaveManualTransactionUseCase(
         occurredAt = occurredAt
     )
 
-    private fun String.toCategory(): Category {
-        val cleanText = trim()
-        return Category.entries.firstOrNull { category ->
-            category.displayName == cleanText || category.name.equals(cleanText, ignoreCase = true)
-        } ?: Category.OTHER
-    }
 }

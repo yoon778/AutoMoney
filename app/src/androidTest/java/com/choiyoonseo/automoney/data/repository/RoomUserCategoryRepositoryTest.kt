@@ -70,6 +70,18 @@ class RoomUserCategoryRepositoryTest {
         )
     }
 
+    @Test
+    fun resolveOrCreateReactivatesAnExistingHiddenCategory() = runBlocking {
+        val categoryId = categoryRepository.add(UserCategoryKind.EXPENSE, "Pet")
+        categoryRepository.delete(categoryId)
+
+        val restored = categoryRepository.resolveOrCreate(UserCategoryKind.EXPENSE, "  Pet  ")
+
+        assertEquals(categoryId, restored.id)
+        assertEquals("Pet", restored.name)
+        assertTrue(restored.active)
+    }
+
     private fun customExpense(categoryId: Long, categoryName: String) = MoneyTransaction(
         occurredAt = Instant.parse("2026-07-01T01:00:00Z"),
         amount = MoneyAmount(30_000),

@@ -49,9 +49,9 @@ class AppContainer(context: Context) {
 
     val recordWalletTopupUsageUseCase = RecordWalletTopupUsageUseCase(repository)
 
-    val saveManualTransactionUseCase = SaveManualTransactionUseCase(repository)
+    val saveManualTransactionUseCase = SaveManualTransactionUseCase(repository, userCategoryRepository)
 
-    val editTransactionUseCase = EditTransactionUseCase(repository)
+    val editTransactionUseCase = EditTransactionUseCase(repository, userCategoryRepository)
 
     val resolveReviewUseCase = ResolveReviewUseCase(repository)
 

@@ -16,6 +16,33 @@ class RoomUserCategoryRepository(
             categories.map { it.toDomain() }
         }
 
+    override suspend fun resolveOrCreate(kind: UserCategoryKind, name: String): UserCategory {
+        val requested = UserCategory.create(kind = kind, name = name)
+        return db.withTransaction {
+            val current = db.userCategoryDao().categoryByKindAndNormalizedName(
+                kind = requested.kind,
+                normalizedName = requested.normalizedName
+            )
+            when {
+                current == null -> UserCategory.create(
+                    id = db.userCategoryDao().insert(requested.toEntity()),
+                    kind = requested.kind,
+                    name = requested.name
+                )
+                current.active -> current.toDomain()
+                else -> {
+                    db.userCategoryDao().reactivate(id = current.id, name = requested.name)
+                    UserCategory.create(
+                        id = current.id,
+                        kind = requested.kind,
+                        name = requested.name,
+                        active = true
+                    )
+                }
+            }
+        }
+    }
+
     override suspend fun add(kind: UserCategoryKind, name: String): Long =
         db.userCategoryDao().insert(UserCategory.create(kind = kind, name = name).toEntity())
 

@@ -1,8 +1,11 @@
 package com.choiyoonseo.automoney.domain.transactions
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.BalanceImpact
+import com.choiyoonseo.automoney.domain.category.UserCategory
+import com.choiyoonseo.automoney.domain.category.UserCategoryKind
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -288,6 +291,28 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun updateStoresCustomCategorySnapshotWithoutLearningEnumRule() = runTest {
+        val repository = FakeMoneyRepository()
+        val categoryRepository = FakeUserCategoryRepository()
+        val useCase = EditTransactionUseCase(repository, categoryRepository)
+
+        useCase.update(
+            transaction = transaction().copy(merchant = "데이트 식당"),
+            amountWon = 30_000,
+            categoryText = "데이트비용",
+            memo = "저녁",
+            transactionType = TransactionType.EXPENSE
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.category).isEqualTo(Category.OTHER)
+        assertThat(updated.customCategoryId).isEqualTo(101)
+        assertThat(updated.customCategoryName).isEqualTo("데이트비용")
+        assertThat(repository.savedRules).isEmpty()
+        assertThat(categoryRepository.resolvedKind).isEqualTo(UserCategoryKind.EXPENSE)
+    }
+
+    @Test
     fun excludeMarksTransactionExcludedWithoutDeletingIt() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)
@@ -368,5 +393,19 @@ private class FakeMoneyRepository : MoneyRepository {
     override suspend fun saveRule(rule: Rule): Long {
         savedRules += rule
         return savedRules.size.toLong()
+    }
+}
+
+private class FakeUserCategoryRepository : UserCategoryRepository {
+    var resolvedKind: UserCategoryKind? = null
+
+    override fun observeActiveCategories() = flowOf(emptyList<UserCategory>())
+    override suspend fun add(kind: UserCategoryKind, name: String): Long = 101
+    override suspend fun rename(id: Long, name: String) = Unit
+    override suspend fun delete(id: Long) = Unit
+
+    override suspend fun resolveOrCreate(kind: UserCategoryKind, name: String): UserCategory {
+        resolvedKind = kind
+        return UserCategory.create(id = 101, kind = kind, name = name)
     }
 }

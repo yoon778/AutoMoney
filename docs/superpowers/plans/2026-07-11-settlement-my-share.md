@@ -44,4 +44,4 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
 
 > AutoMoney 이어서 작업. `docs/AI_COLLABORATION.md`의 "Shared Plan Relay"를 읽고, `git fetch` 후 이 계획서의 첫 미체크(`- [ ]`) 태스크부터 진행. 시작 전 `Owner:`를 본인으로 바꿔 커밋. 커밋 안 된 반쪽 작업이 있으면 `git status`로 확인 후 완성하거나 이 절에 메모.
 
-현재 미커밋 메모: (없음)
+현재 미커밋 메모: legacy 정산 실험 파일이 로컬 untracked로 남아 있음. main의 `LinkSettlementRepaymentUseCase`와 `SettlementRepaymentMatcher`가 현재 계약이며, legacy 파일은 다음 작업 전 정리 필요.

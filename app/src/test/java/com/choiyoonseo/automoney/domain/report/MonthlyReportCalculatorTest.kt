@@ -67,6 +67,23 @@ class MonthlyReportCalculatorTest {
     }
 
     @Test
+    fun exposesCustomCategoryInNameBasedTotals() {
+        val report = MonthlyReportCalculator().calculate(
+            listOf(
+                transaction(
+                    type = TransactionType.EXPENSE,
+                    direction = TransactionDirection.EXPENSE,
+                    amount = 25_000,
+                    category = Category.OTHER,
+                    customCategoryName = "데이트비용"
+                )
+            )
+        )
+
+        assertThat(report.categoryExpenseWonByName).containsExactly("데이트비용", 25_000L)
+    }
+
+    @Test
     fun separatesReportableIncomeExpenseAndSavingMovements() {
         val report = MonthlyReportCalculator().calculate(
             listOf(
@@ -109,7 +126,8 @@ class MonthlyReportCalculatorTest {
         category: Category?,
         status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED,
         settlementMyShareWon: Long? = null,
-        settlementParentId: Long? = null
+        settlementParentId: Long? = null,
+        customCategoryName: String? = null
     ) = MoneyTransaction(
         occurredAt = Instant.parse("2026-06-27T03:47:00Z"),
         amount = MoneyAmount(amount),
@@ -127,6 +145,7 @@ class MonthlyReportCalculatorTest {
         confidence = 1.0,
         monthKey = YearMonth.of(2026, 6),
         settlementMyShareWon = settlementMyShareWon,
-        settlementParentId = settlementParentId
+        settlementParentId = settlementParentId,
+        customCategoryName = customCategoryName
     )
 }

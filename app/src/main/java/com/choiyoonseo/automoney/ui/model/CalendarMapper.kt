@@ -1,6 +1,7 @@
 package com.choiyoonseo.automoney.ui.model
 
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.model.categoryDisplayName
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
@@ -15,7 +16,7 @@ fun transactionsToSpendCalendar(
         .groupBy { it.occurredAt.atZone(AppDateZoneId).dayOfMonth }
         .map { (day, dayTransactions) ->
             val label = if (dayTransactions.size == 1) {
-                dayTransactions.first().category?.displayName ?: "기타"
+                dayTransactions.first().categoryDisplayName() ?: "기타"
             } else {
                 "${dayTransactions.size}건"
             }

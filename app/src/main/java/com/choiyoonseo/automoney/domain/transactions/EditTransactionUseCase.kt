@@ -1,9 +1,10 @@
 package com.choiyoonseo.automoney.domain.transactions
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.BalanceImpact
-import com.choiyoonseo.automoney.domain.model.Category
+import com.choiyoonseo.automoney.domain.category.TransactionCategoryResolver
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.Rule
@@ -17,8 +18,11 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 class EditTransactionUseCase(
-    private val repository: MoneyRepository
+    private val repository: MoneyRepository,
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
+    private val categoryResolver = TransactionCategoryResolver(userCategoryRepository)
+
     suspend fun update(
         transaction: MoneyTransaction,
         amountWon: Long,
@@ -61,12 +65,13 @@ class EditTransactionUseCase(
                 transaction.balanceImpact ?: BalanceImpact.NONE
             TransactionType.EXCLUDED -> transaction.balanceImpact ?: BalanceImpact.NONE
         }
+        val categoryAssignment = categoryResolver.resolve(categoryText, transactionType)
         val updatedTransaction = transaction.copy(
             occurredAt = occurredAt,
             amount = MoneyAmount(amountWon),
             direction = transactionType.defaultDirection,
             type = transactionType,
-            category = categoryText.toCategoryFor(transactionType),
+            category = categoryAssignment.category,
             paymentMethod = accountPaymentMethod,
             memo = cleanMemo.ifBlank { null },
             status = if (transactionType == TransactionType.EXCLUDED) {
@@ -77,7 +82,9 @@ class EditTransactionUseCase(
             confidence = 1.0,
             monthKey = YearMonth.from(occurredAt.atZone(koreanZoneId)),
             linkedAssetAccountId = linkedAssetAccountId,
-            balanceImpact = nextImpact
+            balanceImpact = nextImpact,
+            customCategoryId = categoryAssignment.customCategoryId,
+            customCategoryName = categoryAssignment.customCategoryName
         )
         repository.updateTransaction(updatedTransaction)
         saveLearnedRules(transaction, updatedTransaction)
@@ -89,6 +96,8 @@ class EditTransactionUseCase(
                 direction = TransactionDirection.NEUTRAL,
                 type = TransactionType.EXCLUDED,
                 category = null,
+                customCategoryId = null,
+                customCategoryName = null,
                 status = TransactionStatus.EXCLUDED,
                 confidence = 1.0,
                 memo = appendEditMemo(transaction.memo, "사용자 삭제")
@@ -102,24 +111,6 @@ class EditTransactionUseCase(
         }
     }
 
-    private fun String.toCategory(): Category {
-        val cleanText = trim()
-        return Category.entries.firstOrNull { category ->
-            category.displayName == cleanText || category.name.equals(cleanText, ignoreCase = true)
-        } ?: Category.OTHER
-    }
-
-    private fun String.toCategoryFor(type: TransactionType): Category? =
-        when (type) {
-            TransactionType.EXPENSE,
-            TransactionType.FIXED_EXPENSE,
-            TransactionType.WALLET_SPEND,
-            TransactionType.SAVING,
-            TransactionType.INVESTMENT,
-            TransactionType.INCOME -> toCategory()
-            else -> null
-        }
-
     private fun appendEditMemo(current: String?, note: String): String =
         current?.takeIf { it.isNotBlank() }?.let { "$it · $note" } ?: note
 
@@ -127,6 +118,7 @@ class EditTransactionUseCase(
         val match = original.learnedRuleMatch() ?: return
         val candidates = buildList {
             updated.category
+                ?.takeIf { updated.customCategoryId == null }
                 ?.takeIf { updated.type.canLearnCategoryRule() }
                 ?.let { category ->
                     add(

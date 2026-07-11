@@ -1,8 +1,11 @@
 package com.choiyoonseo.automoney.domain.manual
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.BalanceImpact
+import com.choiyoonseo.automoney.domain.category.UserCategory
+import com.choiyoonseo.automoney.domain.category.UserCategoryKind
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.OpenReviewItem
@@ -164,6 +167,26 @@ class SaveManualTransactionUseCaseTest {
         assertThat(saved.status).isEqualTo(TransactionStatus.USER_EDITED)
         assertThat(saved.monthKey).isEqualTo(YearMonth.of(2026, 7))
     }
+
+    @Test
+    fun saveExpenseCreatesCustomCategorySnapshotForFreeText() = runTest {
+        val repository = FakeMoneyRepository()
+        val categoryRepository = FakeUserCategoryRepository()
+        val useCase = SaveManualTransactionUseCase(repository, categoryRepository)
+
+        useCase.saveExpense(
+            amountWon = 25_000,
+            categoryText = "데이트비용",
+            memo = "저녁",
+            occurredAt = Instant.parse("2026-07-01T01:00:00Z")
+        )
+
+        val saved = repository.savedTransactions.single()
+        assertThat(saved.category).isEqualTo(Category.OTHER)
+        assertThat(saved.customCategoryId).isEqualTo(101)
+        assertThat(saved.customCategoryName).isEqualTo("데이트비용")
+        assertThat(categoryRepository.resolvedKind).isEqualTo(UserCategoryKind.EXPENSE)
+    }
 }
 
 private class FakeMoneyRepository : MoneyRepository {
@@ -186,4 +209,18 @@ private class FakeMoneyRepository : MoneyRepository {
     override suspend fun createReviewItem(transactionId: Long, reason: ReviewReason) = Unit
     override suspend fun resolveReviewItem(reviewItemId: Long) = Unit
     override suspend fun saveRule(rule: Rule): Long = 0
+}
+
+private class FakeUserCategoryRepository : UserCategoryRepository {
+    var resolvedKind: UserCategoryKind? = null
+
+    override fun observeActiveCategories() = flowOf(emptyList<UserCategory>())
+    override suspend fun add(kind: UserCategoryKind, name: String): Long = 101
+    override suspend fun rename(id: Long, name: String) = Unit
+    override suspend fun delete(id: Long) = Unit
+
+    override suspend fun resolveOrCreate(kind: UserCategoryKind, name: String): UserCategory {
+        resolvedKind = kind
+        return UserCategory.create(id = 101, kind = kind, name = name)
+    }
 }
