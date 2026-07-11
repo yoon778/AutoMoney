@@ -25,6 +25,8 @@ class MainActivity : ComponentActivity() {
                     notificationOnboardingStore = appContainer.notificationOnboardingStore,
                     runSampleNotificationScenarioUseCase = appContainer.runSampleNotificationScenarioUseCase,
                     resolveReviewUseCase = appContainer.resolveReviewUseCase,
+                    linkSettlementRepaymentUseCase = appContainer.linkSettlementRepaymentUseCase,
+                    userCategoryRepository = appContainer.userCategoryRepository,
                     resolveAccountTransferUseCase = appContainer.resolveAccountTransferUseCase
                 )
             }

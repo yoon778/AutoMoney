@@ -30,10 +30,12 @@ import com.choiyoonseo.automoney.data.repository.AssetRepository
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
+import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.LastNotificationDiagnostic
 import com.choiyoonseo.automoney.notification.NotificationAccessChecker
@@ -75,7 +77,9 @@ fun AppRoot(
     notificationOnboardingStore: NotificationOnboardingStore? = null,
     runSampleNotificationScenarioUseCase: RunSampleNotificationScenarioUseCase? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
-    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null
+    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null,
+    linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
     val colors = MoneyTheme.colors
     var selectedTab by remember { mutableStateOf(AppTab.HOME) }
@@ -173,7 +177,8 @@ fun AppRoot(
                 editTransactionUseCase = editTransactionUseCase,
                 assetRepository = assetRepository,
                 resolveReviewUseCase = resolveReviewUseCase,
-                resolveAccountTransferUseCase = resolveAccountTransferUseCase
+                resolveAccountTransferUseCase = resolveAccountTransferUseCase,
+                linkSettlementRepaymentUseCase = linkSettlementRepaymentUseCase
             )
             AppTab.ASSETS -> AssetsScreen(
                 padding = padding,
@@ -188,6 +193,7 @@ fun AppRoot(
                 onOpenNotificationSettings = openNotificationSettings,
                 notificationAccessEnabled = notificationAccessEnabled,
                 lastNotificationDiagnostic = lastNotificationDiagnostic,
+                userCategoryRepository = userCategoryRepository,
                 onRunSampleNotificationScenario = if (BuildConfig.DEBUG && runSampleNotificationScenarioUseCase != null) {
                     {
                         scope.launch {

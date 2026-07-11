@@ -11,7 +11,7 @@ Owner: Codex
 ## Tasks
 - [x] **Task 1: 분류 저장 모델 설계+구현** — `user_categories` 별도 테이블과 거래의 이름 스냅샷을 함께 저장해 이름 변경/삭제 후 과거 거래 표시를 보존함. Room 7→8 마이그레이션, 중복 방지 인덱스, 저장소 테스트 완료.
 - [x] **Task 2: 저장/수정/직접입력 경로 반영** — SaveManual/Edit 유즈케이스가 자유 분류명을 생성·재사용해 거래 ID/이름 스냅샷으로 저장. 내장 분류는 기존 `CategoryPreferenceStore` 경로를 유지하고, 사용자 분류는 `AppContainer.userCategoryRepository`로 UI에 노출.
-- [ ] **Task 3: 설정 "분류 관리" UI 확장(Claude)** — 기존 Phase A 칩 화면에 "새 분류 추가" 입력 + 삭제. Codex 계약 나온 뒤.
+- [x] **Task 3: 설정 "분류 관리" UI 확장(Claude)** — 기존 Phase A 칩 화면에 "새 분류 추가" 입력 + 삭제. Codex 계약 나온 뒤.
   - Claude 계약: `userCategoryRepository.observeActiveCategories()`를 EXPENSE/INCOME으로 필터링해 기존 `CategoryPreferenceStore`의 활성 내장 분류 목록 뒤에 합침. 직접 입력 문자열은 기존 `SaveManualTransactionUseCase.save()`/`EditTransactionUseCase.update()`의 `categoryText`로 전달하면 됨.
 
 ---

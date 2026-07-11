@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -22,6 +25,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
@@ -54,6 +58,8 @@ import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
+import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
+import com.choiyoonseo.automoney.domain.settlement.findSettlementMatch
 import com.choiyoonseo.automoney.domain.review.ReviewResolution
 import com.choiyoonseo.automoney.domain.review.WalletTopupReviewService
 import com.choiyoonseo.automoney.domain.review.WalletTopupUsageResult
@@ -66,6 +72,7 @@ import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyMuted
+import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.ReviewActionCard
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
@@ -90,7 +97,8 @@ fun ReviewScreen(
     editTransactionUseCase: EditTransactionUseCase? = null,
     assetRepository: AssetRepository? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
-    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null
+    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null,
+    linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null
 ) {
     val scope = rememberCoroutineScope()
     val reviewService = remember { WalletTopupReviewService() }
@@ -104,6 +112,9 @@ fun ReviewScreen(
     val assetAccounts by remember(assetRepository) {
         assetRepository?.observeAccounts() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val allTransactions by remember(moneyRepository) {
+        moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
     var sampleReviewCardsState by remember { mutableStateOf(sampleReviewCards) }
     val reviewCards = if (moneyRepository == null) sampleReviewCardsState else dbReviewCards
     var activeWalletCard by remember { mutableStateOf<ReviewCardUi?>(null) }
@@ -111,6 +122,7 @@ fun ReviewScreen(
     var activeReviewMemoAction by remember { mutableStateOf<ReviewMemoAction?>(null) }
     var activeEditReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeAccountTransferCard by remember { mutableStateOf<ReviewCardUi?>(null) }
+    var activeSettlementCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -139,8 +151,22 @@ fun ReviewScreen(
     fun reviewReasonFor(card: ReviewCardUi): ReviewReason? =
         openReviewItems.firstOrNull { it.id == card.reviewItemId }?.reason
 
-    fun presentedCard(card: ReviewCardUi): ReviewCardUi =
-        when (reviewReasonFor(card)) {
+    val openSettlements = allTransactions.filter {
+        it.type == TransactionType.SETTLEMENT && it.settlementMyShareWon != null && !it.settlementTrackingHidden
+    }
+    val linkedRecoveries = allTransactions.filter { it.settlementParentId != null }
+    fun settlementMatchFor(card: ReviewCardUi) =
+        card.sourceTransaction?.let { findSettlementMatch(it, openSettlements, linkedRecoveries) }
+
+    fun presentedCard(card: ReviewCardUi): ReviewCardUi {
+        if (settlementMatchFor(card) != null) {
+            return card.copy(
+                tag = "정산 회수",
+                message = "이 입금은 예전에 낸 N분의1 정산으로 받은 돈 같아요. 맞으면 연결하면 수입에는 잡히지 않아요.",
+                primaryAction = "정산 받은 돈"
+            )
+        }
+        return when (reviewReasonFor(card)) {
             ReviewReason.ACCOUNT_AMBIGUOUS -> card.copy(
                 tag = "계좌",
                 iconText = "계",
@@ -161,6 +187,7 @@ fun ReviewScreen(
             )
             else -> card
         }
+    }
 
     fun opensAccountEdit(card: ReviewCardUi): Boolean =
         reviewReasonFor(card) in setOf(
@@ -169,6 +196,60 @@ fun ReviewScreen(
             ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN,
             ReviewReason.BALANCE_MISMATCH
         )
+
+    fun handleSettlement(card: ReviewCardUi, partyCount: Int, myShareWon: Long, memo: String?) {
+        val source = card.sourceTransaction
+        scope.launch {
+            isSaving = true
+            errorMessage = null
+            try {
+                if (resolveReviewUseCase != null && card.reviewItemId != null && source != null) {
+                    resolveReviewUseCase.resolve(
+                        reviewItemId = card.reviewItemId,
+                        transaction = source,
+                        resolution = ReviewResolution.SETTLEMENT,
+                        userMemo = memo,
+                        settlementPartyCount = partyCount,
+                        settlementMyShareWon = myShareWon
+                    )
+                    resultMessage = "${card.title}을 N분의1 정산으로 저장했어요. 내 몫 ${formatWon(myShareWon)}만 지출에 반영했어요."
+                } else {
+                    sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
+                    resultMessage = "정산으로 저장했어요."
+                }
+                activeSettlementCard = null
+            } catch (e: IllegalArgumentException) {
+                errorMessage = e.message ?: "입력값을 확인해 주세요."
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
+    fun handleLinkRepayment(card: ReviewCardUi, settlementTransactionId: Long) {
+        val source = card.sourceTransaction
+        scope.launch {
+            isSaving = true
+            errorMessage = null
+            try {
+                if (linkSettlementRepaymentUseCase != null && card.reviewItemId != null && source != null) {
+                    linkSettlementRepaymentUseCase.link(
+                        reviewItemId = card.reviewItemId,
+                        repaymentTransaction = source,
+                        settlementTransactionId = settlementTransactionId
+                    )
+                    resultMessage = "정산 받은 돈으로 연결했어요. 수입에는 잡지 않아요."
+                } else {
+                    sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
+                    resultMessage = "정산 받은 돈으로 처리했어요."
+                }
+            } catch (e: IllegalArgumentException) {
+                errorMessage = e.message ?: "연결 중 문제가 생겼어요."
+            } finally {
+                isSaving = false
+            }
+        }
+    }
 
     fun filterKindFor(card: ReviewCardUi): ReviewFilterKind = when {
         card.kind == ReviewCardKind.WALLET_TOPUP -> ReviewFilterKind.TOPUP
@@ -384,8 +465,14 @@ fun ReviewScreen(
             ReviewActionCard(
                 card = presentedCard(card),
                 onPrimaryAction = {
+                    val match = settlementMatchFor(card)
                     if (card.kind == ReviewCardKind.WALLET_TOPUP) {
                         activeWalletCard = card
+                    } else if (match != null) {
+                        handleLinkRepayment(card, match.settlementTransactionId)
+                    } else if (card.kind == ReviewCardKind.TRANSFER) {
+                        activeSettlementCard = card
+                        errorMessage = null
                     } else if (opensAccountEdit(card) && card.sourceTransaction != null && editTransactionUseCase != null) {
                         activeEditReviewCard = card
                         editErrorMessage = null
@@ -502,6 +589,21 @@ fun ReviewScreen(
         )
     }
 
+    activeSettlementCard?.let { card ->
+        SettlementDialog(
+            card = card,
+            isSaving = isSaving,
+            errorMessage = errorMessage,
+            onDismiss = {
+                activeSettlementCard = null
+                errorMessage = null
+            },
+            onSave = { partyCount, myShareWon, memo ->
+                handleSettlement(card, partyCount, myShareWon, memo)
+            }
+        )
+    }
+
     activeEditReviewCard?.let { card ->
         val transaction = card.sourceTransaction
         val useCase = editTransactionUseCase
@@ -589,6 +691,90 @@ fun ReviewScreen(
                     }
                 }
             )
+        }
+    }
+}
+
+@Composable
+private fun SettlementDialog(
+    card: ReviewCardUi,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSave: (partyCount: Int, myShareWon: Long, memo: String?) -> Unit
+) {
+    val colors = MoneyTheme.colors
+    val total = card.amountWon
+    var partyCount by remember(card.id) { mutableStateOf(2) }
+    val suggestedShare = (total.toDouble() / partyCount).toLong()
+    var myShareText by remember(card.id) { mutableStateOf(suggestedShare.toString()) }
+    var edited by remember(card.id) { mutableStateOf(false) }
+    val myShareWon = myShareText.replace(",", "").trim().toLongOrNull()
+    val receivable = if (myShareWon != null) (total - myShareWon).coerceAtLeast(0) else 0
+
+    MoneyDialog(
+        title = "N분의1 정산",
+        subtitle = "${card.title} ${formatWon(total)}",
+        onDismiss = onDismiss,
+        buttons = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.weight(1f)) {
+                    Text("취소")
+                }
+                Button(
+                    enabled = !isSaving && myShareWon != null && myShareWon in 0..total,
+                    modifier = Modifier.weight(1f),
+                    onClick = { onSave(partyCount, myShareWon ?: 0, null) }
+                ) {
+                    Text(if (isSaving) "저장 중" else "저장")
+                }
+            }
+        }
+    ) {
+        Text("몇 명이서 나눠요?", style = MaterialTheme.typography.labelMedium, color = colors.inkSub)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            StepperButton("−", enabled = partyCount > 2) {
+                partyCount -= 1
+                if (!edited) myShareText = (total.toDouble() / partyCount).toLong().toString()
+            }
+            Text("${partyCount}명", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.ink)
+            StepperButton("+", enabled = partyCount < 20) {
+                partyCount += 1
+                if (!edited) myShareText = (total.toDouble() / partyCount).toLong().toString()
+            }
+            Spacer(Modifier.weight(1f))
+            Text("1인당 ${formatWon((total.toDouble() / partyCount).toLong())}", style = MaterialTheme.typography.labelMedium, color = colors.muted)
+        }
+        OutlinedTextField(
+            value = myShareText,
+            onValueChange = { myShareText = it; edited = true },
+            label = { Text("내 몫 (지출에 반영)") },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
+        Surface(shape = RoundedCornerShape(14.dp), color = colors.canvas, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                "내 몫 ${formatWon(myShareWon ?: 0)}만 지출로 잡고, 받을 돈 ${formatWon(receivable)}은 참고로만 남겨요.",
+                modifier = Modifier.padding(12.dp),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.inkSub
+            )
+        }
+        (errorMessage)?.let { Text(it, color = colors.negative, style = MaterialTheme.typography.bodySmall) }
+    }
+}
+
+@Composable
+private fun StepperButton(label: String, enabled: Boolean, onClick: () -> Unit) {
+    val colors = MoneyTheme.colors
+    Surface(
+        shape = RoundedCornerShape(50),
+        color = if (enabled) colors.soft(colors.primary) else colors.canvas,
+        modifier = Modifier.size(40.dp).let { if (enabled) it.clickable(onClick = onClick) else it }
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(label, style = MaterialTheme.typography.titleMedium, color = if (enabled) colors.primary else colors.muted)
         }
     }
 }

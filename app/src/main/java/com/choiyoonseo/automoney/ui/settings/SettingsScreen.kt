@@ -14,6 +14,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import com.choiyoonseo.automoney.domain.model.Category
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -38,6 +40,11 @@ import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.rememberCoroutineScope
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
+import com.choiyoonseo.automoney.domain.category.UserCategoryKind
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -50,7 +57,8 @@ fun SettingsScreen(
     onOpenNotificationSettings: () -> Unit = {},
     notificationAccessEnabled: Boolean? = null,
     lastNotificationDiagnostic: LastNotificationDiagnostic? = null,
-    onRunSampleNotificationScenario: (() -> Unit)? = null
+    onRunSampleNotificationScenario: (() -> Unit)? = null,
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
     Column(
         modifier = Modifier
@@ -100,7 +108,7 @@ fun SettingsScreen(
             }
         }
 
-        CategoryManagementCard()
+        CategoryManagementCard(userCategoryRepository)
 
         FinanceSectionCard(
             title = "최근 알림 결과",
@@ -137,7 +145,7 @@ fun SettingsScreen(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun CategoryManagementCard() {
+private fun CategoryManagementCard(userCategoryRepository: UserCategoryRepository? = null) {
     val context = LocalContext.current
     val store = remember { SharedPreferencesCategoryPreferenceStore(context) }
     var enabledExpense by remember { mutableStateOf(store.enabledExpenseCategories().toSet()) }
@@ -191,6 +199,93 @@ private fun CategoryManagementCard() {
             style = MaterialTheme.typography.labelSmall,
             color = colors.muted
         )
+
+        if (userCategoryRepository != null) {
+            val scope = rememberCoroutineScope()
+            val custom by userCategoryRepository.observeActiveCategories()
+                .collectAsState(initial = emptyList())
+            var newExpense by remember { mutableStateOf("") }
+            var newIncome by remember { mutableStateOf("") }
+
+            Text("직접 만든 분류", fontWeight = FontWeight.Medium, color = colors.inkSub)
+            val expenseCustom = custom.filter { it.kind == UserCategoryKind.EXPENSE }
+            val incomeCustom = custom.filter { it.kind == UserCategoryKind.INCOME }
+            CustomCategoryEditor(
+                label = "지출",
+                items = expenseCustom.map { it.id to it.name },
+                input = newExpense,
+                onInput = { newExpense = it },
+                onAdd = {
+                    val name = newExpense.trim()
+                    if (name.isNotEmpty()) {
+                        scope.launch { userCategoryRepository.add(UserCategoryKind.EXPENSE, name) }
+                        newExpense = ""
+                    }
+                },
+                onDelete = { id -> scope.launch { userCategoryRepository.delete(id) } }
+            )
+            CustomCategoryEditor(
+                label = "수입",
+                items = incomeCustom.map { it.id to it.name },
+                input = newIncome,
+                onInput = { newIncome = it },
+                onAdd = {
+                    val name = newIncome.trim()
+                    if (name.isNotEmpty()) {
+                        scope.launch { userCategoryRepository.add(UserCategoryKind.INCOME, name) }
+                        newIncome = ""
+                    }
+                },
+                onDelete = { id -> scope.launch { userCategoryRepository.delete(id) } }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CustomCategoryEditor(
+    label: String,
+    items: List<Pair<Long, String>>,
+    input: String,
+    onInput: (String) -> Unit,
+    onAdd: () -> Unit,
+    onDelete: (Long) -> Unit
+) {
+    val colors = MoneyTheme.colors
+    Text(label, style = MaterialTheme.typography.labelMedium, color = colors.muted)
+    if (items.isNotEmpty()) {
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items.forEach { (id, name) ->
+                Surface(shape = RoundedCornerShape(50), color = colors.soft(colors.primary)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(start = 12.dp, end = 6.dp, top = 5.dp, bottom = 5.dp)
+                    ) {
+                        Text(name, color = colors.primary, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            " ×",
+                            color = colors.primary,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.clickable { onDelete(id) }.padding(horizontal = 4.dp)
+                        )
+                    }
+                }
+            }
+        }
+    }
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        OutlinedTextField(
+            value = input,
+            onValueChange = onInput,
+            label = { Text("새 ${label} 분류") },
+            singleLine = true,
+            modifier = Modifier.weight(1f)
+        )
+        Button(onClick = onAdd, enabled = input.isNotBlank()) { Text("추가") }
     }
 }
 
