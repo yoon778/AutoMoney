@@ -1,8 +1,9 @@
 # F6: N분의1 정산 "내 몫 + 받을 돈" Implementation Plan
 
 Status: in-progress
-Owner: Claude
+Owner: Codex (로직 담당)
 Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 태스크부터 이어받기.
+역할 복귀(2026-07-11): Codex=Task1~4(도메인/DB/리포트/유즈케이스 로직), Claude=Task5(카드/행 UI). Task4 로직 계약이 나오면 Claude가 Task5 착수.
 
 **Goal (v2 설계, APP_REVIEW_FIX_LIST F6):** 정산 선택 시 내 몫만 지출 통계에 반영하고 그 즉시 통계 확정. 받을 돈은 참고 표시(할 일 아님, 숨김 가능). 회수 입금은 고신뢰(금액 일치)일 때만 1탭 연결 제안, 연결돼도 수입 통계 미포함.
 

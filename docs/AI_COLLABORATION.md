@@ -86,7 +86,7 @@ When a task genuinely needs both a contract change and UI work, do the contract 
 4. 검증 규칙 동일: 태스크마다 관련 테스트 + `:app:assembleDebug`, TDD 우선, 경계 파일은 아래 Claims에 기록.
 5. 완료 시 `Status: complete` + APP_REVIEW_FIX_LIST.md 갱신.
 
-> 현재 예외 상황: Codex 토큰 소진으로 Claude가 F1(완료)·F2(완료)·F6(대기) 임시 인계 중. Codex 복귀 시 F6 이후는 원래 역할대로.
+> 상태(2026-07-11): 예외 종료, 역할 정상 복귀. Claude가 비상 인계로 F1·F2 완료. 이후 F6·F1-PhaseB의 로직은 Codex, UI 마감은 Claude가 각자 담당.
 
 ## Shared File Claims
 
@@ -95,7 +95,7 @@ Append a line before you start editing a shared/boundary file; remove it after t
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
-- [2026-07-11] Claude claims F1/F2/F6 full-stack (logic+UI) — user reassigned due to Codex token exhaustion. Includes AppContainer wiring, category/asset-kind stores, settlement model. Codex: resume via APP_REVIEW_FIX_LIST.md status column.
+- (해제됨 2026-07-11) F1/F2 완료. 역할 정상 복귀: F6·F1-PhaseB 로직은 Codex, UI 마감은 Claude.
 
 ## Claude UI Notes
 
