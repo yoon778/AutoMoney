@@ -9,6 +9,7 @@ import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.report.isReportableTransaction
 import java.time.LocalDate
 import java.time.YearMonth
@@ -37,7 +38,7 @@ fun transactionsToMonthlySummary(
         .filter { it.countsAsReportIncome() }
         .sumOf { it.amount.won }
     val expenseTransactions = monthlyTransactions.filter { it.countsAsActualExpense() }
-    val expenseWon = expenseTransactions.sumOf { it.amount.won }
+    val expenseWon = expenseTransactions.sumOf { it.effectiveExpenseWon() }
     val savingWon = monthlyTransactions
         .filter { it.countsAsSavingMovement() }
         .sumOf { it.amount.won }
@@ -49,7 +50,7 @@ fun transactionsToMonthlySummary(
     }
     val categorySpends = expenseTransactions
         .mapNotNull { transaction ->
-            transaction.category?.let { it.displayName to transaction.amount.won }
+            transaction.category?.let { it.displayName to transaction.effectiveExpenseWon() }
         }
         .groupBy({ it.first }, { it.second })
         .mapValues { (_, amounts) -> amounts.sum() }

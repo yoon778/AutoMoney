@@ -175,6 +175,40 @@ class MonthlySummaryMapperTest {
     }
 
     @Test
+    fun transactionsToMonthlySummaryUsesSettlementMyShareAndExcludesRecoveryIncome() {
+        val month = YearMonth.of(2026, 7)
+
+        val summary = transactionsToMonthlySummary(
+            month = month,
+            transactions = listOf(
+                tx(
+                    occurredAt = "2026-07-08T01:00:00Z",
+                    amountWon = 30_000,
+                    type = TransactionType.SETTLEMENT,
+                    category = Category.FOOD,
+                    month = month,
+                    merchant = "공동 식사",
+                    settlementMyShareWon = 10_000
+                ),
+                tx(
+                    occurredAt = "2026-07-09T01:00:00Z",
+                    amountWon = 10_000,
+                    type = TransactionType.INCOME,
+                    category = null,
+                    month = month,
+                    merchant = "정산 회수",
+                    settlementParentId = 1
+                )
+            ),
+            reviewCount = 0
+        )
+
+        assertThat(summary.expenseWon).isEqualTo(10_000)
+        assertThat(summary.incomeWon).isEqualTo(0)
+        assertThat(summary.categorySpends).containsExactly(CategorySpendUi("식비", 10_000, 1f))
+    }
+
+    @Test
     fun transactionsToRowsBuildsFullTransactionRowsWithoutTopups() {
         val month = YearMonth.of(2026, 7)
         val rows = transactionsToRows(
@@ -363,7 +397,9 @@ class MonthlySummaryMapperTest {
         status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED,
         memo: String? = null,
         sourceApp: String? = null,
-        sourceType: SourceType = SourceType.MANUAL
+        sourceType: SourceType = SourceType.MANUAL,
+        settlementMyShareWon: Long? = null,
+        settlementParentId: Long? = null
     ) = MoneyTransaction(
         id = id,
         occurredAt = Instant.parse(occurredAt),
@@ -380,6 +416,8 @@ class MonthlySummaryMapperTest {
         sourceNotificationHash = null,
         status = status,
         confidence = 1.0,
-        monthKey = month
+        monthKey = month,
+        settlementMyShareWon = settlementMyShareWon,
+        settlementParentId = settlementParentId
     )
 }

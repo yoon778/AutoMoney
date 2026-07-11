@@ -42,6 +42,31 @@ class MonthlyReportCalculatorTest {
     }
 
     @Test
+    fun countsOnlyMyShareForSettlementAndExcludesLinkedRecoveryFromIncome() {
+        val report = MonthlyReportCalculator().calculate(
+            listOf(
+                transaction(
+                    type = TransactionType.SETTLEMENT,
+                    direction = TransactionDirection.NEUTRAL,
+                    amount = 30_000,
+                    category = Category.FOOD,
+                    settlementMyShareWon = 10_000
+                ),
+                transaction(
+                    type = TransactionType.INCOME,
+                    direction = TransactionDirection.INCOME,
+                    amount = 10_000,
+                    category = null,
+                    settlementParentId = 1
+                )
+            )
+        )
+
+        assertThat(report.expenseWon).isEqualTo(10_000)
+        assertThat(report.incomeWon).isEqualTo(0)
+    }
+
+    @Test
     fun separatesReportableIncomeExpenseAndSavingMovements() {
         val report = MonthlyReportCalculator().calculate(
             listOf(
@@ -82,7 +107,9 @@ class MonthlyReportCalculatorTest {
         direction: TransactionDirection,
         amount: Long,
         category: Category?,
-        status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED
+        status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED,
+        settlementMyShareWon: Long? = null,
+        settlementParentId: Long? = null
     ) = MoneyTransaction(
         occurredAt = Instant.parse("2026-06-27T03:47:00Z"),
         amount = MoneyAmount(amount),
@@ -98,6 +125,8 @@ class MonthlyReportCalculatorTest {
         sourceNotificationHash = null,
         status = status,
         confidence = 1.0,
-        monthKey = YearMonth.of(2026, 6)
+        monthKey = YearMonth.of(2026, 6),
+        settlementMyShareWon = settlementMyShareWon,
+        settlementParentId = settlementParentId
     )
 }

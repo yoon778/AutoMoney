@@ -2,6 +2,7 @@ package com.choiyoonseo.automoney.ui.model
 
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.YearMonth
 
@@ -20,7 +21,7 @@ fun transactionsToSpendCalendar(
             }
             DailySpendUi(
                 day = day,
-                amountWon = dayTransactions.sumOf { it.amount.won },
+                amountWon = dayTransactions.sumOf { it.effectiveExpenseWon() },
                 label = label
             )
         }

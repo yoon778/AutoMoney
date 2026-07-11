@@ -11,10 +11,17 @@ fun MoneyTransaction.isReportableTransaction(): Boolean =
         type != TransactionType.EXCLUDED
 
 fun MoneyTransaction.countsAsReportIncome(): Boolean =
-    isReportableTransaction() && direction == TransactionDirection.INCOME
+    isReportableTransaction() &&
+        direction == TransactionDirection.INCOME &&
+        settlementParentId == null
 
 fun MoneyTransaction.countsAsActualExpense(): Boolean =
-    isReportableTransaction() && type.countsAsMonthlyExpense
+    isReportableTransaction() &&
+        (type.countsAsMonthlyExpense ||
+            (type == TransactionType.SETTLEMENT && settlementMyShareWon != null))
+
+fun MoneyTransaction.effectiveExpenseWon(): Long =
+    if (type == TransactionType.SETTLEMENT) settlementMyShareWon ?: 0 else amount.won
 
 fun MoneyTransaction.countsAsSavingMovement(): Boolean =
     isReportableTransaction() &&

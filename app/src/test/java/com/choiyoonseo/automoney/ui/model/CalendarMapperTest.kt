@@ -200,6 +200,28 @@ class CalendarMapperTest {
     }
 
     @Test
+    fun transactionsToSpendCalendarUsesSettlementMyShare() {
+        val month = YearMonth.of(2026, 7)
+        val calendar = transactionsToSpendCalendar(
+            month = month,
+            transactions = listOf(
+                transaction(
+                    occurredAt = "2026-07-08T01:00:00Z",
+                    amountWon = 30_000,
+                    type = TransactionType.SETTLEMENT,
+                    category = Category.FOOD,
+                    month = month,
+                    settlementMyShareWon = 10_000
+                )
+            )
+        )
+
+        assertThat(calendar.spendForDay(8)).isEqualTo(
+            DailySpendUi(day = 8, amountWon = 10_000, label = "식비")
+        )
+    }
+
+    @Test
     fun transactionsToSpendCalendarUsesAppDateZoneForManualDates() {
         val month = YearMonth.of(2026, 7)
         val manualDateInstant = LocalDate.of(2026, 7, 9)
@@ -228,7 +250,8 @@ class CalendarMapperTest {
         type: TransactionType,
         category: Category?,
         month: YearMonth,
-        status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED
+        status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED,
+        settlementMyShareWon: Long? = null
     ) = MoneyTransaction(
         occurredAt = Instant.parse(occurredAt),
         amount = MoneyAmount(amountWon),
@@ -245,6 +268,7 @@ class CalendarMapperTest {
         sourceNotificationHash = null,
         status = status,
         confidence = 1.0,
-        monthKey = month
+        monthKey = month,
+        settlementMyShareWon = settlementMyShareWon
     )
 }

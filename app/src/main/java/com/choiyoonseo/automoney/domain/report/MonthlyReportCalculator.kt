@@ -18,13 +18,13 @@ class MonthlyReportCalculator {
             .sumOf { it.amount.won }
 
         val expenseTransactions = transactions.filter { it.countsAsActualExpense() }
-        val expense = expenseTransactions.sumOf { it.amount.won }
+        val expense = expenseTransactions.sumOf { it.effectiveExpenseWon() }
         val saving = transactions
             .filter { it.countsAsSavingMovement() }
             .sumOf { it.amount.won }
         val categoryTotals = expenseTransactions
             .mapNotNull { transaction ->
-                transaction.category?.let { category -> category to transaction.amount.won }
+                transaction.category?.let { category -> category to transaction.effectiveExpenseWon() }
             }
             .groupBy({ it.first }, { it.second })
             .mapValues { (_, amounts) -> amounts.sum() }

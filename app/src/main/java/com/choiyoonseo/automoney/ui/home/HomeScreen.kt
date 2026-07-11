@@ -42,6 +42,7 @@ import com.choiyoonseo.automoney.domain.assets.BalanceImpact
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
@@ -344,7 +345,7 @@ fun HomeScreen(
 private fun List<MoneyTransaction>.expenseWonOn(date: LocalDate): Long =
     filter { transaction ->
         transaction.countsAsActualExpense() && transaction.localDate() == date
-    }.sumOf { it.amount.won }
+    }.sumOf { it.effectiveExpenseWon() }
 
 private fun List<MoneyTransaction>.expenseTransactionsOn(date: LocalDate): List<MoneyTransaction> =
     filter { transaction ->
@@ -356,7 +357,7 @@ private fun List<MoneyTransaction>.expenseWonSince(start: LocalDate, end: LocalD
         val date = transaction.localDate()
         transaction.countsAsActualExpense() &&
             !date.isBefore(start) && !date.isAfter(end)
-    }.sumOf { it.amount.won }
+    }.sumOf { it.effectiveExpenseWon() }
 
 private fun List<MoneyTransaction>.expenseTransactionsSince(start: LocalDate, end: LocalDate): List<MoneyTransaction> =
     filter { transaction ->

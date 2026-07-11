@@ -17,7 +17,7 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
 
 - [x] **Task 1: 도메인 모델 + 마이그레이션 7→8**
   - `MoneyTransaction`에 4필드(기본 null/false). Entity 매핑, MIGRATION_7_8(ALTER×4 + settlementParentId 인덱스), version 8, schema 8.json, 마이그레이션 테스트.
-- [ ] **Task 2: 리포트 규칙 — 내 몫만 실지출**
+- [x] **Task 2: 리포트 규칙 — 내 몫만 실지출**
   - `TransactionReportRules.kt`: SETTLEMENT이고 myShare!=null이면 `countsAsActualExpense=true`로 취급하되 금액은 myShare 기준. 주의: 금액 치환이 필요하므로 합산 지점(`MonthlyReportCalculator`, `MonthlySummaryMapper`, `HomeScreen` expenseWon 계산, `CalendarMapper`)에서 `effectiveExpenseWon(transaction)` 헬퍼(신규, domain/report) 사용으로 통일. myShare null인 기존 SETTLEMENT는 현행(제외) 유지.
   - 회수 입금(settlementParentId!=null)은 수입 통계 제외(`countsAsReportIncome=false`).
   - 기존 리포트 테스트 갱신 + 신규 케이스(내몫 반영, 회수 비수입).
