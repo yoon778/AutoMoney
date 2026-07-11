@@ -26,3 +26,12 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
   - 검증: assembleDebug + 기기 스크린샷.
 - [ ] **Task 4: 문서/마무리**
   - APP_REVIEW_FIX_LIST F2 상태 done, 이 계획서 Status: complete. main push.
+
+---
+## 이어받기 (릴레이 바통)
+
+한쪽이 멈추면 다른 세션(Claude/Codex)에 아래를 그대로 전달:
+
+> AutoMoney 이어서 작업. `docs/AI_COLLABORATION.md`의 "Shared Plan Relay"를 읽고, `git fetch` 후 이 계획서의 첫 미체크(`- [ ]`) 태스크부터 진행. 시작 전 `Owner:`를 본인으로 바꿔 커밋. 커밋 안 된 반쪽 작업이 있으면 `git status`로 확인 후 완성하거나 이 절에 메모.
+
+현재 미커밋 메모: (없음)
