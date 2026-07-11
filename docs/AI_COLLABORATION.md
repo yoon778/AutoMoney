@@ -72,16 +72,21 @@ These four spots are where the two agents can collide. Before editing any of the
 
 When a task genuinely needs both a contract change and UI work, do the contract change first (Codex), merge it to `main`, then let Claude build UI on top.
 
-## Shared Plan Relay (2026-07-11, replaces strict layer split)
+## Collaboration Mode (2026-07-11)
 
-두 에이전트는 이제 **계획서 릴레이** 방식으로 협업한다. 층(logic/UI) 분담은 선호일 뿐 벽이 아니다 — 누구든 어떤 층이든 작업할 수 있다.
+**평소: 원래 역할대로.** Claude = UI 층(`ui/**` 렌더링), Codex = 로직 층(data/domain/notification/mapper). 각자 자기 층에서 병렬로 일하며 서로의 파일을 건드리지 않는다. 이게 기본이고 가장 효율적이다.
 
-1. **계획서가 단일 진실**: 여러 단계 작업은 반드시 `docs/superpowers/plans/YYYY-MM-DD-<이름>.md`에 계획서를 만든다. 헤더에 `Status:`(in-progress/complete)와 `Owner:`(현재 작업자), 태스크는 `- [ ]` 체크박스.
-2. **시작 전**: `git fetch` 후 main 최신에서 시작, 계획서의 `Owner:`를 자기 이름으로 바꾸고 커밋(=착수 선언).
-3. **진행 중**: 태스크 하나 끝날 때마다 해당 커밋에 체크 `- [x]`를 포함(또는 직후 커밋)하고 **즉시 main까지 push** — 상대가 언제든 최신 상태를 본다.
-4. **토큰 소진으로 중단되면**: 체크박스 + git log가 이어달리기 바통. 이어받는 쪽은 계획서를 읽고 첫 미체크 태스크부터 계속한다. 커밋 안 된 절반 작업은 `git status`로 확인 후 완성하거나 stash 메모를 계획서에 남긴다.
-5. **검증 규칙 동일**: 태스크마다 관련 테스트 + `:app:assembleDebug`, TDD 우선, 경계 파일은 아래 Claims에 기록.
-6. 완료 시 `Status: complete` 로 바꾸고 APP_REVIEW_FIX_LIST.md 상태 갱신.
+**예외(비상 릴레이): 한쪽이 토큰 소진 등으로 멈췄을 때만.** 남은 쪽이 층 경계를 넘어 상대의 미완 작업을 이어받는다. 다시 양쪽이 살아나면 각자 원래 층으로 복귀한다.
+
+릴레이가 가능하려면 여러 단계 작업은 항상 아래를 지킨다 (평소에도, 비상 대비용):
+
+1. **계획서가 단일 진실**: 여러 단계 작업은 `docs/superpowers/plans/YYYY-MM-DD-<이름>.md`에 만든다. 헤더에 `Status:`(in-progress/complete), `Owner:`(현재 작업자), 태스크는 `- [ ]` 체크박스. 각 계획서 끝에 "이어받기 바통" 문구 포함.
+2. **태스크 하나 끝날 때마다** 체크 `- [x]` + 즉시 main까지 push. 이 커밋 이력이 비상 시 바통이 된다.
+3. **비상 인계**: 멈춘 계획서를 이어받는 쪽은 `git fetch` → 첫 미체크 태스크부터. `Owner:`를 본인으로 바꿔 착수 선언. 커밋 안 된 반쪽은 `git status`로 확인.
+4. 검증 규칙 동일: 태스크마다 관련 테스트 + `:app:assembleDebug`, TDD 우선, 경계 파일은 아래 Claims에 기록.
+5. 완료 시 `Status: complete` + APP_REVIEW_FIX_LIST.md 갱신.
+
+> 현재 예외 상황: Codex 토큰 소진으로 Claude가 F1(완료)·F2(완료)·F6(대기) 임시 인계 중. Codex 복귀 시 F6 이후는 원래 역할대로.
 
 ## Shared File Claims
 

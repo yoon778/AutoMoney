@@ -5,7 +5,7 @@ The full workflow is in `docs/AI_COLLABORATION.md`; this file is the short, must
 
 ## Your Role
 
-- (2026-07-11 변경) Codex와 **계획서 릴레이**로 협업한다: `docs/superpowers/plans/`의 체크박스 계획서가 단일 진실이며, 누구든 어떤 층(logic/UI)이든 이어서 작업할 수 있다. 상세 규칙은 `docs/AI_COLLABORATION.md`의 "Shared Plan Relay" 절.
+- (2026-07-11) 평소엔 원래 역할대로(Claude=UI, Codex=로직) 각자 병렬 작업. **한쪽이 토큰 소진 등으로 멈췄을 때만 예외로** 남은 쪽이 계획서(`docs/superpowers/plans/`) 체크박스를 바통 삼아 상대 층까지 이어받는다. 상세: `docs/AI_COLLABORATION.md`의 "Collaboration Mode".
 - 기본 선호: You are the **UI** agent. Codex is the **logic / feature** agent.
 - You own: UI screens and visuals under `ui/` (`ui/theme`, `ui/components`, `ui/home`,
   `ui/report`, `ui/review`, `ui/settings`, `ui/assets`, `ui/edit`, `ui/transactions`),
