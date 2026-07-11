@@ -103,7 +103,8 @@ data class AssetAccountEntity(
     val balanceWon: Long,
     val kind: AssetAccountKind,
     val bankProvider: BankProvider? = null,
-    val accountLast4: String? = null
+    val accountLast4: String? = null,
+    val providerLabel: String? = null
 )
 
 @Entity(tableName = "fixed_expenses")

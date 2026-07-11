@@ -32,16 +32,16 @@ class DatabaseIntegritySchemaTest {
         val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
             .readText()
 
-        assertThat(database).contains("version = 6")
+        assertThat(database).contains("version = 7")
         assertThat(database).contains("MIGRATION_2_3")
         assertThat(database).contains("MIGRATION_3_4")
         assertThat(database).contains("MIGRATION_4_5")
-        assertThat(database).contains("MIGRATION_5_6")
+        assertThat(database).contains("MIGRATION_6_7")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_4_5")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_5_6")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_6_7")
     }
 
     @Test
@@ -57,7 +57,7 @@ class DatabaseIntegritySchemaTest {
 
     @Test
     fun currentRoomSchemaFileIsGenerated() {
-        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/6.json")
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/7.json")
 
         assertThat(schema.exists()).isTrue()
     }

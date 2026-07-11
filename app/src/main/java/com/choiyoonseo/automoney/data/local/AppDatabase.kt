@@ -25,7 +25,7 @@ import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
         FixedExpenseEntity::class,
         MonthlyPlanItemEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -182,6 +182,12 @@ abstract class AppDatabase : RoomDatabase() {
                     "CREATE INDEX IF NOT EXISTS index_transactions_linkedAssetAccountId " +
                         "ON transactions(linkedAssetAccountId)"
                 )
+            }
+        }
+
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE asset_accounts ADD COLUMN providerLabel TEXT")
             }
         }
     }

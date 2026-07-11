@@ -14,7 +14,8 @@ data class AssetAccount(
     val balanceWon: Long,
     val kind: AssetAccountKind = AssetAccountKind.BANK,
     val bankProvider: BankProvider? = null,
-    val accountLast4: String? = null
+    val accountLast4: String? = null,
+    val providerLabel: String? = null
 )
 
 fun updateAssetAccount(
@@ -27,7 +28,10 @@ fun updateAssetAccount(
     balanceWon = balanceWon,
     kind = kind,
     bankProvider = account.bankProvider.takeIf { kind == AssetAccountKind.BANK },
-    accountLast4 = account.accountLast4.takeIf { kind == AssetAccountKind.BANK }
+    accountLast4 = account.accountLast4.takeIf { kind == AssetAccountKind.BANK },
+    providerLabel = account.providerLabel.takeIf {
+        kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY
+    }
 ).validatedForSave()
 
 fun AssetAccount.validatedForSave(): AssetAccount {
@@ -43,7 +47,9 @@ fun AssetAccount.validatedForSave(): AssetAccount {
             "은행 계좌가 아닌 자산에는 계좌 정보를 저장할 수 없어요."
         }
     }
-    return copy(name = cleanName)
+    val cleanProvider = providerLabel?.trim()?.takeIf { it.isNotBlank() }
+        ?.takeIf { kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY }
+    return copy(name = cleanName, providerLabel = cleanProvider)
 }
 
 data class FixedExpensePlan(

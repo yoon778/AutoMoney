@@ -40,7 +40,8 @@ private fun AssetAccountEntity.toDomain(): AssetAccount =
         balanceWon = balanceWon,
         kind = kind,
         bankProvider = bankProvider,
-        accountLast4 = accountLast4
+        accountLast4 = accountLast4,
+        providerLabel = providerLabel
     )
 
 private fun AssetAccount.toEntity(): AssetAccountEntity =
@@ -50,7 +51,8 @@ private fun AssetAccount.toEntity(): AssetAccountEntity =
         balanceWon = balanceWon,
         kind = kind,
         bankProvider = bankProvider,
-        accountLast4 = accountLast4
+        accountLast4 = accountLast4,
+        providerLabel = providerLabel
     )
 
 private fun FixedExpenseEntity.toDomain(): FixedExpensePlan =

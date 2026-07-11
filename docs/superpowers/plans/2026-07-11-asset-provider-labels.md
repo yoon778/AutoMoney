@@ -10,7 +10,7 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
 
 ## Tasks
 
-- [ ] **Task 1: 도메인 + 마이그레이션 6→7**
+- [x] **Task 1: 도메인 + 마이그레이션 6→7**
   - `AssetModels.kt`: `AssetAccount`에 `val providerLabel: String? = null` 추가. `validatedForSave()`에 providerLabel trim/blank→null, BANK면 providerLabel null 강제.
   - `Entities.kt` `AssetAccountEntity`: `providerLabel: String?` 추가 + 양방향 매핑(`RoomAssetRepository`).
   - `AppDatabase.kt`: version 7, `MIGRATION_6_7` = ALTER TABLE asset_accounts ADD COLUMN providerLabel TEXT. `AppContainer`에 등록.
