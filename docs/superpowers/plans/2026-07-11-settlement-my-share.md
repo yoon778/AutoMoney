@@ -23,7 +23,9 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
   - 기존 리포트 테스트 갱신 + 신규 케이스(내몫 반영, 회수 비수입).
 - [ ] **Task 3: 정산 확정 흐름**
   - `ResolveReviewUseCase`: SETTLEMENT 해석 시 `myShareWon`/`partyCount` 파라미터(기본 amount/partyCount 계산). `ReviewResolution.SETTLEMENT` 경로에서 두 필드 저장.
+  - [x] Codex 로직 완료: 인원 2~10, 내 몫 0~거래금액 검증 및 기본 나눗셈 저장.
   - `ReviewScreen`: N분의1 선택 다이얼로그 확장 — 인원수 스텝퍼(2~10) + 내 몫 금액 필드(기본 amount/인원 반올림) + 메모. `MoneyDialog` 사용.
+  - [ ] Claude UI 대기: 다이얼로그 입력값을 `ResolveReviewUseCase.resolve()`의 `settlementPartyCount`, `settlementMyShareWon`으로 전달.
 - [ ] **Task 4: 회수 연결**
   - 신규 `LinkSettlementRepaymentUseCase(repository)`: 입금 거래에 settlementParentId 지정 + 검토 해제(원자). 잔액효과는 기존 로직 그대로(계좌 반영은 유지, 통계만 비수입).
   - 고신뢰 제안: `ReviewScreen` 입금(INCOME_UNKNOWN/TRANSFER_UNKNOWN) 카드에서, 열려있는 정산 중 `incoming.amount == round(amount/partyCount)` 또는 `== 남은 receivable`이고 14일 이내면 "정산 받은 돈" primary CTA 노출 → 1탭 연결. 조건 계산은 domain 헬퍼 `findSettlementMatch(...)` + 단위테스트.

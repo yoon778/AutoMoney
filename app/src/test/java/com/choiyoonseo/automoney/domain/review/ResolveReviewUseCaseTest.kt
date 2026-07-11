@@ -38,6 +38,36 @@ class ResolveReviewUseCaseTest {
         assertThat(updated.type).isEqualTo(TransactionType.EXCLUDED)
         assertThat(updated.status).isEqualTo(TransactionStatus.EXCLUDED)
     }
+
+    @Test
+    fun resolveSettlementPersistsRequestedPartyCountAndMyShare() = runTest {
+        val updated = ResolveReviewUseCase(AtomicReviewRepository()).resolve(
+            reviewItemId = 9,
+            transaction = reviewTransaction(),
+            resolution = ReviewResolution.SETTLEMENT,
+            userMemo = "dinner",
+            settlementPartyCount = 3,
+            settlementMyShareWon = 3_000
+        )
+
+        assertThat(updated.type).isEqualTo(TransactionType.SETTLEMENT)
+        assertThat(updated.settlementPartyCount).isEqualTo(3)
+        assertThat(updated.settlementMyShareWon).isEqualTo(3_000)
+        assertThat(updated.settlementParentId).isNull()
+    }
+
+    @Test
+    fun resolveSettlementDefaultsMyShareFromPartyCount() = runTest {
+        val updated = ResolveReviewUseCase(AtomicReviewRepository()).resolve(
+            reviewItemId = 9,
+            transaction = reviewTransaction(),
+            resolution = ReviewResolution.SETTLEMENT,
+            userMemo = null,
+            settlementPartyCount = 3
+        )
+
+        assertThat(updated.settlementMyShareWon).isEqualTo(3_333)
+    }
 }
 
 private class AtomicReviewRepository : MoneyRepository {
