@@ -1,7 +1,7 @@
 # F6: N분의1 정산 "내 몫 + 받을 돈" Implementation Plan
 
 Status: in-progress
-Owner: Codex (로직 담당)
+Owner: Codex
 Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 태스크부터 이어받기.
 역할 복귀(2026-07-11): Codex=Task1~4(도메인/DB/리포트/유즈케이스 로직), Claude=Task5(카드/행 UI). Task4 로직 계약이 나오면 Claude가 Task5 착수.
 

@@ -1,7 +1,7 @@
 # F1 Phase B: 사용자 정의 분류 이름 Implementation Plan
 
-Status: pending
-Owner: Codex (로직 담당)
+Status: in-progress
+Owner: Codex
 역할: Codex=Task1~2(도메인/DB), Claude=Task3(관리 UI 확장).
 
 **Goal:** 사용자가 완전히 새 분류 이름(예: "데이트비용")을 만들 수 있게 한다. Phase A(내장 분류 켜고 끄기)는 이미 Claude가 완료; 이건 자유 텍스트 분류 저장.
