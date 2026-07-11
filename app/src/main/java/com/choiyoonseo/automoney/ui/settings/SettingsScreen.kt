@@ -1,6 +1,18 @@
 package com.choiyoonseo.automoney.ui.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import com.choiyoonseo.automoney.domain.model.Category
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,6 +25,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -87,6 +100,8 @@ fun SettingsScreen(
             }
         }
 
+        CategoryManagementCard()
+
         FinanceSectionCard(
             title = "최근 알림 결과",
             subtitle = "마지막 처리 상태",
@@ -116,6 +131,91 @@ fun SettingsScreen(
                 lastNotificationDiagnostic.message?.let { Text(it) }
             }
         }
+    }
+}
+
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun CategoryManagementCard() {
+    val context = LocalContext.current
+    val store = remember { SharedPreferencesCategoryPreferenceStore(context) }
+    var enabledExpense by remember { mutableStateOf(store.enabledExpenseCategories().toSet()) }
+    var enabledIncome by remember { mutableStateOf(store.enabledIncomeCategories().toSet()) }
+    val colors = MoneyTheme.colors
+
+    FinanceSectionCard(
+        title = "분류 관리",
+        subtitle = "거래 수정과 직접 입력에서 보여줄 분류를 골라요",
+        accent = colors.primary,
+        icon = Icons.Filled.Category
+    ) {
+        Text("지출 분류", fontWeight = FontWeight.Medium, color = colors.inkSub)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            expenseCategoryPool.forEach { category ->
+                CategoryToggleChip(
+                    label = category.displayName,
+                    selected = category in enabledExpense,
+                    locked = category == Category.OTHER,
+                    onToggle = {
+                        val next = if (category in enabledExpense) enabledExpense - category else enabledExpense + category
+                        enabledExpense = next + Category.OTHER
+                        store.setEnabledExpenseCategories(enabledExpense)
+                    }
+                )
+            }
+        }
+        Text("수입 분류", fontWeight = FontWeight.Medium, color = colors.inkSub)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            incomeCategoryPool.forEach { category ->
+                CategoryToggleChip(
+                    label = category.displayName,
+                    selected = category in enabledIncome,
+                    locked = category == Category.OTHER,
+                    onToggle = {
+                        val next = if (category in enabledIncome) enabledIncome - category else enabledIncome + category
+                        enabledIncome = next + Category.OTHER
+                        store.setEnabledIncomeCategories(enabledIncome)
+                    }
+                )
+            }
+        }
+        Text(
+            "\"기타\"는 항상 켜져 있어요. 이미 저장된 거래의 분류는 바뀌지 않아요.",
+            style = MaterialTheme.typography.labelSmall,
+            color = colors.muted
+        )
+    }
+}
+
+@Composable
+private fun CategoryToggleChip(
+    label: String,
+    selected: Boolean,
+    locked: Boolean,
+    onToggle: () -> Unit
+) {
+    val colors = MoneyTheme.colors
+    val accent = colors.primary
+    Surface(
+        modifier = if (locked) Modifier else Modifier.clickable(onClick = onToggle),
+        shape = RoundedCornerShape(50),
+        color = if (selected) colors.soft(accent) else colors.canvas
+    ) {
+        Text(
+            text = label,
+            color = if (selected) accent else colors.muted,
+            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+            style = MaterialTheme.typography.labelMedium,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+            maxLines = 1
+        )
     }
 }
 

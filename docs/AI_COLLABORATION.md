@@ -79,6 +79,7 @@ Append a line before you start editing a shared/boundary file; remove it after t
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- [2026-07-11] Claude claims F1/F2/F6 full-stack (logic+UI) — user reassigned due to Codex token exhaustion. Includes AppContainer wiring, category/asset-kind stores, settlement model. Codex: resume via APP_REVIEW_FIX_LIST.md status column.
 
 ## Claude UI Notes
 

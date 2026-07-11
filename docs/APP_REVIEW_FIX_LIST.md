@@ -162,7 +162,7 @@ Claude next:
 
 | # | Item | Split | Status |
 |---|------|-------|--------|
-| F1 | 분류(카테고리)를 설정에서 사용자가 직접 추가/수정/삭제 | [LOGIC] Codex: 카테고리 저장소(Room 또는 prefs) + 수입/지출별 사용자 정의 목록을 `transactionEditCategoryOptionsFor`/수동입력 옵션에 합쳐서 노출 + AppContainer 배선. [UI] Claude: 설정 화면에 "분류 관리" 섹션(목록/추가/삭제) — Codex 계약 나오면 바로 구현 | Codex 대기 |
+| F1 | 분류 사용자 관리 | **Phase A DONE 2026-07-11 (Claude full-stack)**: 설정 > "분류 관리"에서 내장 분류 풀(지출 13종: 식비~구독, 수입 6종: 월급~환급) 중 표시할 것을 켜고 끔. SharedPreferences 저장(`CategoryPreferenceStore`), 거래 수정·직접 입력 픽커에 반영, "기타"는 항상 켜짐, 저장된 거래 분류는 불변. 순수 로직 단위테스트 4건. **Phase B(남음)**: 완전 자유 입력 분류명 — `MoneyTransaction.category` enum→문자열 확장 + Room 마이그레이션 필요. | Phase A done / Phase B 대기 |
 | F2 | 자산 종류 세분화: 증권사·페이(포인트) 몇 곳 기본 제공 + 사용자 직접 추가 | [LOGIC] Codex: `AssetAccountKind` 확장 또는 provider 목록의 사용자 정의화(증권: 키움/미래에셋/토스증권 등, 페이: 네이버페이/카카오페이 등). 알림 매칭 로직과 무관한 표시용 provider는 자유 입력 허용 검토. [UI] Claude: 폼 반영 | Codex 대기 |
 | F3 | 검토 필터 칩(전체/지출아님/송금/중복)이 장식이었음 | [UI] **DONE 2026-07-11**: 칩이 실제 필터로 동작. 전체/송금/충전/계좌/중복/기타 — 건수 표시, 0건 분류는 숨김, 선택 시 목록 필터링 | done |
 | F4 | 거래 아이콘 원 안 글자가 처리유형 첫 글자였음 → 상호명 첫 글자로 | [UI] **DONE 2026-07-11**: `displayInitial()` — 상호명(스타벅스→"스") 첫 글자 우선, 없으면 기존 글자. 거래 행 + 검토 카드 적용. 이미지 로고는 추후 검토(브랜드 아이콘 라이선스/용량 이슈) | done |

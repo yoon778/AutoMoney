@@ -23,11 +23,13 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import com.choiyoonseo.automoney.ui.components.MoneyPickerField
+import com.choiyoonseo.automoney.ui.settings.SharedPreferencesCategoryPreferenceStore
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.manual.ManualEntryType
@@ -63,6 +65,10 @@ fun ManualTransactionForm(
     var categoryMenuExpanded by remember(resetSignal) { mutableStateOf(defaults.isCategoryMenuExpanded) }
     var accountMenuExpanded by remember(resetSignal) { mutableStateOf(false) }
     val selectableAccounts = accounts.filter { it.id > 0 }
+    val categoryContext = LocalContext.current
+    val categoryStore = remember { SharedPreferencesCategoryPreferenceStore(categoryContext) }
+    val enabledExpenseOptions = remember { categoryStore.enabledExpenseCategories().map { ManualCategoryOption(it) } }
+    val enabledIncomeOptions = remember { categoryStore.enabledIncomeCategories().map { ManualCategoryOption(it) } }
     var selectedAccountId by remember(resetSignal, selectableAccounts) {
         mutableStateOf(selectableAccounts.firstOrNull()?.id)
     }
@@ -203,8 +209,8 @@ fun ManualTransactionForm(
         }
         if (entryType != ManualEntryType.TRANSFER) {
             val categoryOptions = when (entryType) {
-                ManualEntryType.EXPENSE -> manualExpenseCategoryOptions
-                ManualEntryType.INCOME -> manualIncomeCategoryOptions
+                ManualEntryType.EXPENSE -> enabledExpenseOptions
+                ManualEntryType.INCOME -> enabledIncomeOptions
                 ManualEntryType.TRANSFER -> emptyList()
             }
             val selectedCategory = when (entryType) {
