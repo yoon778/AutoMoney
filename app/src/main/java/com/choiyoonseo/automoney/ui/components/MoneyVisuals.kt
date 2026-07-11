@@ -254,11 +254,20 @@ fun MonthlyFlowCard(
                     Text("$title  >", style = MaterialTheme.typography.titleLarge, color = colors.ink, fontWeight = FontWeight.Bold)
                     Text(period, color = colors.muted, modifier = Modifier.padding(top = 4.dp))
                 }
-                Image(
-                    painter = painterResource(R.drawable.illustration_wallet_coins),
-                    contentDescription = null,
-                    modifier = Modifier.size(width = 118.dp, height = 82.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(colors.soft(colors.primary)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AccountBalanceWallet,
+                        contentDescription = null,
+                        tint = colors.primary,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
             }
             Text("\ub0a8\uc740 \ub3c8", color = colors.inkSub, fontWeight = FontWeight.Medium)
             Text(

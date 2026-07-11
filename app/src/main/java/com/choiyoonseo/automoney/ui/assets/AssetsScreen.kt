@@ -269,7 +269,6 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
     var kind by remember { mutableStateOf(AssetAccountKind.BANK) }
     var kindExpanded by remember { mutableStateOf(false) }
     var bankProvider by remember { mutableStateOf<BankProvider?>(null) }
-    var bankExpanded by remember { mutableStateOf(false) }
     var accountNumberInput by remember { mutableStateOf("") }
     var providerLabelInput by remember { mutableStateOf("") }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -315,8 +314,6 @@ private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
         if (kind == AssetAccountKind.BANK) {
             BankProviderPicker(
                 selectedProvider = bankProvider,
-                expanded = bankExpanded,
-                onExpandedChange = { bankExpanded = it },
                 onSelected = { bankProvider = it }
             )
             if (bankProvider != null) {
@@ -385,7 +382,6 @@ private fun AccountEditDialog(
     var kind by remember(account.id) { mutableStateOf(account.kind) }
     var kindExpanded by remember(account.id) { mutableStateOf(false) }
     var bankProvider by remember(account.id) { mutableStateOf(account.bankProvider) }
-    var bankExpanded by remember(account.id) { mutableStateOf(false) }
     var accountNumberInput by remember(account.id) { mutableStateOf("") }
     var providerLabelInput by remember(account.id) { mutableStateOf(account.providerLabel ?: "") }
     var errorMessage by remember(account.id) { mutableStateOf<String?>(null) }
@@ -470,8 +466,6 @@ private fun AccountEditDialog(
                 if (kind == AssetAccountKind.BANK) {
                     BankProviderPicker(
                         selectedProvider = bankProvider,
-                        expanded = bankExpanded,
-                        onExpandedChange = { bankExpanded = it },
                         onSelected = { bankProvider = it }
                     )
                     account.accountLast4?.let { last4 ->
@@ -546,32 +540,35 @@ private fun ProviderLabelSection(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun BankProviderPicker(
     selectedProvider: BankProvider?,
-    expanded: Boolean,
-    onExpandedChange: (Boolean) -> Unit,
     onSelected: (BankProvider) -> Unit
 ) {
-    Box(Modifier.fillMaxWidth()) {
-        MoneyPickerField(
-            label = "은행",
-            value = selectedProvider?.displayName ?: "선택 안 함",
-            onClick = { onExpandedChange(true) }
-        )
-        DropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { onExpandedChange(false) },
-            modifier = Modifier.fillMaxWidth()
+    val colors = MoneyTheme.colors
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text("은행", style = MaterialTheme.typography.labelMedium, color = colors.muted)
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             BankProvider.entries.forEach { provider ->
-                DropdownMenuItem(
-                    text = { Text(provider.displayName) },
-                    onClick = {
-                        onSelected(provider)
-                        onExpandedChange(false)
-                    }
-                )
+                val selected = provider == selectedProvider
+                Surface(
+                    modifier = Modifier.clickable { onSelected(provider) },
+                    shape = RoundedCornerShape(50),
+                    color = if (selected) colors.soft(colors.primary) else colors.canvas
+                ) {
+                    Text(
+                        provider.displayName,
+                        color = if (selected) colors.primary else colors.muted,
+                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        maxLines = 1
+                    )
+                }
             }
         }
     }
