@@ -16,6 +16,7 @@ import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.rules.CategorizationEngine
 import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
+import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
@@ -55,6 +56,8 @@ class AppContainer(context: Context) {
     val resolveReviewUseCase = ResolveReviewUseCase(repository)
 
     val resolveAccountTransferUseCase = ResolveAccountTransferUseCase(repository)
+
+    val linkSettlementRepaymentUseCase = LinkSettlementRepaymentUseCase(repository)
 
     private val bankAccountHintExtractor = BankAccountHintExtractor()
 

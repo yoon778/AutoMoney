@@ -8,6 +8,7 @@ import com.choiyoonseo.automoney.domain.model.OpenReviewItem
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.Rule
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import java.time.YearMonth
 
 data class NotificationSaveResult(
@@ -18,6 +19,7 @@ data class NotificationSaveResult(
 interface MoneyRepository {
     suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction>
     fun observeTransactionsForMonth(month: YearMonth): Flow<List<MoneyTransaction>>
+    fun observeAllTransactions(): Flow<List<MoneyTransaction>> = flowOf(emptyList())
     fun observeOpenReviewCount(): Flow<Int>
     fun observeOpenReviewItems(): Flow<List<OpenReviewItem>>
     suspend fun enabledRules(): List<Rule>

@@ -28,7 +28,9 @@ Relay rule: 태스크 완료 시 체크 + main push. 중단 시 첫 미체크 �
   - [ ] Claude UI 대기: 다이얼로그 입력값을 `ResolveReviewUseCase.resolve()`의 `settlementPartyCount`, `settlementMyShareWon`으로 전달.
 - [ ] **Task 4: 회수 연결**
   - 신규 `LinkSettlementRepaymentUseCase(repository)`: 입금 거래에 settlementParentId 지정 + 검토 해제(원자). 잔액효과는 기존 로직 그대로(계좌 반영은 유지, 통계만 비수입).
+  - [x] Codex 로직 완료: 원자 연결 유즈케이스, `findSettlementMatch()` 14일/금액/단일후보 검증, `MoneyRepository.observeAllTransactions()` 계약.
   - 고신뢰 제안: `ReviewScreen` 입금(INCOME_UNKNOWN/TRANSFER_UNKNOWN) 카드에서, 열려있는 정산 중 `incoming.amount == round(amount/partyCount)` 또는 `== 남은 receivable`이고 14일 이내면 "정산 받은 돈" primary CTA 노출 → 1탭 연결. 조건 계산은 domain 헬퍼 `findSettlementMatch(...)` + 단위테스트.
+  - [ ] Claude UI 대기: ReviewScreen에서 전체 거래를 관찰해 matcher 호출, 단일 제안 CTA가 `LinkSettlementRepaymentUseCase.link()`을 호출하도록 연결.
 - [ ] **Task 5: 정산 카드/행 표시**
   - 거래 행: SETTLEMENT+myShare → 금액 대신 "내 몫 X원" 표기 검토(행은 원금 유지, 보조줄에 "내 몫 X원 반영"). 정산 상세(수정 다이얼로그 진입 시)에 "받을 돈 Y / Z원 수령 · 그만 보기" 참고 행 + 숨김 토글(settlementTrackingHidden).
   - 배지: 회수 입금 행에 "정산 회수" 칩(수입 아님 시각화).
