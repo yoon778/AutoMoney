@@ -691,7 +691,11 @@ private fun FixedExpenseInputCard(
         OutlinedTextField(amount, { amount = it }, label = { Text("금액") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         WithdrawalDayPicker(selectedDay = day, onSelected = { day = it })
         if (accounts.isEmpty()) {
-            OutlinedTextField(accountName, { accountName = it; accountId = null }, label = { Text("출금 계좌") }, modifier = Modifier.fillMaxWidth())
+            Text(
+                "출금 계좌는 '계좌' 탭에서 먼저 등록해 주세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MoneyTheme.colors.muted
+            )
         } else {
             AssetAccountNamePicker(
                 label = "출금 계좌",

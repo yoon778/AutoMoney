@@ -94,6 +94,7 @@ fun AppRoot(
     var notificationAccessEnabled by remember {
         mutableStateOf(notificationAccessChecker.isNotificationAccessEnabled())
     }
+    var sampleScenarioIndex by remember { mutableStateOf(0) }
     var lastNotificationDiagnostic by remember {
         mutableStateOf<LastNotificationDiagnostic?>(notificationDiagnosticsStore?.load())
     }
@@ -198,7 +199,10 @@ fun AppRoot(
                 onRunSampleNotificationScenario = if (BuildConfig.DEBUG && runSampleNotificationScenarioUseCase != null) {
                     {
                         scope.launch {
-                            runSampleNotificationScenarioUseCase.run(sampleNotificationScenarios.first())
+                            // 탭할 때마다 다음 시나리오 순환 (토스 결제 → KB 계좌 출금/입금/이체 등)
+                            val scenario = sampleNotificationScenarios[sampleScenarioIndex % sampleNotificationScenarios.size]
+                            sampleScenarioIndex += 1
+                            runSampleNotificationScenarioUseCase.run(scenario)
                             lastNotificationDiagnostic = notificationDiagnosticsStore?.load()
                         }
                     }
