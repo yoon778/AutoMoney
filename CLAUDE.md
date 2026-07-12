@@ -18,11 +18,11 @@ The full workflow is in `docs/AI_COLLABORATION.md`; this file is the short, must
 
 ## Branch Rules
 
-- Work only on branches prefixed `claude/`. Current work branch: `claude/ui-polish`.
-- Never commit directly on `codex/*` branches.
-- Never commit directly on `main` except for user-approved workflow/documentation setup.
-- Push your own branch. The user reviews and merges into `main`.
-- Before starting a new task, update your branch from `main`.
+- (2026-07-12) main-only 전환. Claude와 Codex는 한 번에 한쪽만 활성화해 순차 작업하므로
+  에이전트별 브랜치(`claude/*`, `codex/*`)를 두지 않고 **`main`에서 직접 작업**한다.
+- 작은 단위로 자주 커밋한다 (되돌릴 때 `git revert`, 리뷰는 커밋 diff로).
+- `git pull` 후 시작하고, 작업이 끝나면 push 한다. 시작 전 항상 최신 main인지 확인.
+- 저장소는 `C:\Users\cys04\Desktop\AutoMoney` 한 곳만 사용 (OneDrive 사본 금지).
 
 ## CRITICAL: Do Not Sweep Up Files You Don't Own
 
