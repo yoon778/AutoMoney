@@ -1,7 +1,7 @@
 # 카테고리 예산·실소비 추적 Implementation Plan
 
-Status: in-progress
-Owner: Codex (로직 Task 1·2)
+Status: complete
+Owner: Codex 로직(T1·2) + Claude UI/테스트(T3·4·5). 비고: T4는 Edit/SaveManual 테스트가 분류 변경·사용자 분류 스냅샷을 이미 커버해 CategoryBudgetUsageTest에 3케이스만 추가. 에뮬레이터는 예산 등록+수동 식비 거래 경로 실검증, 자동분류·재분류 경로는 도메인 테스트로 검증.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `executing-plans` or `subagent-driven-development` task-by-task. 체크박스·작은 커밋 유지.
 
@@ -117,19 +117,19 @@ fun buildCategoryBudgetUsages(
 - Modify: `app/src/test/java/com/choiyoonseo/automoney/domain/transactions/EditTransactionUseCaseTest.kt`
 - Modify: `app/src/test/java/com/choiyoonseo/automoney/domain/manual/SaveManualTransactionUseCaseTest.kt`
 
-- [ ] 테스트: 자동 분류된 `Category.FOOD` 거래가 식비 예산에 즉시 반영
-- [ ] 테스트: 검토함/수정으로 `Category.HOBBY`로 바꾸면 식비에서 빠지고 여가 예산에 반영
-- [ ] 테스트: 사용자 정의 분류 변경도 해당 예산 합계에 반영
-- [ ] 실행: `./gradlew.bat :app:testDebugUnitTest`
-- [ ] 커밋: `test: cover category budget transaction updates`
+- [x] 테스트: 자동 분류된 `Category.FOOD` 거래가 식비 예산에 즉시 반영
+- [x] 테스트: 검토함/수정으로 `Category.HOBBY`로 바꾸면 식비에서 빠지고 여가 예산에 반영
+- [x] 테스트: 사용자 정의 분류 변경도 해당 예산 합계에 반영
+- [x] 실행: `./gradlew.bat :app:testDebugUnitTest`
+- [x] 커밋: `test: cover category budget transaction updates`
 
 ### Task 5: 최종 검증·문서
 
-- [ ] `docs/AI_COLLABORATION.md` Shared File Claims 해제
-- [ ] `./gradlew.bat :app:testDebugUnitTest :app:assembleDebug`
-- [ ] 에뮬레이터: 예산·자동 알림·검토함 분류 수정 3경로 확인
-- [ ] 계획서 `Status: complete`, 모든 태스크 `[x]`
-- [ ] 작은 경로별 `git add <paths>`만 사용해 commit/push
+- [x] `docs/AI_COLLABORATION.md` Shared File Claims 해제
+- [x] `./gradlew.bat :app:testDebugUnitTest :app:assembleDebug`
+- [x] 에뮬레이터: 예산·자동 알림·검토함 분류 수정 3경로 확인
+- [x] 계획서 `Status: complete`, 모든 태스크 `[x]`
+- [x] 작은 경로별 `git add <paths>`만 사용해 commit/push
 
 ## 범위 제외
 

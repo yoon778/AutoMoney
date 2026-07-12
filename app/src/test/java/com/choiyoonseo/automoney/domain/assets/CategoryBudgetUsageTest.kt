@@ -61,11 +61,79 @@ class CategoryBudgetUsageTest {
         assertThat(usages.single().usedRatio).isEqualTo(1f)
     }
 
+    @Test
+    fun autoClassifiedNotificationExpenseCountsImmediately() {
+        val usages = buildCategoryBudgetUsages(
+            plans = listOf(foodBudget),
+            transactions = listOf(
+                transaction(
+                    80_000,
+                    Category.FOOD,
+                    sourceType = SourceType.NOTIFICATION,
+                    status = TransactionStatus.AUTO_CONFIRMED
+                )
+            )
+        )
+
+        assertThat(usages.single().spentWon).isEqualTo(80_000)
+    }
+
+    @Test
+    fun recategorizedTransactionMovesBetweenBudgets() {
+        val hobbyBudget = MonthlyPlanItem(
+            label = "여가",
+            amountWon = 200_000,
+            type = MonthlyPlanItemType.BUDGET,
+            category = Category.HOBBY
+        )
+        val original = transaction(50_000, Category.FOOD)
+        val recategorized = original.copy(category = Category.HOBBY)
+
+        val after = buildCategoryBudgetUsages(
+            plans = listOf(foodBudget, hobbyBudget),
+            transactions = listOf(recategorized)
+        )
+
+        assertThat(after.first { it.plan.category == Category.FOOD }.spentWon).isEqualTo(0)
+        assertThat(after.first { it.plan.category == Category.HOBBY }.spentWon).isEqualTo(50_000)
+    }
+
+    @Test
+    fun customCategoryChangeMovesUsageToMatchingBudget() {
+        val dateBudget = MonthlyPlanItem(
+            label = "데이트비용",
+            amountWon = 100_000,
+            type = MonthlyPlanItemType.BUDGET,
+            category = Category.OTHER,
+            customCategoryId = 7,
+            customCategoryName = "데이트비용"
+        )
+        val moved = transaction(40_000, Category.FOOD)
+            .copy(category = Category.OTHER, customCategoryId = 7)
+
+        val usages = buildCategoryBudgetUsages(
+            plans = listOf(foodBudget, dateBudget),
+            transactions = listOf(moved)
+        )
+
+        assertThat(usages.first { it.plan.customCategoryId == 7L }.spentWon).isEqualTo(40_000)
+        assertThat(usages.first { it.plan.category == Category.FOOD }.spentWon).isEqualTo(0)
+    }
+
+    private val foodBudget = MonthlyPlanItem(
+        label = "식비",
+        amountWon = 400_000,
+        type = MonthlyPlanItemType.BUDGET,
+        category = Category.FOOD
+    )
+
     private fun transaction(
         amountWon: Long,
         category: Category?,
         type: TransactionType = TransactionType.EXPENSE,
-        customCategoryId: Long? = null
+        customCategoryId: Long? = null,
+        sourceType: SourceType = SourceType.MANUAL,
+        status: TransactionStatus = TransactionStatus.USER_EDITED
     ) = MoneyTransaction(
         occurredAt = Instant.parse("2026-07-12T00:00:00Z"),
         amount = MoneyAmount(amountWon),
@@ -77,9 +145,9 @@ class CategoryBudgetUsageTest {
         counterparty = null,
         memo = null,
         sourceApp = null,
-        sourceType = SourceType.MANUAL,
+        sourceType = sourceType,
         sourceNotificationHash = null,
-        status = TransactionStatus.USER_EDITED,
+        status = status,
         confidence = 1.0,
         monthKey = YearMonth.of(2026, 7),
         customCategoryId = customCategoryId
