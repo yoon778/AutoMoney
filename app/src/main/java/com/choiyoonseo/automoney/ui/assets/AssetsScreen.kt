@@ -245,6 +245,7 @@ fun AssetsScreen(
 
             AssetSection.PLAN -> MonthlyPlanPanel(
                 items = monthlyPlans,
+                plannedRemainingWon = overview.plannedRemainingWon.takeIf { overview.totalIncomeWon > 0 },
                 onSave = { item ->
                     val repository = assetRepository
                     if (repository == null) {
@@ -729,6 +730,7 @@ private fun FixedExpenseInputCard(
 @Composable
 private fun MonthlyPlanPanel(
     items: List<MonthlyPlanItem>,
+    plannedRemainingWon: Long?,
     onSave: (MonthlyPlanItem) -> Unit,
     onDelete: (MonthlyPlanItem) -> Unit
 ) {
@@ -764,6 +766,18 @@ private fun MonthlyPlanPanel(
             }
             if (items.isEmpty()) {
                 Text("아직 월계획이 없어요.")
+            }
+            plannedRemainingWon?.let { remaining ->
+                Text(
+                    if (remaining >= 0) {
+                        "수입에서 고정지출·예산을 빼면 ${formatWon(remaining)} 남아요"
+                    } else {
+                        "계획이 수입보다 ${formatWon(-remaining)} 많아요"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium,
+                    color = if (remaining >= 0) MoneyGreen else MoneyCoral
+                )
             }
         }
         MonthlyPlanInputCard(onSave)
