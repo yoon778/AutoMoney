@@ -1,6 +1,6 @@
 # 자산 화면: 고정지출·월계획 개선 Implementation Plan
 
-Status: in-progress
+Status: complete
 Owner: Codex
 역할: Codex=로직(계좌 FK 링크, 오버뷰 계산/의미), Claude=UI(출금일 다이얼, 상단 카드 카피/진행바, 피커 연결).
 
