@@ -143,7 +143,10 @@ data class MonthlyPlanItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val label: String,
     val amountWon: Long,
-    val type: MonthlyPlanItemType
+    val type: MonthlyPlanItemType,
+    val category: Category? = null,
+    val customCategoryId: Long? = null,
+    val customCategoryName: String? = null
 )
 
 @Entity(

@@ -107,6 +107,26 @@ class AppDatabaseMigrationTest {
         )
     }
 
+    @Test
+    fun migration9To10AddsNullableBudgetCategoryFields() {
+        helper.createDatabase(FOURTH_TEST_DB, 9).apply {
+            insertMonthlyPlanItem(id = 1)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            FOURTH_TEST_DB,
+            10,
+            true,
+            AppDatabase.MIGRATION_9_10
+        )
+
+        assertEquals("legacy budget", db.singleString("SELECT label FROM monthly_plan_items WHERE id = 1"))
+        assertNull(db.singleString("SELECT category FROM monthly_plan_items WHERE id = 1"))
+        assertNull(db.singleString("SELECT customCategoryId FROM monthly_plan_items WHERE id = 1"))
+        assertNull(db.singleString("SELECT customCategoryName FROM monthly_plan_items WHERE id = 1"))
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?
@@ -160,6 +180,16 @@ class AppDatabaseMigrationTest {
         )
     }
 
+    private fun SupportSQLiteDatabase.insertMonthlyPlanItem(id: Long) {
+        execSQL(
+            """
+            INSERT INTO monthly_plan_items (id, label, amountWon, type)
+            VALUES (?, 'legacy budget', 100000, 'BUDGET')
+            """.trimIndent(),
+            arrayOf<Any?>(id)
+        )
+    }
+
     private fun SupportSQLiteDatabase.singleString(sql: String): String? =
         query(sql).useSingle { cursor -> if (cursor.isNull(0)) null else cursor.getString(0) }
 
@@ -177,5 +207,6 @@ class AppDatabaseMigrationTest {
         const val TEST_DB = "migration-test"
         const val SECOND_TEST_DB = "migration-test-7-8"
         const val THIRD_TEST_DB = "migration-test-8-9"
+        const val FOURTH_TEST_DB = "migration-test-9-10"
     }
 }

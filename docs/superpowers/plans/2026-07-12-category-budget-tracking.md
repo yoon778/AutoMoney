@@ -73,7 +73,7 @@ fun buildCategoryBudgetUsages(
 - [ ] 실행: `./gradlew.bat :app:testDebugUnitTest --tests "com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsageTest"`
 - [ ] 커밋: `feat: calculate category budget usage`
 
-### Task 2: Room 9→10 저장 계약
+### Task 2: Room 9→10 저장 계약 [x]
 
 **Files:**
 - Modify: `app/src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt`

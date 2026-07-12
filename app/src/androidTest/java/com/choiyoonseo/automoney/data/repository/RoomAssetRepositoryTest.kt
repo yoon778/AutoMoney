@@ -8,6 +8,7 @@ import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
+import com.choiyoonseo.automoney.domain.model.Category
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
@@ -74,5 +75,25 @@ class RoomAssetRepositoryTest {
 
         assertEquals(0, emissions.await().first().size)
         assertEquals("식비", emissions.await().last().single().label)
+    }
+
+    @Test
+    fun monthlyPlanPreservesBudgetCategoryLink() = runBlocking {
+        repository.saveMonthlyPlanItem(
+            MonthlyPlanItem(
+                label = "데이트비용",
+                amountWon = 100_000,
+                type = MonthlyPlanItemType.BUDGET,
+                category = Category.OTHER,
+                customCategoryId = 7,
+                customCategoryName = "데이트비용"
+            )
+        )
+
+        val stored = repository.observeMonthlyPlanItems().first().single()
+
+        assertEquals(Category.OTHER, stored.category)
+        assertEquals(7, stored.customCategoryId)
+        assertEquals("데이트비용", stored.customCategoryName)
     }
 }

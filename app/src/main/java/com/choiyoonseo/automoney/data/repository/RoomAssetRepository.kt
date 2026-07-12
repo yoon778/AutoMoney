@@ -84,7 +84,23 @@ private fun FixedExpensePlan.toEntity(): FixedExpenseEntity =
     )
 
 private fun MonthlyPlanItemEntity.toDomain(): MonthlyPlanItem =
-    MonthlyPlanItem(id = id, label = label, amountWon = amountWon, type = type)
+    MonthlyPlanItem(
+        id = id,
+        label = label,
+        amountWon = amountWon,
+        type = type,
+        category = category,
+        customCategoryId = customCategoryId,
+        customCategoryName = customCategoryName
+    )
 
 private fun MonthlyPlanItem.toEntity(): MonthlyPlanItemEntity =
-    MonthlyPlanItemEntity(id = id, label = label, amountWon = amountWon, type = type)
+    MonthlyPlanItemEntity(
+        id = id,
+        label = label,
+        amountWon = amountWon,
+        type = type,
+        category = category,
+        customCategoryId = customCategoryId,
+        customCategoryName = customCategoryName
+    )

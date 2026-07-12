@@ -28,7 +28,7 @@ import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
         MonthlyPlanItemEntity::class,
         UserCategoryEntity::class
     ],
-    version = 9,
+    version = 10,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -259,6 +259,14 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_fixed_expenses_accountId ON fixed_expenses(accountId)"
                 )
+            }
+        }
+
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE monthly_plan_items ADD COLUMN category TEXT")
+                db.execSQL("ALTER TABLE monthly_plan_items ADD COLUMN customCategoryId INTEGER")
+                db.execSQL("ALTER TABLE monthly_plan_items ADD COLUMN customCategoryName TEXT")
             }
         }
     }
