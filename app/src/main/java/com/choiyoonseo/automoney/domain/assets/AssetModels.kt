@@ -58,6 +58,7 @@ data class FixedExpensePlan(
     val amountWon: Long,
     val withdrawalDay: Int,
     val accountName: String,
+    val accountId: Long? = null,
     val active: Boolean = true
 )
 
@@ -90,7 +91,9 @@ data class AssetOverview(
     val totalFixedExpenseWon: Long,
     val totalIncomeWon: Long,
     val totalBudgetWon: Long,
-    val plannedRemainingWon: Long
+    val plannedRemainingWon: Long,
+    val fixedExpenseRatio: Float,
+    val budgetRatio: Float
 )
 
 fun buildAssetOverview(
@@ -113,9 +116,14 @@ fun buildAssetOverview(
         totalFixedExpenseWon = totalFixedExpenseWon,
         totalIncomeWon = totalIncomeWon,
         totalBudgetWon = totalBudgetWon,
-        plannedRemainingWon = totalIncomeWon - totalFixedExpenseWon - totalBudgetWon
+        plannedRemainingWon = totalIncomeWon - totalFixedExpenseWon - totalBudgetWon,
+        fixedExpenseRatio = ratioOf(totalFixedExpenseWon, totalIncomeWon),
+        budgetRatio = ratioOf(totalBudgetWon, totalIncomeWon)
     )
 }
+
+private fun ratioOf(amount: Long, total: Long): Float =
+    if (total <= 0) 0f else (amount.toDouble() / total).coerceIn(0.0, 1.0).toFloat()
 
 fun assetOverviewBalanceHelper(accountCount: Int): String =
     "${accountCount}개 계좌 · 현재 등록 잔액 기준"

@@ -27,6 +27,8 @@ class AssetOverviewCalculatorTest {
         assertThat(overview.totalIncomeWon).isEqualTo(2_500_000)
         assertThat(overview.totalBudgetWon).isEqualTo(530_000)
         assertThat(overview.plannedRemainingWon).isEqualTo(1_883_000)
+        assertThat(overview.fixedExpenseRatio).isEqualTo(0.0348f)
+        assertThat(overview.budgetRatio).isEqualTo(0.212f)
     }
 
     @Test
@@ -40,6 +42,25 @@ class AssetOverviewCalculatorTest {
         )
 
         assertThat(overview.totalFixedExpenseWon).isEqualTo(0)
+        assertThat(overview.fixedExpenseRatio).isEqualTo(0f)
+        assertThat(overview.budgetRatio).isEqualTo(0f)
+    }
+
+    @Test
+    fun assetOverviewRatiosClampAtOne() {
+        val overview = buildAssetOverview(
+            accounts = emptyList(),
+            fixedExpenses = listOf(
+                FixedExpensePlan(name = "월세", amountWon = 1_200_000, withdrawalDay = 1, accountName = "국민은행")
+            ),
+            monthlyPlanItems = listOf(
+                MonthlyPlanItem(label = "월급", amountWon = 1_000_000, type = MonthlyPlanItemType.INCOME),
+                MonthlyPlanItem(label = "생활비", amountWon = 1_100_000, type = MonthlyPlanItemType.BUDGET)
+            )
+        )
+
+        assertThat(overview.fixedExpenseRatio).isEqualTo(1f)
+        assertThat(overview.budgetRatio).isEqualTo(1f)
     }
 
     @Test

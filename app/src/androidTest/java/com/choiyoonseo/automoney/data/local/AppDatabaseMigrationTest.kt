@@ -83,6 +83,30 @@ class AppDatabaseMigrationTest {
         )
     }
 
+    @Test
+    fun migration8To9AddsNullableFixedExpenseAccountId() {
+        helper.createDatabase(THIRD_TEST_DB, 8).apply {
+            insertFixedExpense(id = 1)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            THIRD_TEST_DB,
+            9,
+            true,
+            AppDatabase.MIGRATION_8_9
+        )
+
+        assertEquals("legacy expense", db.singleString("SELECT name FROM fixed_expenses WHERE id = 1"))
+        assertNull(db.singleString("SELECT accountId FROM fixed_expenses WHERE id = 1"))
+        assertEquals(
+            1,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_fixed_expenses_accountId'"
+            )
+        )
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?
@@ -126,6 +150,16 @@ class AppDatabaseMigrationTest {
         )
     }
 
+    private fun SupportSQLiteDatabase.insertFixedExpense(id: Long) {
+        execSQL(
+            """
+            INSERT INTO fixed_expenses (id, name, amountWon, withdrawalDay, accountName, active)
+            VALUES (?, 'legacy expense', 10000, 1, 'legacy account', 1)
+            """.trimIndent(),
+            arrayOf<Any?>(id)
+        )
+    }
+
     private fun SupportSQLiteDatabase.singleString(sql: String): String? =
         query(sql).useSingle { cursor -> if (cursor.isNull(0)) null else cursor.getString(0) }
 
@@ -142,5 +176,6 @@ class AppDatabaseMigrationTest {
     private companion object {
         const val TEST_DB = "migration-test"
         const val SECOND_TEST_DB = "migration-test-7-8"
+        const val THIRD_TEST_DB = "migration-test-8-9"
     }
 }

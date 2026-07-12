@@ -32,18 +32,20 @@ class DatabaseIntegritySchemaTest {
         val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
             .readText()
 
-        assertThat(database).contains("version = 8")
+        assertThat(database).contains("version = 9")
         assertThat(database).contains("MIGRATION_2_3")
         assertThat(database).contains("MIGRATION_3_4")
         assertThat(database).contains("MIGRATION_4_5")
         assertThat(database).contains("MIGRATION_6_7")
         assertThat(database).contains("MIGRATION_7_8")
+        assertThat(database).contains("MIGRATION_8_9")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_4_5")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_6_7")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_7_8")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_8_9")
     }
 
     @Test
@@ -59,7 +61,7 @@ class DatabaseIntegritySchemaTest {
 
     @Test
     fun currentRoomSchemaFileIsGenerated() {
-        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/8.json")
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/9.json")
 
         assertThat(schema.exists()).isTrue()
     }
@@ -129,6 +131,16 @@ class DatabaseIntegritySchemaTest {
             .readText()
 
         assertThat(entities).contains("Index(value = [\"linkedAssetAccountId\"])")
+    }
+
+    @Test
+    fun fixedExpensesReferenceAccountsByNullableForeignKey() {
+        val entities = File("src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt")
+            .readText()
+
+        assertThat(entities).contains("childColumns = [\"accountId\"]")
+        assertThat(entities).contains("onDelete = ForeignKey.SET_NULL")
+        assertThat(entities).contains("Index(value = [\"accountId\"])")
     }
 
     @Test

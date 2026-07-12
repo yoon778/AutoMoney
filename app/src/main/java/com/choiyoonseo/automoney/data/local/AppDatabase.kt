@@ -28,7 +28,7 @@ import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
         MonthlyPlanItemEntity::class,
         UserCategoryEntity::class
     ],
-    version = 8,
+    version = 9,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -227,6 +227,37 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_transactions_settlementParentId " +
                         "ON transactions(settlementParentId)"
+                )
+            }
+        }
+
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS fixed_expenses_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        name TEXT NOT NULL,
+                        amountWon INTEGER NOT NULL,
+                        withdrawalDay INTEGER NOT NULL,
+                        accountName TEXT NOT NULL,
+                        accountId INTEGER,
+                        active INTEGER NOT NULL,
+                        FOREIGN KEY(accountId) REFERENCES asset_accounts(id) ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO fixed_expenses_new (id, name, amountWon, withdrawalDay, accountName, active)
+                    SELECT id, name, amountWon, withdrawalDay, accountName, active
+                    FROM fixed_expenses
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE fixed_expenses")
+                db.execSQL("ALTER TABLE fixed_expenses_new RENAME TO fixed_expenses")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_fixed_expenses_accountId ON fixed_expenses(accountId)"
                 )
             }
         }

@@ -1,7 +1,7 @@
 # 자산 화면: 고정지출·월계획 개선 Implementation Plan
 
-Status: not-started
-Owner: (미정 — 먼저 잡는 세션이 본인으로 변경)
+Status: in-progress
+Owner: Codex
 역할: Codex=로직(계좌 FK 링크, 오버뷰 계산/의미), Claude=UI(출금일 다이얼, 상단 카드 카피/진행바, 피커 연결).
 
 **Goal:** 자산 화면의 "고정지출"과 "월계획"을 사용자가 이해·신뢰할 수 있게 고친다.
@@ -35,14 +35,14 @@ Owner: (미정 — 먼저 잡는 세션이 본인으로 변경)
 ## Tasks
 
 ### Codex (로직)
-- [ ] **C1: 고정지출 계좌 FK 링크** — `FixedExpensePlan`/`FixedExpenseEntity`에 `accountId: Long?` 추가, `accountName`은 표시용 스냅샷으로 유지(계좌 삭제/이름변경 후에도 과거 표시 보존, 기존 custom-category 패턴 동일). Room 마이그레이션 +1, `RoomAssetRepository` 매핑, 저장 시 선택 계좌의 id/name 함께 기록. 저장소 테스트.
+- [x] **C1: 고정지출 계좌 FK 링크** — `FixedExpensePlan`/`FixedExpenseEntity`에 `accountId: Long?` 추가, `accountName`은 표시용 스냅샷으로 유지(계좌 삭제/이름변경 후에도 과거 표시 보존, 기존 custom-category 패턴 동일). Room 마이그레이션 +1, `RoomAssetRepository` 매핑, 저장 시 선택 계좌의 id/name 함께 기록. 저장소 테스트.
   - **Claude 계약(C1):** UI는 피커에서 고른 `AssetAccount`의 `id`+`name`을 `FixedExpensePlan(accountId=, accountName=)`로 넘김. 목록 표시는 `accountName` 스냅샷 사용.
-- [ ] **C2: 오버뷰 의미·진행바 계약** — 상단 카드가 "무엇 대비 얼마"인지 정의하고 도메인이 비율까지 계산. `AssetOverview`에 필드 추가:
+- [x] **C2: 오버뷰 의미·진행바 계약** — 상단 카드가 "무엇 대비 얼마"인지 정의하고 도메인이 비율까지 계산. `AssetOverview`에 필드 추가:
   - `fixedExpenseRatio: Float` = `totalFixedExpenseWon / totalIncomeWon` (수입 0이면 0, 0..1 clamp).
   - `budgetRatio: Float` = `totalBudgetWon / totalIncomeWon` (동일 규칙).
   - 의미 확정: "월 고정지출"=이번 달 자동 출금 합(수입 대비 %), "생활예산"=월계획의 예산 항목 합(수입 대비 %). 이 정의를 이 파일 하단 "카드 의미"에 반영.
   - **Claude 계약(C2):** MetricTile `progress`에 하드코딩 대신 `overview.fixedExpenseRatio` / `overview.budgetRatio` 사용.
-- [ ] **C3: 반영 버그 확인** — `observeMonthlyPlanItems()` flow가 저장 후 실제 재emit되는지 1회 확인(Room이면 자동이지만 확인만). 버그 있으면 이 태스크에서 수정, 없으면 "확인됨"으로 체크.
+- [x] **C3: 반영 버그 확인** — `observeMonthlyPlanItems()` flow가 저장 후 실제 재emit되는지 Room 저장소 테스트로 확인됨. 로직 수정 불필요.
 
 ### Claude (UI) — Codex 계약 나온 뒤
 - [ ] **U1: 출금일 다이얼/숫자 선택** — line 620 자유 텍스트를 1~31 선택 위젯으로 교체(`fixedExpenseWithdrawalDayOptions` 사용). 드롭다운 또는 wheel 형태, 기존 컴포넌트 재사용 우선. 저장 로직/검증은 그대로.
@@ -54,9 +54,9 @@ Owner: (미정 — 먼저 잡는 세션이 본인으로 변경)
 
 ---
 
-## 카드 의미 (C2 확정 후 여기 채움)
-- 월 고정지출: (정의)
-- 생활예산: (정의)
+## 카드 의미 (C2 확정)
+- 월 고정지출: 이번 달 활성 자동 출금 합, 월 수입 대비 비율
+- 생활예산: 월계획 예산 항목 합, 월 수입 대비 비율
 
 ## 순서/의존성
 1. Codex C1·C2 계약 확정 → main 반영.

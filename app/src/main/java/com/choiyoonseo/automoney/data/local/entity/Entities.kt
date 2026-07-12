@@ -116,13 +116,25 @@ data class AssetAccountEntity(
     val providerLabel: String? = null
 )
 
-@Entity(tableName = "fixed_expenses")
+@Entity(
+    tableName = "fixed_expenses",
+    foreignKeys = [
+        ForeignKey(
+            entity = AssetAccountEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["accountId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
+    indices = [Index(value = ["accountId"])]
+)
 data class FixedExpenseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
     val amountWon: Long,
     val withdrawalDay: Int,
     val accountName: String,
+    val accountId: Long? = null,
     val active: Boolean
 )
 

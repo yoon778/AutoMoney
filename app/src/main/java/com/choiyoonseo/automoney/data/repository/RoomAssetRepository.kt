@@ -56,10 +56,26 @@ private fun AssetAccount.toEntity(): AssetAccountEntity =
     )
 
 private fun FixedExpenseEntity.toDomain(): FixedExpensePlan =
-    FixedExpensePlan(id = id, name = name, amountWon = amountWon, withdrawalDay = withdrawalDay, accountName = accountName, active = active)
+    FixedExpensePlan(
+        id = id,
+        name = name,
+        amountWon = amountWon,
+        withdrawalDay = withdrawalDay,
+        accountName = accountName,
+        accountId = accountId,
+        active = active
+    )
 
 private fun FixedExpensePlan.toEntity(): FixedExpenseEntity =
-    FixedExpenseEntity(id = id, name = name, amountWon = amountWon, withdrawalDay = withdrawalDay, accountName = accountName, active = active)
+    FixedExpenseEntity(
+        id = id,
+        name = name,
+        amountWon = amountWon,
+        withdrawalDay = withdrawalDay,
+        accountName = accountName,
+        accountId = accountId,
+        active = active
+    )
 
 private fun MonthlyPlanItemEntity.toDomain(): MonthlyPlanItem =
     MonthlyPlanItem(id = id, label = label, amountWon = amountWon, type = type)
