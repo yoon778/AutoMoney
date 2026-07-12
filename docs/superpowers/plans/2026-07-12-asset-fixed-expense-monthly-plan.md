@@ -44,13 +44,13 @@ Owner: Codex
   - **Claude 계약(C2):** MetricTile `progress`에 하드코딩 대신 `overview.fixedExpenseRatio` / `overview.budgetRatio` 사용.
 - [x] **C3: 반영 버그 확인** — `observeMonthlyPlanItems()` flow가 저장 후 실제 재emit되는지 Room 저장소 테스트로 확인됨. 로직 수정 불필요.
 
-### Claude (UI) — Codex 계약 나온 뒤
-- [ ] **U1: 출금일 다이얼/숫자 선택** — line 620 자유 텍스트를 1~31 선택 위젯으로 교체(`fixedExpenseWithdrawalDayOptions` 사용). 드롭다운 또는 wheel 형태, 기존 컴포넌트 재사용 우선. 저장 로직/검증은 그대로.
-- [ ] **U2: 출금계좌 피커 연결** — 이미 있는 `AssetAccountNamePicker`가 이름만 넘기던 것을 C1 계약대로 `accountId`+`accountName` 넘기게. 계좌 없을 때 fallback 텍스트 입력은 `accountId=null`.
-- [ ] **U3: 상단 카드 명확화** — MetricTile 라벨/헬퍼를 사용자가 이해하게 수정하고 진행바를 C2 비율에 연결.
+### Claude (UI) — 완료 (2026-07-12)
+- [x] **U1: 출금일 다이얼/숫자 선택** — line 620 자유 텍스트를 1~31 선택 위젯으로 교체(`fixedExpenseWithdrawalDayOptions` 사용). 드롭다운 또는 wheel 형태, 기존 컴포넌트 재사용 우선. 저장 로직/검증은 그대로.
+- [x] **U2: 출금계좌 피커 연결** — 이미 있는 `AssetAccountNamePicker`가 이름만 넘기던 것을 C1 계약대로 `accountId`+`accountName` 넘기게. 계좌 없을 때 fallback 텍스트 입력은 `accountId=null`.
+- [x] **U3: 상단 카드 명확화** — MetricTile 라벨/헬퍼를 사용자가 이해하게 수정하고 진행바를 C2 비율에 연결.
   - 진행바 `progress = overview.fixedExpenseRatio` / `overview.budgetRatio`.
   - 헬퍼를 "무엇인지" 설명으로: 예) 월 고정지출 → "매월 자동 출금 · 수입의 XX%", 생활예산 → "월계획 예산 합 · 수입의 XX%". (문구는 U 단계에서 확정)
-- [ ] **U4: 월계획 패널 카피** — "월계획" 서브타이틀에 상단 생활예산과의 관계 한 줄 추가(예산 항목이 생활예산으로 합산된다는 안내).
+- [x] **U4: 월계획 패널 카피** — "월계획" 서브타이틀에 상단 생활예산과의 관계 한 줄 추가(예산 항목이 생활예산으로 합산된다는 안내).
 
 ---
 

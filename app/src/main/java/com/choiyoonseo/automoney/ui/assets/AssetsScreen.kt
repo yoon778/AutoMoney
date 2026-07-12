@@ -140,14 +140,25 @@ fun AssetsScreen(
             icon = Icons.Filled.AccountBalance
         )
 
+        val incomeSet = overview.totalIncomeWon > 0
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             MetricTile(
-                MetricTileUi("월 고정지출", formatWon(overview.totalFixedExpenseWon), progress = 0.42f, helper = "${fixedExpenses.count { it.active }}건"),
+                MetricTileUi(
+                    "월 고정지출",
+                    formatWon(overview.totalFixedExpenseWon),
+                    progress = overview.fixedExpenseRatio,
+                    helper = if (incomeSet) "매월 자동 출금 · 수입의 ${(overview.fixedExpenseRatio * 100).toInt()}%" else "매월 자동 출금 · 수입 미등록"
+                ),
                 MoneyCoral,
                 Modifier.weight(1f)
             )
             MetricTile(
-                MetricTileUi("생활예산", formatWon(overview.totalBudgetWon), progress = 0.55f, helper = "월계획 기준"),
+                MetricTileUi(
+                    "생활예산",
+                    formatWon(overview.totalBudgetWon),
+                    progress = overview.budgetRatio,
+                    helper = if (incomeSet) "월계획 예산 합 · 수입의 ${(overview.budgetRatio * 100).toInt()}%" else "월계획 예산 합 · 수입 미등록"
+                ),
                 MoneyBlue,
                 Modifier.weight(1f)
             )
@@ -611,40 +622,42 @@ private fun FixedExpenseInputCard(
 ) {
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
-    var day by remember { mutableStateOf("") }
-    var account by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.name.orEmpty()) }
+    var day by remember { mutableStateOf(1) }
+    var accountName by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.name.orEmpty()) }
+    var accountId by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.id) }
 
     InputCard(title = "고정지출 추가") {
         OutlinedTextField(name, { name = it }, label = { Text("이름") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(amount, { amount = it }, label = { Text("금액") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(day, { day = it }, label = { Text("출금일") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
+        WithdrawalDayPicker(selectedDay = day, onSelected = { day = it })
         if (accounts.isEmpty()) {
-            OutlinedTextField(account, { account = it }, label = { Text("출금 계좌") }, modifier = Modifier.fillMaxWidth())
+            OutlinedTextField(accountName, { accountName = it; accountId = null }, label = { Text("출금 계좌") }, modifier = Modifier.fillMaxWidth())
         } else {
             AssetAccountNamePicker(
                 label = "출금 계좌",
-                selectedName = account,
+                selectedName = accountName,
                 accounts = accounts,
-                onSelected = { account = it }
+                onSelected = { accountName = it.name; accountId = it.id }
             )
         }
         Button(
             onClick = {
                 val cleanAmount = amount.cleanWonOrNull()
-                val cleanDay = day.trim().toIntOrNull()
-                if (name.isNotBlank() && account.isNotBlank() && cleanAmount != null && cleanDay != null && cleanDay in fixedExpenseWithdrawalDayOptions) {
+                if (name.isNotBlank() && accountName.isNotBlank() && cleanAmount != null && day in fixedExpenseWithdrawalDayOptions) {
                     onSave(
                         FixedExpensePlan(
                             name = name,
                             amountWon = cleanAmount,
-                            withdrawalDay = cleanDay,
-                            accountName = account
+                            withdrawalDay = day,
+                            accountName = accountName,
+                            accountId = accountId
                         ).validatedForSave()
                     )
                     name = ""
                     amount = ""
-                    day = ""
-                    account = ""
+                    day = 1
+                    accountName = ""
+                    accountId = null
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -662,7 +675,7 @@ private fun MonthlyPlanPanel(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FinanceSectionCard(
             title = "월계획",
-            subtitle = "수입과 예산을 함께 봐요",
+            subtitle = "예산 항목 합계가 위 '생활예산'이 돼요",
             accent = MoneyBlue,
             icon = Icons.Filled.BarChart
         ) {
@@ -736,11 +749,44 @@ private fun InputCard(title: String, content: @Composable ColumnScope.() -> Unit
 }
 
 @Composable
+private fun WithdrawalDayPicker(
+    selectedDay: Int,
+    onSelected: (Int) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text("출금일", fontWeight = FontWeight.Medium)
+        Box(Modifier.fillMaxWidth()) {
+            OutlinedButton(
+                onClick = { expanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("매월 ${selectedDay}일")
+            }
+            DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                fixedExpenseWithdrawalDayOptions.forEach { d ->
+                    DropdownMenuItem(
+                        text = { Text("${d}일") },
+                        onClick = {
+                            onSelected(d)
+                            expanded = false
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun AssetAccountNamePicker(
     label: String,
     selectedName: String,
     accounts: List<AssetAccount>,
-    onSelected: (String) -> Unit
+    onSelected: (AssetAccount) -> Unit
 ) {
     var expanded by remember(label, accounts) { mutableStateOf(false) }
 
@@ -762,7 +808,7 @@ private fun AssetAccountNamePicker(
                     DropdownMenuItem(
                         text = { Text("${account.name} · ${formatWon(account.balanceWon)}") },
                         onClick = {
-                            onSelected(account.name)
+                            onSelected(account)
                             expanded = false
                         }
                     )
