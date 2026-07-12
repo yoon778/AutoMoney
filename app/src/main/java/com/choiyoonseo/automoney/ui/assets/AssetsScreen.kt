@@ -56,6 +56,13 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
+import com.choiyoonseo.automoney.domain.category.UserCategory
+import com.choiyoonseo.automoney.domain.category.UserCategoryKind
+import com.choiyoonseo.automoney.domain.model.Category
+import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
+import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
+import com.choiyoonseo.automoney.ui.settings.expenseCategoryPool
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
@@ -99,7 +106,8 @@ private enum class AssetSection(val label: String) {
 fun AssetsScreen(
     padding: PaddingValues,
     assetRepository: AssetRepository? = null,
-    moneyRepository: MoneyRepository? = null
+    moneyRepository: MoneyRepository? = null,
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
     val scope = rememberCoroutineScope()
     val accounts by remember(assetRepository) {
@@ -125,6 +133,12 @@ fun AssetsScreen(
                 .sumOf { it.effectiveExpenseWon() }
         )
     }
+    val budgetUsages = remember(monthlyPlans, monthTransactions) {
+        buildCategoryBudgetUsages(monthlyPlans, monthTransactions)
+    }
+    val userExpenseCategories by remember(userCategoryRepository) {
+        userCategoryRepository?.observeActiveCategories() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
     var selectedSection by remember { mutableStateOf(AssetSection.ACCOUNTS) }
     var message by remember { mutableStateOf<String?>(null) }
     AutoClearMessageEffect(message) {
@@ -167,13 +181,16 @@ fun AssetsScreen(
                 MoneyCoral,
                 Modifier.weight(1f)
             )
+            val budgetSpentWon = budgetUsages.sumOf { it.spentWon }
             MetricTile(
                 MetricTileUi(
-                    "생활예산",
+                    "변동지출 예산",
                     formatWon(overview.totalBudgetWon),
-                    progress = overview.budgetUsedRatio,
+                    progress = if (overview.totalBudgetWon > 0) {
+                        (budgetSpentWon.toFloat() / overview.totalBudgetWon).coerceIn(0f, 1f)
+                    } else 0f,
                     helper = if (overview.totalBudgetWon > 0) {
-                        "이번 달 ${formatWon(overview.spentThisMonthWon)} 씀 · ${(overview.budgetUsedRatio * 100).toInt()}% 사용"
+                        "${formatWon(budgetSpentWon)} 사용 · ${formatWon(overview.totalBudgetWon - budgetSpentWon)} 남음"
                     } else {
                         "월계획에서 예산을 등록해 보세요"
                     }
@@ -242,6 +259,8 @@ fun AssetsScreen(
 
             AssetSection.PLAN -> MonthlyPlanPanel(
                 items = monthlyPlans,
+                usages = budgetUsages,
+                userExpenseCategories = userExpenseCategories.filter { it.kind == UserCategoryKind.EXPENSE },
                 plannedRemainingWon = overview.plannedRemainingWon.takeIf { overview.totalIncomeWon > 0 },
                 onSave = { item ->
                     val repository = assetRepository
@@ -731,10 +750,13 @@ private fun FixedExpenseInputCard(
 @Composable
 private fun MonthlyPlanPanel(
     items: List<MonthlyPlanItem>,
+    usages: List<CategoryBudgetUsage>,
+    userExpenseCategories: List<UserCategory>,
     plannedRemainingWon: Long?,
     onSave: (MonthlyPlanItem) -> Unit,
     onDelete: (MonthlyPlanItem) -> Unit
 ) {
+    val usageByPlanId = remember(usages) { usages.associateBy { it.plan.id } }
     var pendingDelete by remember { mutableStateOf<MonthlyPlanItem?>(null) }
     pendingDelete?.let { item ->
         DeleteConfirmDialog(
@@ -749,17 +771,27 @@ private fun MonthlyPlanPanel(
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FinanceSectionCard(
             title = "월계획",
-            subtitle = "예산 항목 합계가 위 '생활예산'이 돼요",
+            subtitle = "예산 항목 합계가 위 '변동지출 예산'이 돼요",
             accent = MoneyBlue,
             icon = Icons.Filled.BarChart
         ) {
             items.forEach { item ->
+                val usage = usageByPlanId[item.id]
+                val subtitle = when {
+                    item.type == MonthlyPlanItemType.INCOME -> item.type.label
+                    usage == null || (item.category == null && item.customCategoryId == null) -> "분류 연결 필요"
+                    usage.remainingWon >= 0 ->
+                        "${budgetCategoryName(item)} · ${formatWon(usage.spentWon)} 사용 · ${formatWon(usage.remainingWon)} 남음"
+                    else ->
+                        "${budgetCategoryName(item)} · ${formatWon(usage.spentWon)} 사용 · ${formatWon(-usage.remainingWon)} 초과"
+                }
                 AssetRow(
                     title = item.label,
-                    subtitle = item.type.label,
+                    subtitle = subtitle,
                     amountWon = item.amountWon,
-                    ratio = item.amountWon.toFloat() / (items.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f),
-                    accent = if (item.type == MonthlyPlanItemType.INCOME) MoneyGreen else categoryAccentForName(item.label),
+                    ratio = usage?.usedRatio
+                        ?: (item.amountWon.toFloat() / (items.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f)),
+                    accent = if (item.type == MonthlyPlanItemType.INCOME) MoneyGreen else categoryAccentForName(budgetCategoryName(item) ?: item.label),
                     actionLabel = "삭제",
                     onAction = { pendingDelete = item },
                     actionIcon = Icons.Filled.Delete
@@ -781,15 +813,23 @@ private fun MonthlyPlanPanel(
                 )
             }
         }
-        MonthlyPlanInputCard(onSave)
+        MonthlyPlanInputCard(userExpenseCategories, onSave)
     }
 }
 
+private fun budgetCategoryName(item: MonthlyPlanItem): String? =
+    item.customCategoryName ?: item.category?.displayName
+
 @Composable
-private fun MonthlyPlanInputCard(onSave: (MonthlyPlanItem) -> Unit) {
+private fun MonthlyPlanInputCard(
+    userExpenseCategories: List<UserCategory>,
+    onSave: (MonthlyPlanItem) -> Unit
+) {
     var label by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var type by remember { mutableStateOf(MonthlyPlanItemType.BUDGET) }
+    var builtInCategory by remember { mutableStateOf<Category?>(null) }
+    var userCategory by remember { mutableStateOf<UserCategory?>(null) }
 
     InputCard(title = "월계획 추가") {
         OutlinedTextField(label, { label = it }, label = { Text("항목") }, modifier = Modifier.fillMaxWidth())
@@ -803,13 +843,59 @@ private fun MonthlyPlanInputCard(onSave: (MonthlyPlanItem) -> Unit) {
                 }
             }
         }
+        if (type == MonthlyPlanItemType.BUDGET) {
+            Text("분류", fontWeight = FontWeight.Medium)
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                expenseCategoryPool.forEach { category ->
+                    val selected = builtInCategory == category && userCategory == null
+                    if (selected) {
+                        FilledTonalButton(onClick = {}) { Text(category.displayName) }
+                    } else {
+                        OutlinedButton(onClick = { builtInCategory = category; userCategory = null }) { Text(category.displayName) }
+                    }
+                }
+                userExpenseCategories.forEach { custom ->
+                    val selected = userCategory?.id == custom.id
+                    if (selected) {
+                        FilledTonalButton(onClick = {}) { Text(custom.name) }
+                    } else {
+                        OutlinedButton(onClick = { userCategory = custom; builtInCategory = null }) { Text(custom.name) }
+                    }
+                }
+            }
+            if (builtInCategory == null && userCategory == null) {
+                Text(
+                    "예산이 합산될 분류를 골라 주세요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MoneyTheme.colors.muted
+                )
+            }
+        }
         Button(
             onClick = {
                 val cleanAmount = amount.cleanWonOrNull()
-                if (label.isNotBlank() && cleanAmount != null) {
-                    onSave(MonthlyPlanItem(label = label.trim(), amountWon = cleanAmount, type = type))
+                val categoryChosen = type == MonthlyPlanItemType.INCOME ||
+                    builtInCategory != null || userCategory != null
+                if (label.isNotBlank() && cleanAmount != null && categoryChosen) {
+                    onSave(
+                        MonthlyPlanItem(
+                            label = label.trim(),
+                            amountWon = cleanAmount,
+                            type = type,
+                            category = if (type == MonthlyPlanItemType.BUDGET) {
+                                userCategory?.let { Category.OTHER } ?: builtInCategory
+                            } else null,
+                            customCategoryId = userCategory?.id.takeIf { type == MonthlyPlanItemType.BUDGET },
+                            customCategoryName = userCategory?.name.takeIf { type == MonthlyPlanItemType.BUDGET }
+                        )
+                    )
                     label = ""
                     amount = ""
+                    builtInCategory = null
+                    userCategory = null
                 }
             },
             modifier = Modifier.fillMaxWidth()

@@ -102,13 +102,13 @@ fun buildCategoryBudgetUsages(
 
 **Boundary claim required before edit:** `ui/AppRoot.kt`
 
-- [ ] `AssetsScreen`에 `userCategoryRepository: UserCategoryRepository?` 전달
-- [ ] 월계획 입력에서 `BUDGET` 선택 시 내장 지출 분류(`expenseCategoryPool`)와 활성 사용자 지출 분류를 한 목록으로 표시
-- [ ] 저장값: 내장은 `category`, 사용자 정의는 `category=Category.OTHER`, `customCategoryId`, `customCategoryName`; `INCOME`은 분류 선택 숨김
-- [ ] 목록 행: `식비 · 12만 사용 / 40만 예산 · 28만 남음`, progress=`usedRatio`; legacy null은 `분류 연결 필요`
-- [ ] 상단 카드는 “생활예산” 대신 `변동지출 예산`, 총 `사용 / 예산 / 남음` 표시. 기존 전체 실지출 `budgetUsedRatio`는 카테고리 예산 집계값으로 교체
-- [ ] 실행: 수동 시나리오 — 식비 예산 40만 → 식비 거래 12만 → 12/40·28만 표시; 여가 거래는 식비에 미합산
-- [ ] 커밋: `feat: show category budget usage`
+- [x] `AssetsScreen`에 `userCategoryRepository: UserCategoryRepository?` 전달
+- [x] 월계획 입력에서 `BUDGET` 선택 시 내장 지출 분류(`expenseCategoryPool`)와 활성 사용자 지출 분류를 한 목록으로 표시
+- [x] 저장값: 내장은 `category`, 사용자 정의는 `category=Category.OTHER`, `customCategoryId`, `customCategoryName`; `INCOME`은 분류 선택 숨김
+- [x] 목록 행: `식비 · 12만 사용 / 40만 예산 · 28만 남음`, progress=`usedRatio`; legacy null은 `분류 연결 필요`
+- [x] 상단 카드는 “생활예산” 대신 `변동지출 예산`, 총 `사용 / 예산 / 남음` 표시. 기존 전체 실지출 `budgetUsedRatio`는 카테고리 예산 집계값으로 교체
+- [x] 실행: 수동 시나리오 — 식비 예산 40만 → 식비 거래 12만 → 12/40·28만 표시; 여가 거래는 식비에 미합산
+- [x] 커밋: `feat: show category budget usage`
 
 ### Task 4: 자동 분류·검토 연결 검증
 
