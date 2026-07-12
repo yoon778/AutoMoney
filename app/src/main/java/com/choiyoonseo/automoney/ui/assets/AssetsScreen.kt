@@ -57,6 +57,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
+import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
+import com.choiyoonseo.automoney.domain.time.AppDateZoneId
+import java.time.YearMonth
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
 import com.choiyoonseo.automoney.domain.assets.BankProvider
@@ -96,7 +101,8 @@ private enum class AssetSection(val label: String) {
 @Composable
 fun AssetsScreen(
     padding: PaddingValues,
-    assetRepository: AssetRepository? = null
+    assetRepository: AssetRepository? = null,
+    moneyRepository: MoneyRepository? = null
 ) {
     val scope = rememberCoroutineScope()
     val accounts by remember(assetRepository) {
@@ -108,8 +114,19 @@ fun AssetsScreen(
     val monthlyPlans by remember(assetRepository) {
         assetRepository?.observeMonthlyPlanItems() ?: flowOf(sampleMonthlyPlanItems)
     }.collectAsState(initial = emptyList())
-    val overview = remember(accounts, fixedExpenses, monthlyPlans) {
-        buildAssetOverview(accounts, fixedExpenses, monthlyPlans)
+    val month = remember { YearMonth.now(AppDateZoneId) }
+    val monthTransactions by remember(moneyRepository, month) {
+        moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+    val overview = remember(accounts, fixedExpenses, monthlyPlans, monthTransactions) {
+        buildAssetOverview(
+            accounts,
+            fixedExpenses,
+            monthlyPlans,
+            spentThisMonthWon = monthTransactions
+                .filter { it.countsAsActualExpense() }
+                .sumOf { it.effectiveExpenseWon() }
+        )
     }
     var selectedSection by remember { mutableStateOf(AssetSection.ACCOUNTS) }
     var message by remember { mutableStateOf<String?>(null) }
@@ -157,8 +174,12 @@ fun AssetsScreen(
                 MetricTileUi(
                     "생활예산",
                     formatWon(overview.totalBudgetWon),
-                    progress = overview.budgetRatio,
-                    helper = if (incomeSet) "월계획 예산 합 · 수입의 ${(overview.budgetRatio * 100).toInt()}%" else "월계획 예산 합 · 수입 미등록"
+                    progress = overview.budgetUsedRatio,
+                    helper = if (overview.totalBudgetWon > 0) {
+                        "이번 달 ${formatWon(overview.spentThisMonthWon)} 씀 · ${(overview.budgetUsedRatio * 100).toInt()}% 사용"
+                    } else {
+                        "월계획에서 예산을 등록해 보세요"
+                    }
                 ),
                 MoneyBlue,
                 Modifier.weight(1f)

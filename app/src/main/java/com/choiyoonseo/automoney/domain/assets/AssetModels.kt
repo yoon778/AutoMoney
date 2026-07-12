@@ -93,13 +93,16 @@ data class AssetOverview(
     val totalBudgetWon: Long,
     val plannedRemainingWon: Long,
     val fixedExpenseRatio: Float,
-    val budgetRatio: Float
+    val budgetRatio: Float,
+    val spentThisMonthWon: Long,
+    val budgetUsedRatio: Float
 )
 
 fun buildAssetOverview(
     accounts: List<AssetAccount>,
     fixedExpenses: List<FixedExpensePlan>,
-    monthlyPlanItems: List<MonthlyPlanItem>
+    monthlyPlanItems: List<MonthlyPlanItem>,
+    spentThisMonthWon: Long = 0L
 ): AssetOverview {
     val totalIncomeWon = monthlyPlanItems
         .filter { it.type == MonthlyPlanItemType.INCOME }
@@ -118,7 +121,9 @@ fun buildAssetOverview(
         totalBudgetWon = totalBudgetWon,
         plannedRemainingWon = totalIncomeWon - totalFixedExpenseWon - totalBudgetWon,
         fixedExpenseRatio = ratioOf(totalFixedExpenseWon, totalIncomeWon),
-        budgetRatio = ratioOf(totalBudgetWon, totalIncomeWon)
+        budgetRatio = ratioOf(totalBudgetWon, totalIncomeWon),
+        spentThisMonthWon = spentThisMonthWon,
+        budgetUsedRatio = ratioOf(spentThisMonthWon, totalBudgetWon)
     )
 }
 

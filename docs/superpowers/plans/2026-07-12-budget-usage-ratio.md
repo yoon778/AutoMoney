@@ -1,6 +1,6 @@
 # 자산: 생활예산 소진율 표시 Implementation Plan
 
-Status: in-progress
+Status: complete
 Owner: Claude (Codex 토큰 소진 — 로직 층 포함 Claude 진행)
 날짜: 2026-07-12
 
@@ -24,10 +24,10 @@ Owner: Claude (Codex 토큰 소진 — 로직 층 포함 Claude 진행)
   (예산 0이면 기존 "수입 미등록"류 안내 유지).
 
 ## Tasks
-- [ ] **T1: 도메인** — `AssetOverview` 필드 2개 + `buildAssetOverview` 파라미터(기본 0). `AssetOverviewCalculatorTest`에 소진율 케이스 1개 추가.
-- [ ] **T2: 배선** — AppRoot → AssetsScreen에 `moneyRepository` 전달. AssetsScreen에서 이번 달 거래 collect, 실지출 합계 계산(HomeScreen 패턴 재사용).
-- [ ] **T3: 카드 표시** — 생활예산 카드 progress/helper를 소진율로 교체.
-- [ ] **검증** — `:app:compileDebugKotlin` + 도메인 테스트 + 에뮬레이터(예산 추가→지출 없음 0%→카드 문구 확인).
+- [x] **T1: 도메인** — `AssetOverview` 필드 2개 + `buildAssetOverview` 파라미터(기본 0). `AssetOverviewCalculatorTest`에 소진율 케이스 1개 추가.
+- [x] **T2: 배선** — AppRoot → AssetsScreen에 `moneyRepository` 전달. AssetsScreen에서 이번 달 거래 collect, 실지출 합계 계산(HomeScreen 패턴 재사용).
+- [x] **T3: 카드 표시** — 생활예산 카드 progress/helper를 소진율로 교체.
+- [x] **검증** — `:app:compileDebugKotlin` + 도메인 테스트 + 에뮬레이터(예산 추가→지출 없음 0%→카드 문구 확인).
 
 ## 이어받기 (릴레이 바통)
 어느 에이전트든 토큰 소진 시:

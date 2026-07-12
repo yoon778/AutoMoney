@@ -182,7 +182,8 @@ fun AppRoot(
             )
             AppTab.ASSETS -> AssetsScreen(
                 padding = padding,
-                assetRepository = assetRepository
+                assetRepository = assetRepository,
+                moneyRepository = moneyRepository
             )
             AppTab.REPORT -> MonthlyReportScreen(
                 padding = padding,

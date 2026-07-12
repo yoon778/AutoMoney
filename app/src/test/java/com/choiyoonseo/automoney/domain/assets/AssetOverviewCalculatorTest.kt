@@ -64,6 +64,24 @@ class AssetOverviewCalculatorTest {
     }
 
     @Test
+    fun budgetUsedRatioComparesSpendingAgainstBudget() {
+        val overview = buildAssetOverview(
+            accounts = emptyList(),
+            fixedExpenses = emptyList(),
+            monthlyPlanItems = listOf(
+                MonthlyPlanItem(label = "식비", amountWon = 400_000, type = MonthlyPlanItemType.BUDGET)
+            ),
+            spentThisMonthWon = 100_000
+        )
+
+        assertThat(overview.spentThisMonthWon).isEqualTo(100_000)
+        assertThat(overview.budgetUsedRatio).isEqualTo(0.25f)
+
+        val noBudget = buildAssetOverview(emptyList(), emptyList(), emptyList(), spentThisMonthWon = 999)
+        assertThat(noBudget.budgetUsedRatio).isEqualTo(0f)
+    }
+
+    @Test
     fun fixedExpenseWithdrawalDayOptionsCoverEveryMonthlyDay() {
         assertThat(fixedExpenseWithdrawalDayOptions.toList())
             .containsExactlyElementsIn((1..31).toList())
