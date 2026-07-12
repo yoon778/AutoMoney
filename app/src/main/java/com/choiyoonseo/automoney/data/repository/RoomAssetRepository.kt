@@ -31,6 +31,12 @@ class RoomAssetRepository(
 
     override suspend fun saveMonthlyPlanItem(item: MonthlyPlanItem): Long =
         db.assetDao().insertMonthlyPlanItem(item.toEntity())
+
+    override suspend fun deleteFixedExpense(id: Long) =
+        db.assetDao().deleteFixedExpense(id)
+
+    override suspend fun deleteMonthlyPlanItem(id: Long) =
+        db.assetDao().deleteMonthlyPlanItem(id)
 }
 
 private fun AssetAccountEntity.toDomain(): AssetAccount =

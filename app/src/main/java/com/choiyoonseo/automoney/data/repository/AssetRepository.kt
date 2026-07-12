@@ -12,4 +12,6 @@ interface AssetRepository {
     suspend fun saveAccount(account: AssetAccount): Long
     suspend fun saveFixedExpense(plan: FixedExpensePlan): Long
     suspend fun saveMonthlyPlanItem(item: MonthlyPlanItem): Long
+    suspend fun deleteFixedExpense(id: Long)
+    suspend fun deleteMonthlyPlanItem(id: Long)
 }

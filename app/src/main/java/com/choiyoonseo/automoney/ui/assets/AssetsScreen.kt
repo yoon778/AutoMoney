@@ -24,6 +24,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
@@ -207,6 +208,17 @@ fun AssetsScreen(
                             message = "${plan.name} 고정지출을 저장했어요."
                         }
                     }
+                },
+                onDelete = { plan ->
+                    val repository = assetRepository
+                    if (repository == null) {
+                        message = "미리보기에서는 삭제하지 않아요."
+                    } else {
+                        scope.launch {
+                            repository.deleteFixedExpense(plan.id)
+                            message = "${plan.name} 고정지출을 삭제했어요."
+                        }
+                    }
                 }
             )
 
@@ -220,6 +232,17 @@ fun AssetsScreen(
                         scope.launch {
                             repository.saveMonthlyPlanItem(item)
                             message = "${item.label} 계획을 저장했어요."
+                        }
+                    }
+                },
+                onDelete = { item ->
+                    val repository = assetRepository
+                    if (repository == null) {
+                        message = "미리보기에서는 삭제하지 않아요."
+                    } else {
+                        scope.launch {
+                            repository.deleteMonthlyPlanItem(item.id)
+                            message = "${item.label} 계획을 삭제했어요."
                         }
                     }
                 }
@@ -589,8 +612,20 @@ private fun BankProviderPicker(
 private fun FixedExpensePanel(
     plans: List<FixedExpensePlan>,
     accounts: List<AssetAccount>,
-    onSave: (FixedExpensePlan) -> Unit
+    onSave: (FixedExpensePlan) -> Unit,
+    onDelete: (FixedExpensePlan) -> Unit
 ) {
+    var pendingDelete by remember { mutableStateOf<FixedExpensePlan?>(null) }
+    pendingDelete?.let { plan ->
+        DeleteConfirmDialog(
+            name = plan.name,
+            onConfirm = {
+                onDelete(plan)
+                pendingDelete = null
+            },
+            onDismiss = { pendingDelete = null }
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FinanceSectionCard(
             title = "고정지출 목록",
@@ -604,7 +639,10 @@ private fun FixedExpensePanel(
                     subtitle = "매월 ${plan.withdrawalDay}일 · ${plan.accountName}",
                     amountWon = plan.amountWon,
                     ratio = plan.amountWon.toFloat() / (plans.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f),
-                    accent = categoryAccentForName(plan.name)
+                    accent = categoryAccentForName(plan.name),
+                    actionLabel = "삭제",
+                    onAction = { pendingDelete = plan },
+                    actionIcon = Icons.Filled.Delete
                 )
             }
             if (plans.isEmpty()) {
@@ -670,8 +708,20 @@ private fun FixedExpenseInputCard(
 @Composable
 private fun MonthlyPlanPanel(
     items: List<MonthlyPlanItem>,
-    onSave: (MonthlyPlanItem) -> Unit
+    onSave: (MonthlyPlanItem) -> Unit,
+    onDelete: (MonthlyPlanItem) -> Unit
 ) {
+    var pendingDelete by remember { mutableStateOf<MonthlyPlanItem?>(null) }
+    pendingDelete?.let { item ->
+        DeleteConfirmDialog(
+            name = item.label,
+            onConfirm = {
+                onDelete(item)
+                pendingDelete = null
+            },
+            onDismiss = { pendingDelete = null }
+        )
+    }
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         FinanceSectionCard(
             title = "월계획",
@@ -685,7 +735,10 @@ private fun MonthlyPlanPanel(
                     subtitle = item.type.label,
                     amountWon = item.amountWon,
                     ratio = item.amountWon.toFloat() / (items.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f),
-                    accent = if (item.type == MonthlyPlanItemType.INCOME) MoneyGreen else categoryAccentForName(item.label)
+                    accent = if (item.type == MonthlyPlanItemType.INCOME) MoneyGreen else categoryAccentForName(item.label),
+                    actionLabel = "삭제",
+                    onAction = { pendingDelete = item },
+                    actionIcon = Icons.Filled.Delete
                 )
             }
             if (items.isEmpty()) {
@@ -746,6 +799,23 @@ private fun InputCard(title: String, content: @Composable ColumnScope.() -> Unit
             content()
         }
     }
+}
+
+@Composable
+private fun DeleteConfirmDialog(
+    name: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    MoneyDialog(
+        title = "삭제할까요?",
+        subtitle = "'${name}' 항목을 삭제하면 되돌릴 수 없어요.",
+        onDismiss = onDismiss,
+        buttons = {
+            Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) { Text("삭제") }
+            OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("취소") }
+        }
+    ) {}
 }
 
 @Composable
@@ -826,7 +896,8 @@ private fun AssetRow(
     ratio: Float = 0f,
     accent: Color = MoneyMint,
     actionLabel: String? = null,
-    onAction: (() -> Unit)? = null
+    onAction: (() -> Unit)? = null,
+    actionIcon: androidx.compose.ui.graphics.vector.ImageVector = Icons.Filled.Edit
 ) {
     val colors = MoneyTheme.colors
     val rowModifier = if (onAction == null) {
@@ -883,7 +954,7 @@ private fun AssetRow(
                                 horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
                                 Icon(
-                                    imageVector = Icons.Filled.Edit,
+                                    imageVector = actionIcon,
                                     contentDescription = actionLabel,
                                     tint = accent,
                                     modifier = Modifier.size(14.dp)
