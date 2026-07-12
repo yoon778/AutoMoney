@@ -95,6 +95,8 @@ Append a line before you start editing a shared/boundary file; remove it after t
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- [2026-07-12] Codex claims `domain/assets/AssetModels.kt` — 카테고리 예산 도메인 계약
+- [2026-07-12] Codex claims `di/AppContainer.kt` — Room 9→10 마이그레이션 연결
 - (해제됨 2026-07-12) Claude claims `ui/AppRoot.kt` — AssetsScreen에 moneyRepository 전달 1줄 (Codex 토큰 소진 중, 같은 커밋으로 main 반영)
 - (해제됨 2026-07-11) Codex F6 정산 회수 연결 유즈케이스 노출: `di/AppContainer.kt`
 - (해제됨 2026-07-11) Codex F6 정산 내 몫 집계 적용: `ui/home/HomeScreen.kt`

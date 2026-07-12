@@ -1,5 +1,8 @@
 # 카테고리 예산·실소비 추적 Implementation Plan
 
+Status: in-progress
+Owner: Codex (로직 Task 1·2)
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `executing-plans` or `subagent-driven-development` task-by-task. 체크박스·작은 커밋 유지.
 
 **Goal:** 식비·여가·생활 등 카테고리별 월 예산에 실제 거래를 자동 합산해 `사용 / 남음 / 소진율`을 표시한다.
@@ -30,7 +33,7 @@
 
 ---
 
-### Task 1: 예산-분류 도메인 계약
+### Task 1: 예산-분류 도메인 계약 [x]
 
 **Files:**
 - Modify: `app/src/main/java/com/choiyoonseo/automoney/domain/assets/AssetModels.kt`

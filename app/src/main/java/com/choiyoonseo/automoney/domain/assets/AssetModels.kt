@@ -1,5 +1,10 @@
 package com.choiyoonseo.automoney.domain.assets
 
+import com.choiyoonseo.automoney.domain.model.Category
+import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
+
 enum class AssetAccountKind(val label: String) {
     BANK("은행"),
     SECURITIES("증권"),
@@ -83,8 +88,42 @@ data class MonthlyPlanItem(
     val id: Long = 0,
     val label: String,
     val amountWon: Long,
-    val type: MonthlyPlanItemType
+    val type: MonthlyPlanItemType,
+    val category: Category? = null,
+    val customCategoryId: Long? = null,
+    val customCategoryName: String? = null
 )
+
+data class CategoryBudgetUsage(
+    val plan: MonthlyPlanItem,
+    val spentWon: Long,
+    val remainingWon: Long,
+    val usedRatio: Float
+)
+
+fun buildCategoryBudgetUsages(
+    plans: List<MonthlyPlanItem>,
+    transactions: List<MoneyTransaction>
+): List<CategoryBudgetUsage> = plans
+    .filter { it.type == MonthlyPlanItemType.BUDGET }
+    .map { plan ->
+        val spentWon = transactions
+            .filter { it.countsAsActualExpense() && plan.matchesBudgetCategory(it) }
+            .sumOf { it.effectiveExpenseWon() }
+        CategoryBudgetUsage(
+            plan = plan,
+            spentWon = spentWon,
+            remainingWon = plan.amountWon - spentWon,
+            usedRatio = ratioOf(spentWon, plan.amountWon)
+        )
+    }
+
+private fun MonthlyPlanItem.matchesBudgetCategory(transaction: MoneyTransaction): Boolean =
+    when {
+        customCategoryId != null -> transaction.customCategoryId == customCategoryId
+        category != null -> transaction.category == category && transaction.customCategoryId == null
+        else -> false
+    }
 
 data class AssetOverview(
     val totalAssetsWon: Long,
