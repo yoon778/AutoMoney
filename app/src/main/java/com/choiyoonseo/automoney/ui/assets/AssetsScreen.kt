@@ -26,12 +26,10 @@ import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
@@ -82,7 +80,6 @@ import com.choiyoonseo.automoney.ui.components.MoneyPickerField
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
-import com.choiyoonseo.automoney.ui.components.MoneyMuted
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.accountAccentForName
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
