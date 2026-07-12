@@ -69,14 +69,14 @@ class BankAccountHintExtractor {
         }
 
     private fun containsMovementKeyword(value: String): Boolean =
-        containsAny(value, MOVEMENT_KEYWORDS)
+        containsAny(value.replace("입출금통장", ""), MOVEMENT_KEYWORDS)
 
     private fun containsAny(value: String, keywords: List<String>): Boolean =
         keywords.any { keyword -> value.contains(keyword, ignoreCase = true) }
 
     private val amountRegex = Regex("""([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s*원""")
     private val accountCandidateRegex = Regex(
-        """(?:계좌|통장)\s*[:：]?\s*([0-9*Xx-]{4,})|(?<![\d,])([0-9*Xx-]{7,})(?![\d,])"""
+        """(?:계좌|통장)\s*[:：]?\s*\(?\s*([0-9*Xx-]{4,})\s*\)?|(?<![\d,])([0-9*Xx-]{7,})(?![\d,])"""
     )
 
     companion object {

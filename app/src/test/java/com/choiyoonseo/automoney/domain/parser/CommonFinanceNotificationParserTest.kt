@@ -136,6 +136,30 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun parsesKakaoBankParenthesizedAccountSuffix() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = FinancialAppRegistry.KAKAO_BANKING_PACKAGE,
+                title = "출금 20,000원",
+                text = "입출금통장(0303) → 주택청약",
+                bigText = null,
+                postedAt = Instant.parse("2026-07-12T05:06:00Z")
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(20_000)
+        assertThat(draft.bankAccountHint).isEqualTo(
+            com.choiyoonseo.automoney.domain.assets.BankAccountHint(
+                provider = BankProvider.KAKAO_BANK,
+                accountLast4 = "0303",
+                direction = AccountMovementDirection.DEBIT,
+                eventKind = BankEventKind.WITHDRAWAL
+            )
+        )
+    }
+
+    @Test
     fun movementUsesTransactionAmountAndStableSnapshotHash() {
         val notification = NotificationSnapshot(
             packageName = FinancialAppRegistry.KB_STAR_BANKING_PACKAGE,
