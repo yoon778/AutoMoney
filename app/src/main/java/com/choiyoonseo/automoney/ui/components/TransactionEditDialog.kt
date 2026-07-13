@@ -310,6 +310,12 @@ fun TransactionEditDialog(
                     }
                 }
             }
+        } else {
+            Text(
+                "계좌를 연결하려면 자산 탭에서 계좌를 먼저 등록해 주세요.",
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.muted
+            )
         }
         OutlinedTextField(
             value = memoText,
