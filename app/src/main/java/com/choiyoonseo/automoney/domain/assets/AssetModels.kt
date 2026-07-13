@@ -104,11 +104,12 @@ data class CategoryBudgetUsage(
 fun buildCategoryBudgetUsages(
     plans: List<MonthlyPlanItem>,
     transactions: List<MoneyTransaction>
-): List<CategoryBudgetUsage> = plans
-    .filter { it.type == MonthlyPlanItemType.BUDGET }
+): List<CategoryBudgetUsage> {
+    val budgets = plans.filter { it.type == MonthlyPlanItemType.BUDGET }
+    return budgets
     .map { plan ->
         val spentWon = transactions
-            .filter { it.countsAsActualExpense() && plan.matchesBudgetCategory(it) }
+            .filter { it.countsAsActualExpense() && plan.matchesBudget(it, budgets) }
             .sumOf { it.effectiveExpenseWon() }
         CategoryBudgetUsage(
             plan = plan,
@@ -117,6 +118,29 @@ fun buildCategoryBudgetUsages(
             usedRatio = ratioOf(spentWon, plan.amountWon)
         )
     }
+}
+
+fun calculateUnbudgetedExpenseWon(
+    plans: List<MonthlyPlanItem>,
+    transactions: List<MoneyTransaction>
+): Long {
+    val budgets = plans.filter { it.type == MonthlyPlanItemType.BUDGET }
+    return transactions
+        .filter { transaction ->
+            transaction.countsAsActualExpense() && budgets.none { it.matchesBudget(transaction, budgets) }
+        }
+        .sumOf { it.effectiveExpenseWon() }
+}
+
+private fun MonthlyPlanItem.matchesBudget(
+    transaction: MoneyTransaction,
+    budgets: List<MonthlyPlanItem>
+): Boolean {
+    val explicitBudget = transaction.budgetPlanId
+        ?.takeIf { it > 0 }
+        ?.let { id -> budgets.firstOrNull { it.id == id } }
+    return explicitBudget?.id == id || explicitBudget == null && matchesBudgetCategory(transaction)
+}
 
 private fun MonthlyPlanItem.matchesBudgetCategory(transaction: MoneyTransaction): Boolean =
     when {

@@ -1,6 +1,6 @@
 # 예산 중심 개편(라이트 짤랑) Implementation Plan
 
-Status: planned
+Status: in-progress
 Owner: Codex 로직(T1·T2) + Claude UI(T3·T4·T5) + 통합(T6)
 Branch: `main` only
 
@@ -52,7 +52,7 @@ Branch: `main` only
 
 ### Task 상태
 
-- [ ] **T1 차감 예산 도메인·DB**
+- [x] **T1 차감 예산 도메인·DB**
 - [ ] **T2 저장 경로 배선**
 - [ ] **T3 수정·수동입력 UI**
 - [ ] **T4 예산 탭 개편**

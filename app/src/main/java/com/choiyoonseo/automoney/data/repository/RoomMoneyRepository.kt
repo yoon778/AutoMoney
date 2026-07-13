@@ -321,7 +321,8 @@ private fun MoneyTransaction.toEntity(): TransactionEntity {
         settlementPartyCount = settlementPartyCount ?: settlementDetails?.peopleCount,
         settlementMyShareWon = settlementMyShareWon ?: settlementDetails?.myShareWon,
         settlementParentId = settlementParentId ?: recoveryOfSettlementTransactionId,
-        settlementTrackingHidden = settlementTrackingHidden || settlementDetails?.receivableHidden == true
+        settlementTrackingHidden = settlementTrackingHidden || settlementDetails?.receivableHidden == true,
+        budgetPlanId = budgetPlanId
     )
 }
 
@@ -371,6 +372,7 @@ private fun TransactionEntity.toDomain(): MoneyTransaction {
         settlementMyShareWon = settlementMyShareWon,
         settlementParentId = settlementParentId,
         settlementTrackingHidden = settlementTrackingHidden,
+        budgetPlanId = budgetPlanId,
         settlementDetails = settlementPartyCount?.let { count ->
             settlementMyShareWon?.let { share ->
                 com.choiyoonseo.automoney.domain.model.SettlementDetails(

@@ -120,6 +120,50 @@ class CategoryBudgetUsageTest {
         assertThat(usages.first { it.plan.category == Category.FOOD }.spentWon).isEqualTo(0)
     }
 
+    @Test
+    fun explicitBudgetOverridesCategoryMatch() {
+        val hobbyBudget = MonthlyPlanItem(
+            id = 2,
+            label = "여가",
+            amountWon = 200_000,
+            type = MonthlyPlanItemType.BUDGET,
+            category = Category.HOBBY
+        )
+
+        val usages = buildCategoryBudgetUsages(
+            plans = listOf(foodBudget.copy(id = 1), hobbyBudget),
+            transactions = listOf(transaction(50_000, Category.FOOD).copy(budgetPlanId = 2))
+        )
+
+        assertThat(usages.first { it.plan.id == 1L }.spentWon).isEqualTo(0)
+        assertThat(usages.first { it.plan.id == 2L }.spentWon).isEqualTo(50_000)
+    }
+
+    @Test
+    fun deletedBudgetOverrideFallsBackToCategoryMatch() {
+        val usages = buildCategoryBudgetUsages(
+            plans = listOf(foodBudget.copy(id = 1)),
+            transactions = listOf(transaction(50_000, Category.FOOD).copy(budgetPlanId = 999))
+        )
+
+        assertThat(usages.single().spentWon).isEqualTo(50_000)
+    }
+
+    @Test
+    fun sumsActualExpensesOutsideEveryBudget() {
+        val outsideWon = calculateUnbudgetedExpenseWon(
+            plans = listOf(foodBudget.copy(id = 1)),
+            transactions = listOf(
+                transaction(30_000, Category.HOBBY),
+                transaction(20_000, null),
+                transaction(10_000, Category.HOBBY, TransactionType.TRANSFER),
+                transaction(40_000, Category.FOOD).copy(budgetPlanId = 999)
+            )
+        )
+
+        assertThat(outsideWon).isEqualTo(50_000)
+    }
+
     private val foodBudget = MonthlyPlanItem(
         label = "식비",
         amountWon = 400_000,
