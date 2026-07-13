@@ -4,7 +4,7 @@
     <application
         android:name=".AutoMoneyApplication"
         android:allowBackup="false"
-        android:icon="@drawable/ic_launcher"
+        android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AutoMoney">
@@ -20,7 +20,7 @@
         <service
             android:name=".notification.MoneyNotificationListenerService"
             android:exported="true"
-            android:label="AutoMoney 알림 수집"
+            android:label="짤랑 알림 수집"
             android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
             <intent-filter>
                 <action android:name="android.service.notification.NotificationListenerService" />
