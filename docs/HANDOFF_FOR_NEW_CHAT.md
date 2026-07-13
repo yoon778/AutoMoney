@@ -197,6 +197,31 @@ SM_S931N / R3KYB05QDFP
 
 ## Suggested Next Codex Tasks
 
+### Active handoff: notification source selection T7 — 2026-07-13
+
+T1-T6 complete and pushed to `origin/main`:
+
+```text
+19c48d6 T1 source access policy/catalog
+3c6099c T2 selected/observed source persistence
+33a2a2d T3 privacy content gate/diagnostics
+160510f T4 conservative generic parser/review enforcement
+c1546ba T5 settings service contract/AppContainer wiring
+b0995c9 T6 settings UI (Claude)
+```
+
+Codex next task: T7 integration + Galaxy verification
+
+- Pull `main` at or after `b0995c9`
+- Read `docs/superpowers/plans/2026-07-13-notification-app-selection-content-gate.md` Task 7
+- Claude T6 UI note: manual on-device screen check NOT done (no device connected during T6); `:app:testDebugUnitTest` + `:app:assembleDebug` PASS. Verify the new settings card visually as part of T7 scenarios
+- T6 UI summary: `알림 수집 앱` card in SettingsScreen — `기본 지원`/`추가 감지 앱` groups, package name subtext, confirm dialog before enabling non-trusted apps, `options()` re-query on tab entry/ON_RESUME/toggle, LIMIT_REACHED/INVALID/DENIED messages, row-level toggleable(role=Switch) accessibility
+- Run T7 wiring checks + 13 Galaxy scenarios, update `docs/testing/bank-notification-balance-sync.md`
+- UI defect found → hand back to Claude per plan defect loop; logic defect → fix directly
+- Then T8 final regression/docs
+
+Current state: clean `main`, no active shared-file claim, Galaxy verification not started
+
 Recommended next logic tasks:
 
 1. Add a rule management screen or settings section so learned rules can be viewed, disabled, or deleted.
@@ -207,37 +232,7 @@ Recommended next logic tasks:
 
 ## Suggested Next Claude Tasks
 
-### Active handoff: notification source selection UI — 2026-07-13
-
-Codex logic complete and pushed to `origin/main`:
-
-```text
-19c48d6 T1 source access policy/catalog
-3c6099c T2 selected/observed source persistence
-33a2a2d T3 privacy content gate/diagnostics
-160510f T4 conservative generic parser/review enforcement
-c1546ba T5 settings service contract/AppContainer wiring
-```
-
-Claude next task: T6 only
-
-- Pull `main` at or after `c1546ba`
-- Read `docs/superpowers/plans/2026-07-13-notification-app-selection-content-gate.md`
-- Consume `AppContainer.notificationSourceSettingsService`
-- Render `options()` results and call `setAllowed(packageName, allowed)` from settings UI
-- Claim `ui/AppRoot.kt` / `MainActivity.kt` before editing if needed
-- Do not modify parser, stores, diagnostics, or ingestion logic
-- Preserve privacy invariant: blocked apps never read notification content
-- Push verified UI commit to `main`, then return ownership to Codex for T7
-
-Service contract:
-
-```kotlin
-fun options(): List<NotificationSourceOption>
-fun setAllowed(packageName: String, allowed: Boolean): NotificationAccessUpdateResult
-```
-
-Current state: clean `main`, no active shared-file claim, Galaxy T7 verification not started
+### (완료 2026-07-13) notification source selection UI — T6 done at `b0995c9`, ownership returned to Codex for T7
 
 Recommended UI tasks:
 
