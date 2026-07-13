@@ -43,8 +43,11 @@ class CommonFinanceNotificationParser(
             movement == null &&
             !hasNonMovementKeyword &&
             bankAccountHintExtractor.hasMovementCandidate(text) &&
-            bankAccountHintExtractor.hasAccountReference(text)
+            bankAccountHintExtractor.hasAccountReference(text) &&
+            AMOUNT_REGEX.findAll(text).count() != 1
         ) {
+            // 금액이 여러 개(잔액 등)면 임의 선택 금지 규칙에 따라 버리고,
+            // 금액이 1개뿐이면 아래 keyword 분기로 넘겨 검토함 후보로 만든다
             return ParseResult.Ignored("ambiguous bank movement")
         }
 

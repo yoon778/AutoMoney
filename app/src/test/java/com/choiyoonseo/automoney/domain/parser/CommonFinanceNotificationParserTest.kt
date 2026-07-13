@@ -191,6 +191,26 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun ambiguousMovementWithSingleAmountBecomesReviewTransfer() {
+        // 실기기 KB 오픈뱅킹출금 알림의 비식별화 fixture —
+        // title과 body 두 줄 모두 출금 keyword가 있어 movement extractor가 특정 실패,
+        // 잔액에 원 표기가 없어 금액은 1개뿐
+        val result = parser.parse(
+            snapshot(
+                text = "${WITHDRAWAL} 30,000${WON}\n" +
+                    "김*수님 07/13 ****1234-**-***567 오픈뱅킹${WITHDRAWAL} 30,000 잔액20,880"
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(30000)
+        assertThat(draft.type).isEqualTo(TransactionType.TRANSFER)
+        assertThat(draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+        assertThat(draft.reviewReason).isEqualTo(ReviewReason.TRANSFER_UNKNOWN)
+        assertThat(draft.bankAccountHint).isNull()
+    }
+
+    @Test
     fun nearMatchPackageNeverProducesHint() {
         val result = parser.parse(
             snapshot(
