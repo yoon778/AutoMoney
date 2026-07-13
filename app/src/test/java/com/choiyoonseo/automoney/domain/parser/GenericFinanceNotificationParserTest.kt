@@ -47,6 +47,25 @@ class GenericFinanceNotificationParserTest {
     }
 
     @Test
+    fun duplicatedBigTextDoesNotDoubleCountAmount() {
+        // 케이뱅크 실알림 패턴 — text와 bigText가 동일 문자열이라
+        // 단순 연결하면 같은 금액이 두 번 세어져 ambiguous로 버려졌음
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = "com.example.bank",
+                title = "케이뱅크",
+                text = "입금 30,000원\n김민수 | 생활통장(1234",
+                bigText = "입금 30,000원\n김민수 | 생활통장(1234",
+                postedAt = Instant.parse("2026-07-13T01:00:00Z")
+            )
+        ) as ParseResult.Parsed
+
+        assertThat(result.draft.amount.won).isEqualTo(30000)
+        assertThat(result.draft.type).isEqualTo(TransactionType.INCOME)
+        assertThat(result.draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+    }
+
+    @Test
     fun requiresAmountAndActionOnSameLine() {
         val result = parser.parse(snapshot(title = "송금 이벤트", text = "최대 10,000원"))
 

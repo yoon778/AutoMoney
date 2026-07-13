@@ -21,7 +21,18 @@ data class NotificationSnapshot(
     val notificationKey: String? = null
 ) {
     val combinedText: String
-        get() = listOfNotNull(title, text, bigText).joinToString("\n")
+        get() {
+            // text와 bigText가 같거나 한쪽이 다른 쪽을 포함하면(확장 알림의 일반 패턴)
+            // 긴 쪽만 사용 — 같은 금액·문구가 두 번 세어지는 것을 방지
+            val body = when {
+                text == null -> bigText
+                bigText == null -> text
+                bigText.contains(text) -> bigText
+                text.contains(bigText) -> text
+                else -> "$text\n$bigText"
+            }
+            return listOfNotNull(title, body).joinToString("\n")
+        }
 
     val sourceNotificationHash: String
         get() = notificationIdentityHash(this)
