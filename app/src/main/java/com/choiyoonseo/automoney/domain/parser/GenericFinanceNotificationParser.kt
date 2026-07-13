@@ -11,10 +11,13 @@ class GenericFinanceNotificationParser : NotificationParser {
 
     override fun parse(snapshot: NotificationSnapshot): ParseResult {
         if (!canParse(snapshot)) return ParseResult.Ignored("empty notification")
-        val amountMatches = AMOUNT_REGEX.findAll(snapshot.combinedText).toList()
+        // 잔액/잔고로 명시된 금액은 거래금액이 아니므로 판정 전에 확정 제거 —
+        // 라벨 없는 복수 금액은 여전히 ambiguous로 버려 임의 선택 금지 규칙 유지
+        val text = BALANCE_TOKEN_REGEX.replace(snapshot.combinedText, " ")
+        val amountMatches = AMOUNT_REGEX.findAll(text).toList()
         if (amountMatches.size != 1) return ParseResult.Ignored("ambiguous amount")
         val amountMatch = amountMatches.single()
-        val line = snapshot.combinedText.lineSequence()
+        val line = text.lineSequence()
             .map(String::trim)
             .firstOrNull { it.contains(amountMatch.value) }
             ?: return ParseResult.Ignored("amount line not found")
@@ -71,8 +74,9 @@ class GenericFinanceNotificationParser : NotificationParser {
         val TOPUP_KEYWORDS = listOf("충전")
         val BLOCK_KEYWORDS = listOf(
             "혜택", "할인", "이벤트", "쿠폰", "광고", "최대", "적립", "예정",
-            "실패", "거절", "한도", "잔액", "잔고", "이용가능"
+            "실패", "거절", "한도", "이용가능"
         )
+        val BALANCE_TOKEN_REGEX = Regex("""(?:잔액|잔고)\s*[:：]?\s*(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s*원?""")
         const val GENERIC_CONFIDENCE = 0.5
     }
 }
