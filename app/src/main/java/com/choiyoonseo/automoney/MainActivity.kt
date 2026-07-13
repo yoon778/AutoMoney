@@ -27,7 +27,8 @@ class MainActivity : ComponentActivity() {
                     resolveReviewUseCase = appContainer.resolveReviewUseCase,
                     linkSettlementRepaymentUseCase = appContainer.linkSettlementRepaymentUseCase,
                     userCategoryRepository = appContainer.userCategoryRepository,
-                    resolveAccountTransferUseCase = appContainer.resolveAccountTransferUseCase
+                    resolveAccountTransferUseCase = appContainer.resolveAccountTransferUseCase,
+                    notificationSourceSettingsService = appContainer.notificationSourceSettingsService
                 )
             }
         }

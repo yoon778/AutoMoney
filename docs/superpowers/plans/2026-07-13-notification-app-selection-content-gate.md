@@ -88,7 +88,7 @@ NotificationListenerService
 - [x] **T3 content-read gate·진단 개인정보**
 - [x] **T4 Generic parser·review 불변식**
 - [x] **T5 headless 배선·Claude 소비 계약**
-- [ ] **T6 설정 UI**
+- [x] **T6 설정 UI**
 - [ ] **T7 통합·Galaxy 검증**
 - [ ] **T8 최종 회귀·문서 완료**
 
@@ -573,7 +573,7 @@ class NotificationSourceSettingsService {
 - [x] T1~T5 각 commit을 `main`에 push
 - [x] T5 완료 commit에서 `di/AppContainer.kt` claim 제거
 - [x] clean `main` 확인 후 Claude에게 순차 인계
-- [ ] Claude가 `git pull --ff-only origin main` 후 T6 시작
+- [x] Claude가 `git pull --ff-only origin main` 후 T6 시작
 
 **Commit:** `feat: expose notification source settings contract`
 
@@ -598,23 +598,23 @@ class NotificationSourceSettingsService {
 
 **UI 요구:**
 
-- [ ] 설정에 `알림 수집 앱` 카드 추가
-- [ ] trusted 앱은 `기본 지원` 표시 + toggle 제공
-- [ ] observed unknown 앱은 `감지됨 · 직접 허용 필요` 표시
-- [ ] `기본 지원`과 `추가 감지 앱` 그룹 분리
-- [ ] packageName을 보조 텍스트로 표시
-- [ ] unknown toggle ON 전 확인 문구: 해당 앱 알림 본문을 기기 안에서 분석함
-- [ ] unknown 첫 알림은 처리되지 않았고 다음 알림부터 적용됨을 안내
-- [ ] toggle OFF 즉시 다음 알림부터 차단
-- [ ] 최근 감지순, enabled 항목 우선
-- [ ] AutoMoney 자체, `android`, `com.android.systemui` exact deny만 미표시
-- [ ] 추가 감지 앱 빈 상태: `새 앱 알림이 감지되면 여기에 표시돼요`
-- [ ] 화면 재진입/앱 재시작 후 toggle 상태 유지
-- [ ] Settings tab 진입·ON_RESUME·성공한 toggle 뒤 `options()` snapshot 재조회
-- [ ] `LIMIT_REACHED`면 상태를 바꾸지 않고 최대 50개 안내
-- [ ] `INVALID_PACKAGE` / `DENIED_PACKAGE`면 일반 오류 안내, 원문·raw exception 로그 금지
-- [ ] 접근성: row/toggle label에 앱명 + 현재 허용 상태 포함
-- [ ] 최근 진단 카드는 지원/사용자 허용 앱 처리 결과만 표시
+- [x] 설정에 `알림 수집 앱` 카드 추가
+- [x] trusted 앱은 `기본 지원` 표시 + toggle 제공
+- [x] observed unknown 앱은 `감지됨 · 직접 허용 필요` 표시
+- [x] `기본 지원`과 `추가 감지 앱` 그룹 분리
+- [x] packageName을 보조 텍스트로 표시
+- [x] unknown toggle ON 전 확인 문구: 해당 앱 알림 본문을 기기 안에서 분석함
+- [x] unknown 첫 알림은 처리되지 않았고 다음 알림부터 적용됨을 안내
+- [x] toggle OFF 즉시 다음 알림부터 차단
+- [x] 최근 감지순, enabled 항목 우선 (service 정렬 유지, 그룹 내 순서 보존)
+- [x] AutoMoney 자체, `android`, `com.android.systemui` exact deny만 미표시 (service가 목록에서 제외)
+- [x] 추가 감지 앱 빈 상태: `새 앱 알림이 감지되면 여기에 표시돼요`
+- [x] 화면 재진입/앱 재시작 후 toggle 상태 유지 (store 영속 + options 재조회)
+- [x] Settings tab 진입·ON_RESUME·성공한 toggle 뒤 `options()` snapshot 재조회
+- [x] `LIMIT_REACHED`면 상태를 바꾸지 않고 최대 50개 안내
+- [x] `INVALID_PACKAGE` / `DENIED_PACKAGE`면 일반 오류 안내, 원문·raw exception 로그 금지
+- [x] 접근성: row 전체 `toggleable(role = Switch)`로 앱명 텍스트 + 허용 상태 함께 낭독
+- [x] 최근 진단 카드는 지원/사용자 허용 앱 처리 결과만 표시 (T3 gate로 blocked 진단 미생성)
 
 **Claude 금지 범위:**
 
@@ -633,10 +633,10 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 
 **Handoff gate:**
 
-- [ ] T6 완료 commit에서 `ui/AppRoot.kt`, `MainActivity.kt` claims 제거
-- [ ] Claude commit을 `main`에 push
-- [ ] clean `main` 확인
-- [ ] Claude가 UI 수동 검증 결과를 T7 Codex에 전달
+- [x] T6 완료 commit에서 `ui/AppRoot.kt`, `MainActivity.kt` claims 제거
+- [x] Claude commit을 `main`에 push
+- [x] clean `main` 확인
+- [x] Claude가 UI 수동 검증 결과를 T7 Codex에 전달 — 실기기 미연결(`adb devices` 결과 없음)로 화면 수동 확인 미수행. `:app:testDebugUnitTest` + `:app:assembleDebug` PASS. Galaxy 화면 확인은 T7 시나리오에서 수행 요망
 
 **Commit:** `feat(ui): choose notification source apps`
 
@@ -822,17 +822,17 @@ docs plan
 기록 항목:
 
 - Current branch: `main`
-- Last commit SHA: `c1546ba` (T5)
-- First unchecked task: T6
-- Prerequisite main push status: T1-T5 pushed to `origin/main`
+- Last commit SHA: T6 commit (git log 참조)
+- First unchecked task: T7
+- Prerequisite main push status: T1-T6 pushed to `origin/main`
 - Active claims: none
-- Uncommitted files: handoff documentation only
-- Last verification command/result: T5 settings service unit tests + `:app:assembleDebug` PASS
-- Galaxy verification status: not started
+- Uncommitted files: none
+- Last verification command/result: T6 후 `:app:testDebugUnitTest :app:assembleDebug` PASS
+- Galaxy verification status: not started (T6 UI 수동 확인 포함 T7에서 수행)
 
 현재 상태:
 
 - 계획 작성 완료
-- T1-T5 구현·검증·push 완료
+- T1-T6 구현·검증·push 완료
 - active claim 없음
 - 실기기 기존 결함 재현 완료

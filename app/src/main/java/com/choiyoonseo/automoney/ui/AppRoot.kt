@@ -41,6 +41,7 @@ import com.choiyoonseo.automoney.notification.LastNotificationDiagnostic
 import com.choiyoonseo.automoney.notification.NotificationAccessChecker
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
+import com.choiyoonseo.automoney.notification.NotificationSourceSettingsService
 import com.choiyoonseo.automoney.notification.RunSampleNotificationScenarioUseCase
 import com.choiyoonseo.automoney.notification.sampleNotificationScenarios
 import com.choiyoonseo.automoney.ui.assets.AssetsScreen
@@ -79,7 +80,8 @@ fun AppRoot(
     resolveReviewUseCase: ResolveReviewUseCase? = null,
     resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null,
     linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
-    userCategoryRepository: UserCategoryRepository? = null
+    userCategoryRepository: UserCategoryRepository? = null,
+    notificationSourceSettingsService: NotificationSourceSettingsService? = null
 ) {
     val colors = MoneyTheme.colors
     var selectedTab by remember { mutableStateOf(AppTab.HOME) }
@@ -197,6 +199,7 @@ fun AppRoot(
                 notificationAccessEnabled = notificationAccessEnabled,
                 lastNotificationDiagnostic = lastNotificationDiagnostic,
                 userCategoryRepository = userCategoryRepository,
+                notificationSourceSettingsService = notificationSourceSettingsService,
                 onRunSampleNotificationScenario = if (BuildConfig.DEBUG && runSampleNotificationScenarioUseCase != null) {
                     {
                         scope.launch {
