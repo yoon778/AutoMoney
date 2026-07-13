@@ -570,9 +570,9 @@ class NotificationSourceSettingsService {
 
 **Handoff gate:**
 
-- [ ] T1~T5 각 commit을 `main`에 push
-- [ ] T5 완료 commit에서 `di/AppContainer.kt` claim 제거
-- [ ] clean `main` 확인 후 Claude에게 순차 인계
+- [x] T1~T5 각 commit을 `main`에 push
+- [x] T5 완료 commit에서 `di/AppContainer.kt` claim 제거
+- [x] clean `main` 확인 후 Claude에게 순차 인계
 - [ ] Claude가 `git pull --ff-only origin main` 후 T6 시작
 
 **Commit:** `feat: expose notification source settings contract`
@@ -822,17 +822,17 @@ docs plan
 기록 항목:
 
 - Current branch: `main`
-- Last commit SHA: `19c48d6` (T1)
-- First unchecked task: T4
-- Prerequisite main push status: T1-T2 pushed, T3 verification complete
-- Active claims: Codex `di/AppContainer.kt` through T5
-- Uncommitted files: T3 owned files + plan only
-- Last verification command/result: T3 targeted unit tests + androidTest compile + `:app:assembleDebug` PASS
+- Last commit SHA: `c1546ba` (T5)
+- First unchecked task: T6
+- Prerequisite main push status: T1-T5 pushed to `origin/main`
+- Active claims: none
+- Uncommitted files: handoff documentation only
+- Last verification command/result: T5 settings service unit tests + `:app:assembleDebug` PASS
 - Galaxy verification status: not started
 
 현재 상태:
 
 - 계획 작성 완료
-- T1-T3 구현·검증 완료
-- active claim: Codex `di/AppContainer.kt` through T5
+- T1-T5 구현·검증·push 완료
+- active claim 없음
 - 실기기 기존 결함 재현 완료

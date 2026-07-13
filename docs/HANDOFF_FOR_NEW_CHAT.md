@@ -207,6 +207,38 @@ Recommended next logic tasks:
 
 ## Suggested Next Claude Tasks
 
+### Active handoff: notification source selection UI — 2026-07-13
+
+Codex logic complete and pushed to `origin/main`:
+
+```text
+19c48d6 T1 source access policy/catalog
+3c6099c T2 selected/observed source persistence
+33a2a2d T3 privacy content gate/diagnostics
+160510f T4 conservative generic parser/review enforcement
+c1546ba T5 settings service contract/AppContainer wiring
+```
+
+Claude next task: T6 only
+
+- Pull `main` at or after `c1546ba`
+- Read `docs/superpowers/plans/2026-07-13-notification-app-selection-content-gate.md`
+- Consume `AppContainer.notificationSourceSettingsService`
+- Render `options()` results and call `setAllowed(packageName, allowed)` from settings UI
+- Claim `ui/AppRoot.kt` / `MainActivity.kt` before editing if needed
+- Do not modify parser, stores, diagnostics, or ingestion logic
+- Preserve privacy invariant: blocked apps never read notification content
+- Push verified UI commit to `main`, then return ownership to Codex for T7
+
+Service contract:
+
+```kotlin
+fun options(): List<NotificationSourceOption>
+fun setAllowed(packageName: String, allowed: Boolean): NotificationAccessUpdateResult
+```
+
+Current state: clean `main`, no active shared-file claim, Galaxy T7 verification not started
+
 Recommended UI tasks:
 
 1. Improve home screen visual hierarchy.
