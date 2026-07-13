@@ -197,30 +197,12 @@ SM_S931N / R3KYB05QDFP
 
 ## Suggested Next Codex Tasks
 
-### Active handoff: notification source selection T7 — 2026-07-13
+### (완료 2026-07-13) notification source selection T1-T8 done
 
-T1-T6 complete and pushed to `origin/main`:
-
-```text
-19c48d6 T1 source access policy/catalog
-3c6099c T2 selected/observed source persistence
-33a2a2d T3 privacy content gate/diagnostics
-160510f T4 conservative generic parser/review enforcement
-c1546ba T5 settings service contract/AppContainer wiring
-b0995c9 T6 settings UI (Claude)
-```
-
-Codex next task: T7 integration + Galaxy verification
-
-- Pull `main` at or after `b0995c9`
-- Read `docs/superpowers/plans/2026-07-13-notification-app-selection-content-gate.md` Task 7
-- Claude T6 UI note: manual on-device screen check NOT done (no device connected during T6); `:app:testDebugUnitTest` + `:app:assembleDebug` PASS. Verify the new settings card visually as part of T7 scenarios
-- T6 UI summary: `알림 수집 앱` card in SettingsScreen — `기본 지원`/`추가 감지 앱` groups, package name subtext, confirm dialog before enabling non-trusted apps, `options()` re-query on tab entry/ON_RESUME/toggle, LIMIT_REACHED/INVALID/DENIED messages, row-level toggleable(role=Switch) accessibility
-- Run T7 wiring checks + 13 Galaxy scenarios, update `docs/testing/bank-notification-balance-sync.md`
-- UI defect found → hand back to Claude per plan defect loop; logic defect → fix directly
-- Then T8 final regression/docs
-
-Current state: clean `main`, no active shared-file claim, Galaxy verification not started
+Codex 사용량 소진으로 T7·T8은 Claude가 비상 릴레이로 완료. Galaxy SM_S931N에서
+`com.android.shell` 실알림으로 차단/허용/검토 전 경로 검증, instrumented tests PASS.
+상세: `docs/testing/bank-notification-balance-sync.md`, plan은 Status: complete.
+잔여: 실은행 앱(케이뱅크 등) 실알림 확인은 일상 사용 중 수행.
 
 Recommended next logic tasks:
 

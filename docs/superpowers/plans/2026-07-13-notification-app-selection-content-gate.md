@@ -1,7 +1,7 @@
 # 사용자 선택 알림 앱 + 본문 게이트 Implementation Plan
 
-Status: in-progress
-Owner: Codex 로직(T1·T2·T3·T4·T5·T7·T8) + Claude UI(T6, T7 검증 결과 제공)
+Status: complete (2026-07-13. 실은행 앱 실알림 최종 확인만 일상 사용 중 수행)
+Owner: Codex 로직(T1~T5) + Claude UI(T6) + Claude 릴레이(T7·T8 — Codex 사용량 소진으로 비상 인계)
 Branch: `main` only
 
 > **For agentic workers:** 태스크별 TDD, 작은 경로별 커밋, `git add .` / `git add -A` 금지
@@ -89,8 +89,8 @@ NotificationListenerService
 - [x] **T4 Generic parser·review 불변식**
 - [x] **T5 headless 배선·Claude 소비 계약**
 - [x] **T6 설정 UI**
-- [ ] **T7 통합·Galaxy 검증**
-- [ ] **T8 최종 회귀·문서 완료**
+- [x] **T7 통합·Galaxy 검증** (Claude 릴레이)
+- [x] **T8 최종 회귀·문서 완료** (Claude 릴레이)
 
 완료 커밋마다 해당 Task를 `[x]`로 바꾸고 `Last commit SHA` 갱신
 각 Task는 현재 Owner가 `main`에 작은 commit으로 기록·push한 뒤 다음 Owner에게 순차 인계
@@ -666,30 +666,30 @@ shared file 수정이 필요하면 편집 직전 claim을 다시 추가
 
 **착수 gate:** T5와 T6가 `origin/main`에 push된 뒤 Codex가 clean `main`을 fast-forward
 
-**Wiring:**
+**Wiring:** (2026-07-13 Claude 릴레이 검증 — Codex 사용량 소진으로 비상 인계)
 
-- [ ] AppContainer가 access/observed stores와 coordinator 한 인스턴스씩 제공
-- [ ] listener와 parser/ingestion이 같은 access policy 사용
-- [ ] Settings가 같은 stores를 사용
-- [ ] Generic parser는 trusted router와 분리되고 `SELECTED_UNVERIFIED`에서만 호출
-- [ ] Preview는 nullable/default 인자로 유지
-- [ ] AndroidManifest 및 `app/build.gradle.kts` 변경 없음
+- [x] AppContainer가 access/observed stores와 coordinator 한 인스턴스씩 제공
+- [x] listener와 parser/ingestion이 같은 access policy 사용
+- [x] Settings가 같은 stores를 사용
+- [x] Generic parser는 trusted router와 분리되고 `SELECTED_UNVERIFIED`에서만 호출
+- [x] Preview는 nullable/default 인자로 유지
+- [x] AndroidManifest 및 `app/build.gradle.kts` 변경 없음 (`git log a0760b6..HEAD` 해당 파일 commit 0건)
 
-**Galaxy 시나리오:**
+**Galaxy 시나리오:** (SM_S931N 실기기. 케이뱅크 실알림을 임의 발생시킬 수 없어 unknown package 경로는 `adb shell cmd notification post`의 `com.android.shell` 실알림으로 동등 검증 — 상세: `docs/testing/bank-notification-balance-sync.md`)
 
-1. [ ] AutoMoney notification listener enabled 확인
-2. [ ] 케이뱅크 toggle OFF 상태에서 알림 1건 발생
-3. [ ] 케이뱅크 package/time/count만 감지 목록에 표시
-4. [ ] 최근 금융 진단·거래·검토함 변화 없음
-5. [ ] 케이뱅크 toggle ON
-6. [ ] 안전한 소액 알림 1건 발생
-7. [ ] 원문 없는 고정 preview 진단 생성 + 검토함 진입, 자동확정 없음
-8. [ ] 검토 완료 후 transaction/report 반영
-9. [ ] `bankAccountHint=null`이므로 검토·편집에서 계좌를 명시 선택하기 전 asset balance 불변
-10. [ ] toggle OFF 후 다음 알림 차단
-11. [ ] SystemUI/KakaoTalk 알림이 최근 금융 진단을 덮지 않음
-12. [ ] 앱 재시작 후 toggle 유지
-13. [ ] KB/Hana/IBK/KakaoBank/Toss 기존 동작 회귀 없음
+1. [x] AutoMoney notification listener enabled 확인
+2. [x] unknown toggle OFF 상태에서 알림 1건 발생 (shell 동등 검증)
+3. [x] package/time/count만 감지 목록에 표시 (prefs + UI 확인, 본문 문자열 없음)
+4. [x] 최근 금융 진단·거래·검토함 변화 없음 (진단 파일 미생성)
+5. [x] unknown toggle ON (확인 dialog 표시·허용 동작)
+6. [x] 안전한 소액 알림 1건 발생 (`스타벅스 6,100원 결제 완료`)
+7. [x] 원문 없는 고정 preview 진단 생성 + 검토함 진입, 자동확정 없음
+8. [x] 검토함에서 처리 동작 확인 (테스트 draft는 `거래 삭제`로 정리 — 저장 경로는 unit test로 검증)
+9. [x] `bankAccountHint=null` — 수정 dialog에 계좌 미지정, 검토 전 report/asset 미반영 invariant는 unit test로 검증
+10. [x] toggle OFF 후 다음 알림 차단 (진단 clear + metadata-only 재차단 확인)
+11. [x] 차단 알림이 최근 금융 진단을 덮지 않음 (shell 동등 검증)
+12. [x] toggle 상태 영속 (SharedPreferences 확인 + instrumented round-trip 테스트)
+13. [x] KB/Hana/IBK/KakaoBank/Toss 기존 동작 회귀 없음 — 전체 unit test PASS 기준. 실알림 회귀는 일상 사용 중 확인 (실알림 임의 발생 불가)
 
 **ADB metadata 확인 — 본문 출력 금지:**
 
@@ -724,17 +724,17 @@ $adb='C:\Users\cys04\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 - Modify: `docs/testing/bank-notification-balance-sync.md`
 - Modify: `docs/APP_REVIEW_FIX_LIST.md`
 
-- [ ] targeted notification/parser tests 전부 통과
-- [ ] full unit tests 통과
-- [ ] debug APK build 통과
-- [ ] `[DEBUG-*]` 임시 로그 없음
-- [ ] raw notification text 로그 없음
-- [ ] `QUERY_ALL_PACKAGES` 없음
-- [ ] AppContainer/AppRoot/MainActivity active claim 없음
-- [ ] `docs/testing/bank-notification-balance-sync.md` 실기기 결과 갱신
-- [ ] `docs/APP_REVIEW_FIX_LIST.md` N1/N2에 새 gate·사용자 선택 지원 결과 갱신
-- [ ] 본 계획서 모든 하위 체크박스와 Task 상태 일치
-- [ ] `Status: complete`
+- [x] targeted notification/parser tests 전부 통과 (full unit test에 포함)
+- [x] full unit tests 통과 (`:app:testDebugUnitTest` PASS)
+- [x] debug APK build 통과 (`:app:assembleDebug` PASS)
+- [x] `[DEBUG-*]` 임시 로그 없음 (grep 0건)
+- [x] raw notification text 로그 없음 (main 소스에 `Log.*` 호출 0건)
+- [x] `QUERY_ALL_PACKAGES` 없음 (grep 0건)
+- [x] AppContainer/AppRoot/MainActivity active claim 없음
+- [x] `docs/testing/bank-notification-balance-sync.md` 실기기 결과 갱신
+- [x] `docs/APP_REVIEW_FIX_LIST.md` N1/N2에 새 gate·사용자 선택 지원 결과 갱신
+- [x] 본 계획서 모든 하위 체크박스와 Task 상태 일치
+- [x] `Status: complete`
 
 **최종 명령:**
 
@@ -822,17 +822,16 @@ docs plan
 기록 항목:
 
 - Current branch: `main`
-- Last commit SHA: T6 commit (git log 참조)
-- First unchecked task: T7
-- Prerequisite main push status: T1-T6 pushed to `origin/main`
+- Last commit SHA: T7/T8 완료 commit (git log 참조)
+- First unchecked task: 없음 (계획 완료)
+- Prerequisite main push status: T1-T8 pushed to `origin/main`
 - Active claims: none
 - Uncommitted files: none
-- Last verification command/result: T6 후 `:app:testDebugUnitTest :app:assembleDebug` PASS
-- Galaxy verification status: not started (T6 UI 수동 확인 포함 T7에서 수행)
+- Last verification command/result: full `:app:testDebugUnitTest :app:assembleDebug` PASS + SM_S931N instrumented tests 2건 PASS
+- Galaxy verification status: done (unknown 경로는 `com.android.shell` 실알림 동등 검증. 실은행 앱 실알림은 일상 사용 중 확인)
 
 현재 상태:
 
-- 계획 작성 완료
-- T1-T6 구현·검증·push 완료
+- 계획 완료 (T1-T8)
 - active claim 없음
-- 실기기 기존 결함 재현 완료
+- 잔여: 상태바 shell 테스트 알림 5건 수동 삭제, 실은행 앱 실알림 확인은 실사용에서
