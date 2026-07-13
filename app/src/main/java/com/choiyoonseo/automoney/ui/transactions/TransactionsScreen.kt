@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
@@ -71,9 +72,12 @@ fun TransactionsScreen(
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val assetAccounts by remember(assetRepository) {
-        assetRepository?.observeAccounts() ?: flowOf(emptyList())
+    val monthlyPlans by remember(assetRepository) {
+        assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val budgetUsages = remember(monthlyPlans, transactions) {
+        buildCategoryBudgetUsages(monthlyPlans, transactions)
+    }
     val dateSections = if (moneyRepository == null) {
         listOf(
             TransactionDateSectionUi(
@@ -221,8 +225,8 @@ fun TransactionsScreen(
                 ManualTransactionForm(
                     isSaving = isSavingManual,
                     resetSignal = manualFormResetSignal,
-                    accounts = assetAccounts
-                ) { type, amountWon, category, memo, occurredAt, account ->
+                    budgetUsages = budgetUsages
+                ) { type, amountWon, category, memo, occurredAt, budgetPlanId ->
                     val useCase = saveManualTransactionUseCase
                     if (useCase == null) {
                         saveSuccessMessage = null
@@ -239,7 +243,7 @@ fun TransactionsScreen(
                                 categoryText = category,
                                 memo = memo,
                                 occurredAt = occurredAt,
-                                account = account
+                                budgetPlanId = budgetPlanId
                             )
                             val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
                             saveSuccessMessage = if (savedMonth == month) {
@@ -271,12 +275,12 @@ fun TransactionsScreen(
             transaction = transaction,
             isSaving = isEditingTransaction,
             errorMessage = editErrorMessage,
-            accounts = assetAccounts,
+            budgetUsages = budgetUsages,
             onDismiss = {
                 activeEditTransaction = null
                 editErrorMessage = null
             },
-            onSave = { amountWon, category, memo, occurredAt, account, transactionType ->
+            onSave = { amountWon, category, memo, occurredAt, budgetPlanId, transactionType ->
                 val useCase = editTransactionUseCase ?: return@TransactionEditDialog
                 scope.launch {
                     isEditingTransaction = true
@@ -288,8 +292,8 @@ fun TransactionsScreen(
                             category,
                             memo,
                             occurredAt,
-                            account = account,
-                            transactionType = transactionType
+                            transactionType = transactionType,
+                            budgetPlanId = budgetPlanId
                         )
                         saveSuccessMessage = "거래를 수정했어요. 최근 거래에 반영했어요."
                         activeEditTransaction = null

@@ -32,8 +32,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.manual.ManualEntryType
-import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.ui.model.formatWon
 import java.time.Instant
 import java.time.LocalDate
 
@@ -42,14 +43,14 @@ import java.time.LocalDate
 fun ManualTransactionForm(
     isSaving: Boolean = false,
     resetSignal: Int = 0,
-    accounts: List<AssetAccount> = emptyList(),
+    budgetUsages: List<CategoryBudgetUsage> = emptyList(),
     onSave: (
         type: ManualEntryType,
         amountWon: Long,
         category: String,
         memo: String,
         occurredAt: Instant,
-        account: AssetAccount?
+        budgetPlanId: Long?
     ) -> Unit
 ) {
     val defaults = remember(resetSignal) {
@@ -63,17 +64,12 @@ fun ManualTransactionForm(
     var memo by remember(resetSignal) { mutableStateOf(defaults.memo) }
     var inputError by remember(resetSignal) { mutableStateOf(defaults.inputError) }
     var categoryMenuExpanded by remember(resetSignal) { mutableStateOf(defaults.isCategoryMenuExpanded) }
-    var accountMenuExpanded by remember(resetSignal) { mutableStateOf(false) }
-    val selectableAccounts = accounts.filter { it.id > 0 }
+    var budgetMenuExpanded by remember(resetSignal) { mutableStateOf(false) }
+    var selectedBudgetPlanId by remember(resetSignal) { mutableStateOf<Long?>(null) }
     val categoryContext = LocalContext.current
     val categoryStore = remember { SharedPreferencesCategoryPreferenceStore(categoryContext) }
     val enabledExpenseOptions = remember { categoryStore.enabledExpenseCategories().map { ManualCategoryOption(it) } }
     val enabledIncomeOptions = remember { categoryStore.enabledIncomeCategories().map { ManualCategoryOption(it) } }
-    var selectedAccountId by remember(resetSignal, selectableAccounts) {
-        mutableStateOf(selectableAccounts.firstOrNull()?.id)
-    }
-    val selectedAccount = selectableAccounts.firstOrNull { account -> account.id == selectedAccountId }
-    val selectedAccountName = selectedAccount?.name.orEmpty()
     var isDatePickerOpen by remember(resetSignal) { mutableStateOf(defaults.isDatePickerOpen) }
 
     if (isDatePickerOpen) {
@@ -183,24 +179,33 @@ fun ManualTransactionForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-        if (entryType != ManualEntryType.TRANSFER && selectableAccounts.isNotEmpty()) {
+        if (entryType == ManualEntryType.EXPENSE && budgetUsages.isNotEmpty()) {
             Box(Modifier.fillMaxWidth()) {
                 MoneyPickerField(
-                    label = "사용 계좌",
-                    value = selectedAccountName.ifBlank { "계좌 선택" },
-                    onClick = { accountMenuExpanded = true }
+                    label = "차감 예산",
+                    value = budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
+                        ?.let { "${it.plan.label} · 남음 ${formatWon(it.remainingWon)}" }
+                        ?: "분류 따라 자동",
+                    onClick = { budgetMenuExpanded = true }
                 )
                 DropdownMenu(
-                    expanded = accountMenuExpanded,
-                    onDismissRequest = { accountMenuExpanded = false },
+                    expanded = budgetMenuExpanded,
+                    onDismissRequest = { budgetMenuExpanded = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    selectableAccounts.forEach { account ->
+                    DropdownMenuItem(
+                        text = { Text("분류 따라 자동") },
+                        onClick = {
+                            selectedBudgetPlanId = null
+                            budgetMenuExpanded = false
+                        }
+                    )
+                    budgetUsages.forEach { usage ->
                         DropdownMenuItem(
-                            text = { Text(account.name) },
+                            text = { Text("${usage.plan.label} · 남음 ${formatWon(usage.remainingWon)}") },
                             onClick = {
-                                selectedAccountId = account.id
-                                accountMenuExpanded = false
+                                selectedBudgetPlanId = usage.plan.id
+                                budgetMenuExpanded = false
                             }
                         )
                     }
@@ -275,7 +280,7 @@ fun ManualTransactionForm(
                             categoryForSave,
                             memo,
                             selectedDate.toManualTransactionInstant(),
-                            selectedAccount.takeIf { entryType != ManualEntryType.TRANSFER }
+                            selectedBudgetPlanId.takeIf { entryType == ManualEntryType.EXPENSE }
                         )
                     }
                 },

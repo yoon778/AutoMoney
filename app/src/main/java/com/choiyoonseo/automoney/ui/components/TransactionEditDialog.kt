@@ -30,8 +30,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.choiyoonseo.automoney.domain.assets.AssetAccount
+import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
+import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.settings.SharedPreferencesCategoryPreferenceStore
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.domain.model.TransactionType
@@ -43,14 +44,14 @@ fun TransactionEditDialog(
     transaction: MoneyTransaction,
     isSaving: Boolean,
     errorMessage: String?,
-    accounts: List<AssetAccount> = emptyList(),
+    budgetUsages: List<CategoryBudgetUsage> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (
         amountWon: Long,
         category: String,
         memo: String,
         occurredAt: Instant,
-        account: AssetAccount?,
+        budgetPlanId: Long?,
         transactionType: TransactionType
     ) -> Unit,
     onExclude: () -> Unit,
@@ -77,19 +78,10 @@ fun TransactionEditDialog(
     }
     var categoryMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
     var typeMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
-    val accountOptions = remember(
-        transaction.id,
-        accounts,
-        transaction.linkedAssetAccountId,
-        transaction.paymentMethod
-    ) {
-        accountOptionsForEdit(accounts, transaction.linkedAssetAccountId, transaction.paymentMethod)
+    var selectedBudgetPlanId by remember(transaction.id, budgetUsages) {
+        mutableStateOf(transaction.budgetPlanId?.takeIf { id -> budgetUsages.any { it.plan.id == id } })
     }
-    var selectedAccountOption by remember(transaction.id, accountOptions) {
-        mutableStateOf(selectedAccountOptionForEdit(accountOptions, transaction.linkedAssetAccountId))
-    }
-    val selectedAccountLabel = selectedAccountOption?.label
-    var accountMenuExpanded by remember(transaction.id, accountOptions) { mutableStateOf(false) }
+    var budgetMenuExpanded by remember(transaction.id, budgetUsages) { mutableStateOf(false) }
     var memoText by remember(transaction.id) {
         mutableStateOf(transaction.memo ?: "")
     }
@@ -203,9 +195,7 @@ fun TransactionEditDialog(
                                     selectedCategoryLabel,
                                     memoText,
                                     occurredAt,
-                                    selectedAccountOption?.accountId?.let { accountId ->
-                                        accounts.firstOrNull { it.id == accountId }
-                                    },
+                                    selectedBudgetPlanId,
                                     selectedType
                                 )
                             }
@@ -287,24 +277,33 @@ fun TransactionEditDialog(
                 }
             }
         }
-        if (accountOptions.isNotEmpty()) {
+        if (budgetUsages.isNotEmpty()) {
             Box(modifier = Modifier.fillMaxWidth()) {
                 MoneyPickerField(
-                    label = "계좌",
-                    value = selectedAccountLabel ?: "선택 안 함",
-                    onClick = { accountMenuExpanded = true }
+                    label = "차감 예산",
+                    value = budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
+                        ?.let(::budgetOptionLabel)
+                        ?: "분류 따라 자동",
+                    onClick = { budgetMenuExpanded = true }
                 )
                 DropdownMenu(
-                    expanded = accountMenuExpanded,
-                    onDismissRequest = { accountMenuExpanded = false },
+                    expanded = budgetMenuExpanded,
+                    onDismissRequest = { budgetMenuExpanded = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    accountOptions.forEach { accountOption ->
+                    DropdownMenuItem(
+                        text = { Text("분류 따라 자동") },
+                        onClick = {
+                            selectedBudgetPlanId = null
+                            budgetMenuExpanded = false
+                        }
+                    )
+                    budgetUsages.forEach { usage ->
                         DropdownMenuItem(
-                            text = { Text(accountOption.label) },
+                            text = { Text(budgetOptionLabel(usage)) },
                             onClick = {
-                                selectedAccountOption = accountOption
-                                accountMenuExpanded = false
+                                selectedBudgetPlanId = usage.plan.id
+                                budgetMenuExpanded = false
                             }
                         )
                     }
@@ -312,7 +311,7 @@ fun TransactionEditDialog(
             }
         } else {
             Text(
-                "계좌를 연결하려면 자산 탭에서 계좌를 먼저 등록해 주세요.",
+                "예산에서 차감하려면 예산 탭에서 월계획 예산을 먼저 만들어 주세요.",
                 style = MaterialTheme.typography.bodySmall,
                 color = colors.muted
             )
@@ -328,3 +327,10 @@ fun TransactionEditDialog(
         }
     }
 }
+
+private fun budgetOptionLabel(usage: CategoryBudgetUsage): String =
+    if (usage.remainingWon >= 0) {
+        "${usage.plan.label} · 남음 ${formatWon(usage.remainingWon)}"
+    } else {
+        "${usage.plan.label} · 초과 ${formatWon(-usage.remainingWon)}"
+    }

@@ -39,6 +39,7 @@ import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.domain.assets.BalanceImpact
+import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
@@ -119,9 +120,12 @@ fun HomeScreen(
     }
     var activeDetail by remember { mutableStateOf<HomeDetailDialogState?>(null) }
     val scope = rememberCoroutineScope()
-    val assetAccounts by remember(assetRepository) {
-        assetRepository?.observeAccounts() ?: flowOf(emptyList())
+    val monthlyPlans by remember(assetRepository) {
+        assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val budgetUsages = remember(monthlyPlans, transactions) {
+        buildCategoryBudgetUsages(monthlyPlans, transactions)
+    }
     var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }
     var isEditingTransaction by remember { mutableStateOf(false) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -259,12 +263,12 @@ fun HomeScreen(
                 transaction = transaction,
                 isSaving = isEditingTransaction,
                 errorMessage = editErrorMessage,
-                accounts = assetAccounts,
+                budgetUsages = budgetUsages,
                 onDismiss = {
                     activeEditTransaction = null
                     editErrorMessage = null
                 },
-                onSave = { amountWon, category, memo, occurredAt, account, transactionType ->
+                onSave = { amountWon, category, memo, occurredAt, budgetPlanId, transactionType ->
                     scope.launch {
                         isEditingTransaction = true
                         editErrorMessage = null
@@ -275,8 +279,8 @@ fun HomeScreen(
                                 category,
                                 memo,
                                 occurredAt,
-                                account = account,
-                                transactionType = transactionType
+                                transactionType = transactionType,
+                                budgetPlanId = budgetPlanId
                             )
                             activeEditTransaction = null
                             activeDetail = null

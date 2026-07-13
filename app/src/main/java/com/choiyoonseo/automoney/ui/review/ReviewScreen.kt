@@ -46,6 +46,7 @@ import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.applyAccountTransfer
+import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.assets.findAccountTransferCandidates
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
@@ -115,6 +116,16 @@ fun ReviewScreen(
     val allTransactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val budgetMonth = remember { YearMonth.now(AppDateZoneId) }
+    val monthlyPlans by remember(assetRepository) {
+        assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+    val budgetUsages = remember(monthlyPlans, allTransactions, budgetMonth) {
+        buildCategoryBudgetUsages(
+            monthlyPlans,
+            allTransactions.filter { it.monthKey == budgetMonth }
+        )
+    }
     var sampleReviewCardsState by remember { mutableStateOf(sampleReviewCards) }
     val reviewCards = if (moneyRepository == null) sampleReviewCardsState else dbReviewCards
     var activeWalletCard by remember { mutableStateOf<ReviewCardUi?>(null) }
@@ -612,12 +623,12 @@ fun ReviewScreen(
                 transaction = transaction,
                 isSaving = isSaving,
                 errorMessage = editErrorMessage,
-                accounts = assetAccounts,
+                budgetUsages = budgetUsages,
                 onDismiss = {
                     activeEditReviewCard = null
                     editErrorMessage = null
                 },
-                onSave = { amountWon, category, memo, occurredAt, account, transactionType ->
+                onSave = { amountWon, category, memo, occurredAt, budgetPlanId, transactionType ->
                     scope.launch {
                         isSaving = true
                         editErrorMessage = null
@@ -628,8 +639,8 @@ fun ReviewScreen(
                                 category,
                                 memo,
                                 occurredAt,
-                                account = account,
-                                transactionType = transactionType
+                                transactionType = transactionType,
+                                budgetPlanId = budgetPlanId
                             )
                             if (moneyRepository != null && card.reviewItemId != null) {
                                 moneyRepository.resolveReviewItem(card.reviewItemId)
