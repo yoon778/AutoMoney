@@ -98,6 +98,7 @@ Append a line before you start editing a shared/boundary file; remove it in the 
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- [2026-07-13] Codex claims `di/AppContainer.kt` — notification source stores/coordinator/parser/settings wiring T2-T5
 - (해제됨 2026-07-12) Claude claims `ui/AppRoot.kt` — 카테고리 예산 Task 3: AssetsScreen에 userCategoryRepository 전달
 - (해제됨 2026-07-12) Claude claims `ui/AppRoot.kt` — AssetsScreen에 moneyRepository 전달 1줄 (Codex 토큰 소진 중, 같은 커밋으로 main 반영)
 - (해제됨 2026-07-11) Codex F6 정산 회수 연결 유즈케이스 노출: `di/AppContainer.kt`

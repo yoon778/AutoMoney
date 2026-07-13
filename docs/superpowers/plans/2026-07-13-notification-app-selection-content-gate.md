@@ -84,7 +84,7 @@ NotificationListenerService
 ### Task 상태
 
 - [x] **T1 접근 정책·정적 catalog 계약**
-- [ ] **T2 선택/감지 저장소**
+- [x] **T2 선택/감지 저장소**
 - [ ] **T3 content-read gate·진단 개인정보**
 - [ ] **T4 Generic parser·review 불변식**
 - [ ] **T5 headless 배선·Claude 소비 계약**
@@ -362,25 +362,25 @@ Local JVM에서는 Android `SharedPreferences`를 직접 실행하지 않음
 
 **RED:**
 
-- [ ] known disable/reenable round-trip
-- [ ] custom enable/disable round-trip
-- [ ] codec round-trip 후 상태 유지
-- [ ] 동일 package count/lastSeenAt 갱신
-- [ ] 51번째 package 기록 시 가장 오래된 미선택 항목 제거
-- [ ] observed hard cap 50 유지
-- [ ] LRU에서 빠진 enabled package가 access set union으로 UI 후보에 남음
-- [ ] 명시 허용 51번째 요청 거부 또는 기존 선택 해제 요구
-- [ ] self/`android`/`com.android.systemui` 미노출
-- [ ] 직렬화 값에 title/text/bigText/key 문자열이 존재하지 않음
+- [x] known disable/reenable round-trip
+- [x] custom enable/disable round-trip
+- [x] codec round-trip 후 상태 유지
+- [x] 동일 package count/lastSeenAt 갱신
+- [x] 51번째 package 기록 시 가장 오래된 미선택 항목 제거
+- [x] observed hard cap 50 유지
+- [x] LRU에서 빠진 enabled package가 access set union으로 UI 후보에 남음
+- [x] 명시 허용 51번째 요청 거부 또는 기존 선택 해제 요구
+- [x] self/`android`/`com.android.systemui` 미노출
+- [x] 직렬화 값에 title/text/bigText/key 문자열이 존재하지 않음
 
 **GREEN:**
 
-- [ ] defensive copy 후 `StringSet` 수정
-- [ ] 관찰 목록 read-modify-write `@Synchronized`
-- [ ] 손상된 항목은 skip하고 나머지 복원
-- [ ] packageName validation 후 저장
-- [ ] 새 라이브러리 없음
-- [ ] AppContainer가 두 store의 단일 인스턴스를 제공
+- [x] defensive copy 후 `StringSet` 수정
+- [x] 관찰 목록 read-modify-write `@Synchronized`
+- [x] 손상된 항목은 skip하고 나머지 복원
+- [x] packageName validation 후 저장
+- [x] 새 라이브러리 없음
+- [x] AppContainer가 두 store의 단일 인스턴스를 제공
 
 **검증:**
 
@@ -821,17 +821,17 @@ docs plan
 기록 항목:
 
 - Current branch: `main`
-- Last commit SHA: T1 completion commit containing this checklist update
-- First unchecked task: T2
-- Prerequisite main push status: T1 push pending
-- Active claims: none
-- Uncommitted files: T1 owned files only
-- Last verification command/result: T1 targeted tests + `:app:assembleDebug` PASS
+- Last commit SHA: `19c48d6` (T1)
+- First unchecked task: T3
+- Prerequisite main push status: T1 pushed, T2 push pending
+- Active claims: Codex `di/AppContainer.kt` through T5
+- Uncommitted files: T2 owned files + claim + plan only
+- Last verification command/result: T2 unit tests + androidTest compile + `:app:assembleDebug` PASS
 - Galaxy verification status: not started
 
 현재 상태:
 
 - 계획 작성 완료
-- T1 구현·검증 완료
+- T1·T2 구현·검증 완료
 - active claim 없음
 - 실기기 기존 결함 재현 완료

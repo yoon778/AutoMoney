@@ -21,10 +21,16 @@ import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
 import com.choiyoonseo.automoney.notification.RunSampleNotificationScenarioUseCase
+import com.choiyoonseo.automoney.notification.SharedPreferencesNotificationAppAccessStore
+import com.choiyoonseo.automoney.notification.SharedPreferencesObservedNotificationSourceStore
 import com.choiyoonseo.automoney.ui.onboarding.SharedPreferencesNotificationOnboardingStore
 import com.choiyoonseo.automoney.ui.transactions.SharedPreferencesWalletTopupNoticeStore
 
 class AppContainer(context: Context) {
+    val notificationAppAccessStore =
+        SharedPreferencesNotificationAppAccessStore(context.applicationContext)
+    val observedNotificationSourceStore =
+        SharedPreferencesObservedNotificationSourceStore(context.applicationContext)
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
     val walletTopupNoticeStore = SharedPreferencesWalletTopupNoticeStore(context.applicationContext)
     val notificationOnboardingStore = SharedPreferencesNotificationOnboardingStore(context.applicationContext)
