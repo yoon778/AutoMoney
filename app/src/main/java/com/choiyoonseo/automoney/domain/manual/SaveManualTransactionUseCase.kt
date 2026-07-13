@@ -34,7 +34,8 @@ class SaveManualTransactionUseCase(
         memo: String,
         occurredAt: Instant = Instant.now(),
         account: AssetAccount? = null,
-        paymentMethod: String? = null
+        paymentMethod: String? = null,
+        budgetPlanId: Long? = null
     ): Long {
         require(amountWon > 0) { "금액은 0원보다 커야 해요." }
 
@@ -80,7 +81,8 @@ class SaveManualTransactionUseCase(
                 linkedAssetAccountId = accountId,
                 balanceImpact = impact,
                 customCategoryId = categoryAssignment.customCategoryId,
-                customCategoryName = categoryAssignment.customCategoryName
+                customCategoryName = categoryAssignment.customCategoryName,
+                budgetPlanId = budgetPlanId
             )
 
             ManualEntryType.INCOME -> MoneyTransaction(
@@ -133,13 +135,15 @@ class SaveManualTransactionUseCase(
         amountWon: Long,
         categoryText: String,
         memo: String,
-        occurredAt: Instant = Instant.now()
+        occurredAt: Instant = Instant.now(),
+        budgetPlanId: Long? = null
     ): Long = save(
         type = ManualEntryType.EXPENSE,
         amountWon = amountWon,
         categoryText = categoryText,
         memo = memo,
-        occurredAt = occurredAt
+        occurredAt = occurredAt,
+        budgetPlanId = budgetPlanId
     )
 
 }

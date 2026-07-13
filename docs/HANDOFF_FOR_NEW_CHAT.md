@@ -197,12 +197,12 @@ SM_S931N / R3KYB05QDFP
 
 ## Suggested Next Codex Tasks
 
-### Active handoff: budget-first redesign T1-T2 — 2026-07-13
+### Active handoff: budget-first redesign T3-T5 — 2026-07-13
 
 - Read `docs/superpowers/plans/2026-07-13-budget-first-redesign.md` (사용자 grilling으로 결정 10개 확정됨 — 재논의 불필요)
-- Codex task: T1 (MoneyTransaction.budgetPlanId + Room migration + buildCategoryBudgetUsages override + 예산 밖 지출 집계), T2 (저장/수정/검토확정 경로 배선 + 분류 매칭 기본값)
+- Codex T1·T2 완료: `MoneyTransaction.budgetPlanId`, Room 10→11, 예산 override/fallback, 예산 밖 지출 집계, 수동저장·수정·검토확정 배선
 - 계좌 관련 테이블·로직 삭제 금지 — 화면 단절은 Claude T3-T5 몫
-- T2 완료 push 후 Claude가 T3-T5 (수정 dialog 예산 선택, 자산→예산 탭 개편, 검토 정리)
+- Claude 다음 작업: T3-T5 (수정 dialog 예산 선택, 자산→예산 탭 개편, 검토 정리)
 - 참고: 최근 parser 수정 3건 — CommonFinanceNotificationParser(단일 금액 ambiguous movement 검토行), GenericFinanceNotificationParser(잔액 라벨 금액 제외), NotificationSnapshot.combinedText(text/bigText 중복 제거). 앱 표시명은 짤랑으로 리브랜딩됨
 
 ### (완료 2026-07-13) notification source selection T1-T8 done

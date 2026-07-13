@@ -31,7 +31,8 @@ class EditTransactionUseCase(
         occurredAt: Instant = transaction.occurredAt,
         account: AssetAccount? = null,
         paymentMethod: String? = transaction.paymentMethod,
-        transactionType: TransactionType = transaction.type
+        transactionType: TransactionType = transaction.type,
+        budgetPlanId: Long? = transaction.budgetPlanId
     ) {
         require(amountWon > 0) { "금액은 0원보다 커야 해요." }
 
@@ -84,7 +85,8 @@ class EditTransactionUseCase(
             linkedAssetAccountId = linkedAssetAccountId,
             balanceImpact = nextImpact,
             customCategoryId = categoryAssignment.customCategoryId,
-            customCategoryName = categoryAssignment.customCategoryName
+            customCategoryName = categoryAssignment.customCategoryName,
+            budgetPlanId = budgetPlanId
         )
         repository.updateTransaction(updatedTransaction)
         saveLearnedRules(transaction, updatedTransaction)

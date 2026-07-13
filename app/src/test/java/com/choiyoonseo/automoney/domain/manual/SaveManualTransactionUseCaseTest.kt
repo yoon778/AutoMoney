@@ -187,6 +187,21 @@ class SaveManualTransactionUseCaseTest {
         assertThat(saved.customCategoryName).isEqualTo("데이트비용")
         assertThat(categoryRepository.resolvedKind).isEqualTo(UserCategoryKind.EXPENSE)
     }
+
+    @Test
+    fun saveExpenseStoresSelectedBudgetPlan() = runTest {
+        val repository = FakeMoneyRepository()
+
+        SaveManualTransactionUseCase(repository).save(
+            type = ManualEntryType.EXPENSE,
+            amountWon = 25_000,
+            categoryText = "식비",
+            memo = "저녁",
+            budgetPlanId = 7
+        )
+
+        assertThat(repository.savedTransactions.single().budgetPlanId).isEqualTo(7)
+    }
 }
 
 private class FakeMoneyRepository : MoneyRepository {

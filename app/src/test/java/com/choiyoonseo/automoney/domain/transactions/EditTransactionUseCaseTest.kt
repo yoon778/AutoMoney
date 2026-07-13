@@ -313,6 +313,35 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun updateCanChangeBudgetPlan() = runTest {
+        val repository = FakeMoneyRepository()
+
+        EditTransactionUseCase(repository).update(
+            transaction = transaction().copy(budgetPlanId = 3),
+            amountWon = 6_100,
+            categoryText = "카페/간식",
+            memo = "커피",
+            budgetPlanId = 7
+        )
+
+        assertThat(repository.updatedTransactions.single().budgetPlanId).isEqualTo(7)
+    }
+
+    @Test
+    fun updatePreservesBudgetPlanWhenSelectionIsOmitted() = runTest {
+        val repository = FakeMoneyRepository()
+
+        EditTransactionUseCase(repository).update(
+            transaction = transaction().copy(budgetPlanId = 3),
+            amountWon = 6_100,
+            categoryText = "카페/간식",
+            memo = "커피"
+        )
+
+        assertThat(repository.updatedTransactions.single().budgetPlanId).isEqualTo(3)
+    }
+
+    @Test
     fun excludeMarksTransactionExcludedWithoutDeletingIt() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)

@@ -68,6 +68,27 @@ class ResolveReviewUseCaseTest {
 
         assertThat(updated.settlementMyShareWon).isEqualTo(3_333)
     }
+
+    @Test
+    fun confirmPreservesAutomaticOrExplicitBudgetChoice() = runTest {
+        val useCase = ResolveReviewUseCase(AtomicReviewRepository())
+
+        val automatic = useCase.resolve(
+            reviewItemId = 9,
+            transaction = reviewTransaction(),
+            resolution = ReviewResolution.CONFIRM,
+            userMemo = null
+        )
+        val explicit = useCase.resolve(
+            reviewItemId = 10,
+            transaction = reviewTransaction().copy(budgetPlanId = 7),
+            resolution = ReviewResolution.CONFIRM,
+            userMemo = null
+        )
+
+        assertThat(automatic.budgetPlanId).isNull()
+        assertThat(explicit.budgetPlanId).isEqualTo(7)
+    }
 }
 
 private class AtomicReviewRepository : MoneyRepository {
