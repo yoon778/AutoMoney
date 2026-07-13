@@ -13,34 +13,36 @@ The full workflow is in `docs/AI_COLLABORATION.md`; this file is the short, must
 
 ## Branch Rules
 
-- Work only on branches prefixed `codex/`. Current work branch: `codex/app-logic`.
-- Never commit directly on `claude/*` branches.
-- Never commit directly on `main` except for user-approved workflow/documentation setup.
-- Push your own branch. The user reviews and merges into `main`.
-- Before starting a new task, update your branch from `main`.
+- **`main` only.** Do not create, switch to, or push `codex/*`, `claude/*`, or any other branch.
+- Do not create a separate worktree or clone for agent work.
+- Only one agent works at a time. Codex and Claude hand off sequentially on `main`.
+- Before editing: `git switch main`, then `git pull --ff-only origin main`.
+- Ensure `git config --get core.hooksPath` is `.githooks`; otherwise set it locally.
+- Before committing, verify `git branch --show-current` returns exactly `main`.
+- Commit small units directly to `main`; push `main` after verification.
+- Repository hooks reject commits and non-deletion pushes outside `main`.
 
 ## CRITICAL: Do Not Sweep Up Files You Don't Own
 
-Claude and Codex may have the repository open at the same time. If you stage everything,
-you can accidentally commit Claude's half-finished edits into your commit. This has already
-happened once. To prevent it:
+Codex and Claude work sequentially in the same `main` worktree. A dirty tree may contain
+the previous agent's unfinished work. To prevent mixing changes:
 
 - **Never run `git add .` or `git add -A`.** Stage only the specific paths you changed,
   e.g. `git add app/src/main/java/com/choiyoonseo/automoney/domain/...`.
 - Run `git status` before committing and confirm every staged file is one you own.
 - If you see modified files under `ui/` (screens/visuals) that you did not change, leave
   them unstaged — they are Claude's in-progress work.
-- Prefer working in a **separate git worktree or clone** so you never share a working
-  directory and branch with Claude at the same time.
+- If unrelated changes exist, stop and hand them back to their owner. Do not create a branch
+  or worktree to bypass the dirty state.
 
 ## Boundary Zones — Claim Before Editing
 
 Four spots are shared and can collide. Before editing any of them, add a line to the
-**Shared File Claims** log at the bottom of `docs/AI_COLLABORATION.md` (and mention it in
-your PR), then remove the line after it merges to `main`:
+**Shared File Claims** log at the bottom of `docs/AI_COLLABORATION.md`, then remove the
+line in the completion commit pushed to `main`:
 
 1. **UI model contract** — UI model data classes (e.g. `DashboardUiModels`). Treat as a
-   contract: change fields in a single small commit so Claude can rebase onto it.
+   contract: change fields in a single small commit, push `main`, then hand off to Claude.
 2. **`ui/model/**` mappers** — yours, but Claude reads their output, so announce breaking changes.
 3. **`di/AppContainer.kt`** — dependency wiring shared with Claude.
 4. **`ui/AppRoot.kt` / `MainActivity.kt`** and **`app/build.gradle.kts`** — navigation and

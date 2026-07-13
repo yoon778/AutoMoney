@@ -26,38 +26,40 @@ The old folder only contains early planning files, a web mockup, and a reference
 https://github.com/yoon778/AutoMoney.git
 ```
 
-Current collaboration branches:
+Current collaboration branch:
 
 ```text
-main                stable integration branch, user merges here
-codex/app-logic     Codex branch for app logic and tests
-claude/ui-polish    Claude branch for UI and UX polish
-codex/android-mvp   older branch kept for history
+main                only local/remote working branch
 ```
 
-Important note:
+Main-only rules:
 
-- GitHub repository default branch may still be `codex/android-mvp`.
-- For the intended workflow, the user should eventually change the GitHub default branch to `main`.
+- GitHub default branch is `main`.
+- Codex and Claude work sequentially; only one agent active at a time.
+- Agent/feature branches, separate worktrees, and alternate clones are forbidden.
+- Start with `git switch main` and `git pull --ff-only origin main`.
+- Ensure `git config --local core.hooksPath .githooks` is configured.
+- Commit/push small verified units directly to `main`.
+- Repository hooks reject commits and non-deletion pushes outside `main`.
 
 ## Agent Roles
 
 Codex:
 
-- Work on `codex/app-logic`.
+- Work directly on `main` after confirming a clean, up-to-date tree.
 - Own app logic, Android architecture, notification parsing, Room/database, asset balance calculations, report calculations, transaction review logic, rules/automation, tests, and builds.
 - Before claiming code work is complete, run relevant unit tests and usually `:app:assembleDebug`.
 
 Claude:
 
-- Work on `claude/ui-polish`.
+- Pull latest `main` after Codex handoff, then work directly on `main`.
 - Own UI layout, copy, visual hierarchy, icons/images, screen composition, and general UX polish.
 - Avoid modifying core logic, database, notification parsing, and report calculations unless explicitly assigned.
 
 User:
 
-- Reviews and merges into `main`.
-- Uses GitHub Desktop or GitHub web UI for final merge decisions.
+- Reviews commit diffs already pushed to `main`.
+- Uses `git revert` for rollback; no branch merge workflow.
 
 ## Product Direction
 
@@ -119,7 +121,7 @@ Implemented Android app skeleton and multiple feature iterations:
 
 ## Most Recent Code Changes
 
-Recent logic changes on `codex/app-logic`:
+Recent logic changes on `main`:
 
 - Added shared report classification rules:
   - `isReportableTransaction`
@@ -224,9 +226,10 @@ C:\Users\cys04\Desktop\AutoMoney
 GitHub 저장소는:
 https://github.com/yoon778/AutoMoney.git
 
-Codex는 codex/app-logic 브랜치에서 작업하고, 로직/DB/알림 파싱/잔액 계산/보고서 계산/규칙/테스트를 담당해.
-Claude는 claude/ui-polish 브랜치에서 UI/UX 개선을 담당해.
-main은 내가 최종 병합하는 안정 브랜치야.
+Codex와 Claude 모두 main에서만 순차 작업해. 다른 branch/worktree/clone은 만들지 마.
+시작 전 `git switch main`, `git pull --ff-only origin main`, `git status`로 clean 상태를 확인해.
+Codex는 로직/DB/알림 파싱/잔액 계산/보고서 계산/규칙/테스트를 담당하고, 작은 commit을 main에 push해.
+Claude는 그다음 latest main을 pull한 뒤 UI/UX를 담당해.
 
 먼저 docs/AI_COLLABORATION.md 와 docs/HANDOFF_FOR_NEW_CHAT.md 를 읽고 현재 상태를 파악한 다음 진행해줘.
 작업 후에는 테스트와 빌드를 확인하고, 핸드폰 설치는 내가 명시적으로 요청할 때만 해줘.
@@ -243,9 +246,10 @@ C:\Users\cys04\Desktop\AutoMoney
 GitHub 저장소는:
 https://github.com/yoon778/AutoMoney.git
 
-Claude는 claude/ui-polish 브랜치에서 작업하고, UI 레이아웃/문구/시각적 정리/사용성 개선을 담당해.
-Codex는 codex/app-logic 브랜치에서 로직/DB/테스트를 담당해.
-main은 내가 최종 병합하는 안정 브랜치야.
+Claude와 Codex 모두 main에서만 순차 작업해. 다른 branch/worktree/clone은 만들지 마.
+시작 전 `git switch main`, `git pull --ff-only origin main`, `git status`로 clean 상태를 확인해.
+Claude는 UI 레이아웃/문구/시각적 정리/사용성 개선을 담당하고, 작은 commit을 main에 push해.
+Codex 로직 commit이 필요하면 먼저 main에 반영된 뒤 pull해서 이어가.
 
 먼저 docs/AI_COLLABORATION.md 와 docs/HANDOFF_FOR_NEW_CHAT.md 를 읽고, core logic/database/parser/report calculation은 건드리지 말고 UI 중심으로 진행해줘.
 ```

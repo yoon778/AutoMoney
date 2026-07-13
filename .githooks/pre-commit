@@ -1,0 +1,10 @@
+#!/bin/sh
+
+branch=$(git symbolic-ref --quiet --short HEAD 2>/dev/null) || branch=""
+
+if [ "$branch" != "main" ]; then
+  echo "ERROR: AutoMoney commits are allowed only on main (current: ${branch:-detached HEAD})" >&2
+  exit 1
+fi
+
+exit 0

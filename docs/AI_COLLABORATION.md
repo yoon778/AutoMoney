@@ -1,38 +1,41 @@
 # AI Collaboration Workflow
 
-This repository uses separate branches for Codex and Claude work.
+This repository uses one linear `main` branch for Codex and Claude work.
 
 Encoding note: this file is UTF-8. If Korean text looks garbled in Windows PowerShell, read it with `Get-Content -Encoding UTF8`.
 
-## Stable Branch
+## Single Branch
 
-- `main` is the stable integration branch.
-- The user owns final review and merge into `main`.
-- Do not work directly on `main` except for repository workflow/documentation setup approved by the user.
+- `main` is the only working and remote branch.
+- GitHub default branch must remain `main`.
+- Do not create or switch to agent/feature branches, worktrees, or alternate clones.
+- Only one agent is active at a time; handoffs are sequential.
+- Start with `git switch main` and `git pull --ff-only origin main`.
+- Commit small verified units directly to `main`, then push `main`.
+- Never force-push, rewrite shared history, or bypass repository hooks with `--no-verify`.
+- On a fresh clone, run `git config --local core.hooksPath .githooks` before work.
 
 ## Agent Roles
 
 ### Codex
 
-- Work on branches prefixed with `codex/`.
 - Primary responsibility: app logic, Android architecture, notification parsing, database, asset/account calculations, rules, tests, and build verification.
-- Current Codex work branch: `codex/app-logic`.
 - Before finishing, run relevant unit tests and `:app:assembleDebug` when code changes affect the Android app.
 
 ### Claude
 
-- Work on branches prefixed with `claude/`.
 - Primary responsibility: UI polish, UX copy, visual layout, screen composition, and presentation improvements.
-- Current Claude work branch: `claude/ui-polish`.
 - Avoid changing core transaction logic, database migrations, notification parsing, or report calculations unless explicitly assigned.
 
 ## Collaboration Rules
 
-- Codex and Claude must not edit the same branch at the same time.
-- Each agent pushes its own branch to GitHub.
-- The user reviews changes in GitHub Desktop or GitHub and merges into `main`.
-- After `main` changes, each agent should update from `main` before starting the next task.
-- If a task touches both logic and UI, split it into two branches or agree on one owner before editing.
+- Codex and Claude must not edit concurrently.
+- Before each turn, verify the current branch is exactly `main` and inspect `git status`.
+- If the tree contains unrelated or previous-agent changes, stop and hand back; do not hide them in another branch.
+- Stage exact owned paths only. `git add .` and `git add -A` remain forbidden.
+- Finish and push one owner's layer before handing the clean `main` worktree to the next owner.
+- If a task touches logic and UI, Codex commits/pushes the contract first; Claude then pulls `main` and consumes it.
+- User review uses commit diffs on `main`; no merge workflow.
 
 ## Split Axis: by Layer (not by feature)
 
@@ -63,26 +66,26 @@ Package root: `app/src/main/java/com/choiyoonseo/automoney`
 
 ## Boundary Zones (the 10% that needs coordination)
 
-These four spots are where the two agents can collide. Before editing any of them, announce it in the **Shared File Claims** log at the bottom of this file (and in the PR description) so the other agent does not touch it in parallel.
+These four spots are where the two agents can collide. Before editing any of them, announce it in the **Shared File Claims** log at the bottom of this file so the next agent does not touch it before handoff.
 
-1. **UI model contract** — the UI model data classes (e.g. `DashboardUiModels`). Claude renders them; Codex's mappers produce them. Treat these classes as a **contract**: whoever needs to change a field must claim it first, and the change should be a single small commit that both branches can rebase onto.
+1. **UI model contract** — the UI model data classes (e.g. `DashboardUiModels`). Claude renders them; Codex's mappers produce them. Treat these classes as a **contract**: whoever needs to change a field must claim it first, then push one small `main` commit before handoff.
 2. **`ui/model/**` mappers** — mapper logic is Codex-owned because it depends on the shape of domain models. Claude reads the output but does not edit mapper logic.
 3. **`di/AppContainer.kt`** — Codex adds new use cases here; Claude may need a new dependency for a screen. Claim before editing.
 4. **`ui/AppRoot.kt` / `MainActivity.kt`** and **`app/build.gradle.kts`** — navigation wiring and library additions. Different lines usually auto-merge, but claim first to be safe.
 
-When a task genuinely needs both a contract change and UI work, do the contract change first (Codex), merge it to `main`, then let Claude build UI on top.
+When a task genuinely needs both a contract change and UI work, Codex commits/pushes the contract to `main`, then Claude pulls `main` and builds the UI.
 
-## Collaboration Mode (2026-07-11)
+## Collaboration Mode (2026-07-13 main-only)
 
-**평소: 원래 역할대로.** Claude = UI 층(`ui/**` 렌더링), Codex = 로직 층(data/domain/notification/mapper). 각자 자기 층에서 병렬로 일하며 서로의 파일을 건드리지 않는다. 이게 기본이고 가장 효율적이다.
+**평소: 원래 역할대로 순차 작업.** Claude = UI 층(`ui/**` 렌더링), Codex = 로직 층(data/domain/notification/mapper). 한 번에 한 agent만 `main`에서 작업하고 commit/push 후 다음 agent에게 인계한다.
 
 **예외(비상 릴레이): 한쪽이 토큰 소진 등으로 멈췄을 때만.** 남은 쪽이 층 경계를 넘어 상대의 미완 작업을 이어받는다. 다시 양쪽이 살아나면 각자 원래 층으로 복귀한다.
 
 릴레이가 가능하려면 여러 단계 작업은 항상 아래를 지킨다 (평소에도, 비상 대비용):
 
 1. **계획서가 단일 진실**: 여러 단계 작업은 `docs/superpowers/plans/YYYY-MM-DD-<이름>.md`에 만든다. 헤더에 `Status:`(in-progress/complete), `Owner:`(현재 작업자), 태스크는 `- [ ]` 체크박스. 각 계획서 끝에 "이어받기 바통" 문구 포함.
-2. **태스크 하나 끝날 때마다** 체크 `- [x]` + 즉시 main까지 push. 이 커밋 이력이 비상 시 바통이 된다.
-3. **비상 인계**: 멈춘 계획서를 이어받는 쪽은 `git fetch` → 첫 미체크 태스크부터. `Owner:`를 본인으로 바꿔 착수 선언. 커밋 안 된 반쪽은 `git status`로 확인.
+2. **태스크 하나 끝날 때마다** 체크 `- [x]` + `main` commit/push. 이 커밋 이력이 비상 시 바통이 된다.
+3. **비상 인계**: 멈춘 계획서를 이어받는 쪽은 `git switch main` → `git pull --ff-only origin main` → 첫 미체크 태스크부터. `Owner:`를 본인으로 바꿔 착수 선언. 커밋 안 된 반쪽은 `git status`로 확인.
 4. 검증 규칙 동일: 태스크마다 관련 테스트 + `:app:assembleDebug`, TDD 우선, 경계 파일은 아래 Claims에 기록.
 5. 완료 시 `Status: complete` + APP_REVIEW_FIX_LIST.md 갱신.
 
@@ -90,7 +93,7 @@ When a task genuinely needs both a contract change and UI work, do the contract 
 
 ## Shared File Claims
 
-Append a line before you start editing a shared/boundary file; remove it after the change is merged to `main`.
+Append a line before you start editing a shared/boundary file; remove it in the completion commit pushed to `main`.
 
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
@@ -103,7 +106,7 @@ Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 ## Claude UI Notes
 
-Codex found UI-owned review flow issues while fixing app logic. Claude should apply these after the Codex logic branch is merged or rebased:
+Codex found UI-owned review flow issues while fixing app logic. Claude should apply these after the relevant Codex `main` commit is pushed and pulled:
 
 1. `ACCOUNT_UNMATCHED` review cards should not use the generic memo confirm flow. The primary action text is "계좌 확인", so it should open an account selection/edit flow or route to the transaction edit dialog with account focus.
 2. Review actions should use the atomic review use cases exposed from `AppContainer` instead of calling `updateTransaction()` and `resolveReviewItem()` separately.

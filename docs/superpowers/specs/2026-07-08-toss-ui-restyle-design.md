@@ -1,5 +1,7 @@
 # Toss-style UI Restyle — Design Spec
 
+> Historical document: branch references below describe the original execution only. Current work must follow `AGENTS.md` and use `main` exclusively.
+
 - Date: 2026-07-08
 - Branch: `claude/ui-polish`
 - Agent: Claude (UI). Logic/mappers stay Codex-owned.

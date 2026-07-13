@@ -1,5 +1,7 @@
 # Toss-style UI Restyle — Foundation + Home Implementation Plan
 
+> Historical document: branch references below describe the original execution only. Current work must follow `AGENTS.md` and use `main` exclusively.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build a light+dark design-token layer (colors, Pretendard typography, shapes, spacing) and apply it to the Home screen + bottom nav, matching the approved Toss-like look.

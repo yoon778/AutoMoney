@@ -2,7 +2,7 @@
 
 Status: in-progress
 Owner: Codex 로직(T1·T2·T3·T4·T5·T7·T8) + Claude UI(T6, T7 검증 결과 제공)
-Branches: `codex/app-logic` / `claude/ui-polish`
+Branch: `main` only
 
 > **For agentic workers:** 태스크별 TDD, 작은 경로별 커밋, `git add .` / `git add -A` 금지
 
@@ -93,28 +93,29 @@ NotificationListenerService
 - [ ] **T8 최종 회귀·문서 완료**
 
 완료 커밋마다 해당 Task를 `[x]`로 바꾸고 `Last commit SHA` 갱신
-각 Task commit은 해당 agent branch에만 push, main merge는 사용자 검토 gate에서만 수행
+각 Task는 현재 Owner가 `main`에 작은 commit으로 기록·push한 뒤 다음 Owner에게 순차 인계
 
 ### 구현 착수 gate
 
-Codex T1 시작 전 clean worktree와 최신 main 확인
+Codex T1 시작 전 단일 root worktree, 정확한 `main`, 최신 원격 상태 확인
 
 ```powershell
 git fetch origin
+git switch main
+git pull --ff-only origin main
 git status --short --branch
-git rebase origin/main
-git merge-base --is-ancestor origin/main HEAD
+if ((git branch --show-current) -ne 'main') { throw 'main branch required' }
 ```
 
-마지막 명령이 성공한 `codex/*` branch에서만 구현 시작
+별도 branch/worktree를 만들지 않고 마지막 명령이 성공한 clean `main`에서만 구현 시작
 
 ### Shared File Claims
 
 실제 편집 직전에 `docs/AI_COLLABORATION.md`에 claim 추가
 
-- Codex: `di/AppContainer.kt` — T2 시작 전 claim, T5 main merge 확인 뒤 T8 cleanup commit에서 제거
-- Claude: `ui/AppRoot.kt` — T6 시작 전 claim, T6 main merge 확인 뒤 T8 cleanup commit에서 제거
-- Claude: `MainActivity.kt` — T6 시작 전 claim, T6 main merge 확인 뒤 T8 cleanup commit에서 제거
+- Codex: `di/AppContainer.kt` — T2 시작 전 claim, T5 완료 commit에서 제거
+- Claude: `ui/AppRoot.kt` — T6 시작 전 claim, T6 완료 commit에서 제거
+- Claude: `MainActivity.kt` — T6 시작 전 claim, T6 완료 commit에서 제거
 - `app/build.gradle.kts`는 의존성 추가가 없으므로 편집 금지
 
 계획 작성만으로 claim 선점하지 않음
@@ -353,7 +354,7 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 
 **Persistence:** `SharedPreferences("notification_sources")`
 
-**Claim:** `di/AppContainer.kt` 편집 전 claim, Codex T5 main merge까지 유지
+**Claim:** `di/AppContainer.kt` 편집 전 claim, Codex T5 완료 commit까지 유지
 
 Local JVM에서는 Android `SharedPreferences`를 직접 실행하지 않음
 상태 reducer·Map/StringSet codec·LRU는 순수 함수 + fake map으로 단위 테스트
@@ -568,10 +569,10 @@ class NotificationSourceSettingsService {
 
 **Handoff gate:**
 
-- [ ] T1~T5 각 커밋 push
-- [ ] Codex branch 사용자 검토 후 main merge
-- [ ] Claude가 main fetch/rebase 후 T6 시작
-- [ ] `di/AppContainer.kt` claim은 T8 cleanup 전까지 유지
+- [ ] T1~T5 각 commit을 `main`에 push
+- [ ] T5 완료 commit에서 `di/AppContainer.kt` claim 제거
+- [ ] clean `main` 확인 후 Claude에게 순차 인계
+- [ ] Claude가 `git pull --ff-only origin main` 후 T6 시작
 
 **Commit:** `feat: expose notification source settings contract`
 
@@ -581,7 +582,7 @@ class NotificationSourceSettingsService {
 
 **Owner:** Claude
 
-**선행:** T1~T5 contract commit이 main에 merge된 뒤 시작
+**선행:** T1~T5 contract commit이 `origin/main`에 push된 뒤 pull하고 시작
 
 **Files:**
 
@@ -631,9 +632,9 @@ $env:Path="$env:JAVA_HOME\bin;$env:Path"
 
 **Handoff gate:**
 
-- [ ] Claude commit push
-- [ ] 사용자 검토 후 `claude/ui-polish` → main merge
-- [ ] `ui/AppRoot.kt`, `MainActivity.kt` claims는 T8 cleanup 전까지 유지
+- [ ] T6 완료 commit에서 `ui/AppRoot.kt`, `MainActivity.kt` claims 제거
+- [ ] Claude commit을 `main`에 push
+- [ ] clean `main` 확인
 - [ ] Claude가 UI 수동 검증 결과를 T7 Codex에 전달
 
 **Commit:** `feat(ui): choose notification source apps`
@@ -658,11 +659,11 @@ shared file 수정이 필요하면 편집 직전 claim을 다시 추가
 결함 loop:
 
 - 로직 결함 → Codex 수정·관련 테스트·push
-- UI 결함 → Claude가 최신 main 기반 `claude/*`에서 수정·검증·push
-- 사용자 UI fix main merge → Codex `origin/main` 재동기화
+- UI 결함 → Claude가 다음 단독 turn에서 최신 `main`을 pull하고 수정·검증·push
+- Claude push 완료 → Codex가 `git pull --ff-only origin main` 후 재검증
 - 실패 시나리오 재검증 완료 전 T8 진입 금지
 
-**착수 gate:** T5와 T6가 main에 merge된 뒤 Codex branch를 `origin/main`에 동기화
+**착수 gate:** T5와 T6가 `origin/main`에 push된 뒤 Codex가 clean `main`을 fast-forward
 
 **Wiring:**
 
@@ -721,7 +722,6 @@ $adb='C:\Users\cys04\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 - Modify: `docs/superpowers/plans/2026-07-13-notification-app-selection-content-gate.md`
 - Modify: `docs/testing/bank-notification-balance-sync.md`
 - Modify: `docs/APP_REVIEW_FIX_LIST.md`
-- Modify: `docs/AI_COLLABORATION.md`
 
 - [ ] targeted notification/parser tests 전부 통과
 - [ ] full unit tests 통과
@@ -729,7 +729,7 @@ $adb='C:\Users\cys04\AppData\Local\Android\Sdk\platform-tools\adb.exe'
 - [ ] `[DEBUG-*]` 임시 로그 없음
 - [ ] raw notification text 로그 없음
 - [ ] `QUERY_ALL_PACKAGES` 없음
-- [ ] T5/T6 commit이 main에 있음을 확인한 뒤 AppContainer/AppRoot/MainActivity claim 행 제거
+- [ ] AppContainer/AppRoot/MainActivity active claim 없음
 - [ ] `docs/testing/bank-notification-balance-sync.md` 실기기 결과 갱신
 - [ ] `docs/APP_REVIEW_FIX_LIST.md` N1/N2에 새 gate·사용자 선택 지원 결과 갱신
 - [ ] 본 계획서 모든 하위 체크박스와 Task 상태 일치
@@ -746,11 +746,9 @@ git status --short --branch
 
 **Commit:** `docs: verify selected notification sources`
 
-Commit 뒤 `git push origin codex/app-logic`
+Commit 뒤 `git push origin main`
 
-**Final handoff — 외부 gate:** 사용자 검토 후 `codex/app-logic` → main merge
-
-사용자 merge 뒤 `git fetch origin` 후 최종 commit이 `origin/main`의 ancestor인지 확인
+**Final handoff:** 사용자에게 `main` commit SHA와 검증 결과 전달
 
 ---
 
@@ -798,21 +796,18 @@ Commit 뒤 `git push origin codex/app-logic`
 4. Galaxy 실기기 debit/credit/transfer 확인
 5. 그 후 exact package를 registry에 추가
 
-## 커밋·merge 순서
+## 커밋·실행 순서
 
 ```text
 docs plan
-→ Codex T1 access policy
-→ Codex T2 selection stores
-→ Codex T3 privacy gate/diagnostics
-→ Codex T4 generic parser/review invariant
-→ Codex T5 settings contract/headless wiring
-→ 사용자 codex branch → main merge
-→ Claude main rebase 후 T6 settings UI
-→ 사용자 claude branch → main merge
-→ Codex main 동기화 후 T7/T8 통합·최종 검증
-→ T8 cleanup commit에서 AppContainer/AppRoot/MainActivity claims 제거
-→ Codex push → 사용자 최종 main merge로 claim 해제 게시
+→ Codex main pull → T1 access policy commit/push
+→ Codex T2 selection stores commit/push
+→ Codex T3 privacy gate/diagnostics commit/push
+→ Codex T4 generic parser/review invariant commit/push
+→ Codex T5 settings contract/headless wiring commit/push
+→ Claude main pull → T6 settings UI commit/push
+→ Codex main pull → T7/T8 통합·최종 검증 commit/push
+→ 사용자 main commit diff 검토
 ```
 
 각 커밋 전 `git status`, 특정 파일만 `git add <path>`
@@ -828,7 +823,7 @@ docs plan
 - Current branch:
 - Last commit SHA:
 - First unchecked task:
-- Prerequisite merge status:
+- Prerequisite main push status:
 - Active claims:
 - Uncommitted files:
 - Last verification command/result:

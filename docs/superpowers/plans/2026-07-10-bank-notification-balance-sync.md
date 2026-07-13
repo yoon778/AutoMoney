@@ -1,5 +1,7 @@
 # Bank Notification Balance Sync Implementation Plan
 
+> Historical document: branch references below describe the original execution only. Current work must follow `AGENTS.md` and use `main` exclusively.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Match high-confidence bank account notifications to registered asset accounts and update balances exactly once while ambiguous transfers remain in Review.
