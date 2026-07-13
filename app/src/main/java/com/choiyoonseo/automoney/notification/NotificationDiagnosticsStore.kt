@@ -26,6 +26,7 @@ data class LastNotificationDiagnostic(
         fun fromIngestionResult(
             snapshot: NotificationSnapshot,
             result: IngestionResult,
+            sourceAccess: NotificationSourceAccess = NotificationSourceAccess.TRUSTED,
             receivedAt: Instant = Instant.now()
         ): LastNotificationDiagnostic {
             val diagnosticResult = when (result) {
@@ -38,43 +39,42 @@ data class LastNotificationDiagnostic(
                 is IngestionResult.Duplicate -> result.transactionType?.name
                 is IngestionResult.Ignored -> null
             }
-            val message = when (result) {
-                is IngestionResult.Saved -> "저장됨"
-                is IngestionResult.Duplicate -> "중복 알림"
-                is IngestionResult.Ignored -> result.reason
+            val message = if (sourceAccess == NotificationSourceAccess.SELECTED_UNVERIFIED) {
+                when (result) {
+                    is IngestionResult.Saved -> result.reviewReason?.name ?: "REVIEW_REQUIRED"
+                    is IngestionResult.Duplicate -> "DUPLICATE"
+                    is IngestionResult.Ignored -> "IGNORED"
+                }
+            } else {
+                when (result) {
+                    is IngestionResult.Saved -> "저장됨"
+                    is IngestionResult.Duplicate -> "중복 알림"
+                    is IngestionResult.Ignored -> result.reason
+                }
             }
             return fromSnapshot(
                 snapshot = snapshot,
                 receivedAt = receivedAt,
                 result = diagnosticResult,
                 message = message,
-                parsedType = parsedType
+                parsedType = parsedType,
+                sourceAccess = sourceAccess
             )
         }
 
         fun fromError(
             snapshot: NotificationSnapshot,
             throwable: Throwable,
+            sourceAccess: NotificationSourceAccess = NotificationSourceAccess.TRUSTED,
             receivedAt: Instant = Instant.now()
         ): LastNotificationDiagnostic =
             fromSnapshot(
                 snapshot = snapshot,
                 receivedAt = receivedAt,
                 result = NotificationDiagnosticResult.ERROR,
-                message = throwable.message ?: throwable::class.simpleName ?: "오류 발생",
-                parsedType = null
-            )
-
-        fun fromUnsupportedPackage(
-            snapshot: NotificationSnapshot,
-            receivedAt: Instant = Instant.now()
-        ): LastNotificationDiagnostic =
-            fromSnapshot(
-                snapshot = snapshot,
-                receivedAt = receivedAt,
-                result = NotificationDiagnosticResult.IGNORED,
-                message = "unsupported package",
-                parsedType = null
+                message = throwable::class.simpleName ?: "RUNTIME_ERROR",
+                parsedType = null,
+                sourceAccess = sourceAccess
             )
 
         private fun fromSnapshot(
@@ -82,18 +82,21 @@ data class LastNotificationDiagnostic(
             receivedAt: Instant,
             result: NotificationDiagnosticResult,
             message: String?,
-            parsedType: String?
-        ): LastNotificationDiagnostic =
-            LastNotificationDiagnostic(
+            parsedType: String?,
+            sourceAccess: NotificationSourceAccess
+        ): LastNotificationDiagnostic {
+            val unverified = sourceAccess == NotificationSourceAccess.SELECTED_UNVERIFIED
+            return LastNotificationDiagnostic(
                 receivedAt = receivedAt,
                 postedAt = snapshot.postedAt,
                 packageName = snapshot.packageName,
-                title = snapshot.title?.let(SensitiveTextMasker::mask),
-                textPreview = snapshot.textPreview(),
+                title = if (unverified) null else snapshot.title?.let(SensitiveTextMasker::mask),
+                textPreview = if (unverified) UNVERIFIED_TEXT_PREVIEW else snapshot.textPreview(),
                 result = result,
                 message = message,
                 parsedType = parsedType
             )
+        }
     }
 }
 
@@ -110,9 +113,8 @@ class NotificationDiagnosticsStore(context: Context) {
             .apply()
     }
 
-    fun load(): LastNotificationDiagnostic? =
-        lastNotificationDiagnosticFromPreferenceMap(
-            mapOf(
+    fun load(): LastNotificationDiagnostic? {
+        val values = mapOf(
                 KEY_RECEIVED_AT to preferences.getString(KEY_RECEIVED_AT, null),
                 KEY_POSTED_AT to preferences.getString(KEY_POSTED_AT, null),
                 KEY_PACKAGE_NAME to preferences.getString(KEY_PACKAGE_NAME, null),
@@ -122,7 +124,12 @@ class NotificationDiagnosticsStore(context: Context) {
                 KEY_MESSAGE to preferences.getString(KEY_MESSAGE, null),
                 KEY_PARSED_TYPE to preferences.getString(KEY_PARSED_TYPE, null)
             )
-        )
+        if (values[KEY_MESSAGE] == LEGACY_UNSUPPORTED_MESSAGE) {
+            clear()
+            return null
+        }
+        return lastNotificationDiagnosticFromPreferenceMap(values)
+    }
 
     fun clear() {
         preferences.edit().clear().apply()
@@ -145,6 +152,7 @@ internal fun lastNotificationDiagnosticFromPreferenceMap(
     values: Map<String, String?>
 ): LastNotificationDiagnostic? {
     return try {
+        if (values[KEY_MESSAGE] == LEGACY_UNSUPPORTED_MESSAGE) return null
         val receivedAt = Instant.parse(values[KEY_RECEIVED_AT] ?: return null)
         val postedAt = Instant.parse(values[KEY_POSTED_AT] ?: return null)
         val packageName = values[KEY_PACKAGE_NAME]?.takeIf { it.isNotBlank() } ?: return null
@@ -186,3 +194,5 @@ private const val KEY_RESULT = "result"
 private const val KEY_MESSAGE = "message"
 private const val KEY_PARSED_TYPE = "parsedType"
 private const val MAX_TEXT_PREVIEW_LENGTH = 160
+private const val LEGACY_UNSUPPORTED_MESSAGE = "unsupported package"
+private const val UNVERIFIED_TEXT_PREVIEW = "사용자 선택 앱 · 원문 미저장"

@@ -67,7 +67,7 @@ class NotificationDiagnosticsStoreTest {
     }
 
     @Test
-    fun createsErrorDiagnosticWithMessage() {
+    fun errorDiagnosticDoesNotPersistRawMessage() {
         val diagnostic = LastNotificationDiagnostic.fromError(
             snapshot = tossSnapshot(),
             throwable = IllegalStateException("database closed"),
@@ -75,21 +75,28 @@ class NotificationDiagnosticsStoreTest {
         )
 
         assertThat(diagnostic.result).isEqualTo(NotificationDiagnosticResult.ERROR)
-        assertThat(diagnostic.message).isEqualTo("database closed")
+        assertThat(diagnostic.message).isEqualTo("IllegalStateException")
         assertThat(diagnostic.parsedType).isNull()
     }
 
     @Test
-    fun createsUnsupportedPackageDiagnostic() {
-        val diagnostic = LastNotificationDiagnostic.fromUnsupportedPackage(
-            snapshot = tossSnapshot().copy(packageName = "com.shopping.adapp"),
+    fun unverifiedDiagnosticStoresFixedPreviewOnly() {
+        val diagnostic = LastNotificationDiagnostic.fromIngestionResult(
+            snapshot = tossSnapshot().copy(packageName = "com.kbankwith.smartbank"),
+            result = IngestionResult.Saved(
+                TransactionType.EXPENSE,
+                com.choiyoonseo.automoney.domain.model.ReviewReason.LOW_CONFIDENCE_CATEGORY
+            ),
+            sourceAccess = NotificationSourceAccess.SELECTED_UNVERIFIED,
             receivedAt = Instant.parse("2026-07-02T03:00:05Z")
         )
 
-        assertThat(diagnostic.packageName).isEqualTo("com.shopping.adapp")
-        assertThat(diagnostic.result).isEqualTo(NotificationDiagnosticResult.IGNORED)
-        assertThat(diagnostic.message).isEqualTo("unsupported package")
-        assertThat(diagnostic.parsedType).isNull()
+        assertThat(diagnostic.packageName).isEqualTo("com.kbankwith.smartbank")
+        assertThat(diagnostic.title).isNull()
+        assertThat(diagnostic.textPreview).isEqualTo("사용자 선택 앱 · 원문 미저장")
+        assertThat(diagnostic.textPreview).doesNotContain("스타벅스")
+        assertThat(diagnostic.message).isEqualTo("LOW_CONFIDENCE_CATEGORY")
+        assertThat(diagnostic.parsedType).isEqualTo("EXPENSE")
     }
 
     @Test
@@ -118,6 +125,18 @@ class NotificationDiagnosticsStoreTest {
         )
 
         assertThat(restored).isNull()
+    }
+
+    @Test
+    fun legacyUnsupportedDiagnosticMapReturnsNull() {
+        val values = LastNotificationDiagnostic.fromIngestionResult(
+            snapshot = tossSnapshot(),
+            result = IngestionResult.Ignored("not parsed")
+        ).toPreferenceMap().toMutableMap().apply {
+            put("message", "unsupported package")
+        }
+
+        assertThat(lastNotificationDiagnosticFromPreferenceMap(values)).isNull()
     }
 
     @Test

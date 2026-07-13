@@ -85,7 +85,7 @@ NotificationListenerService
 
 - [x] **T1 접근 정책·정적 catalog 계약**
 - [x] **T2 선택/감지 저장소**
-- [ ] **T3 content-read gate·진단 개인정보**
+- [x] **T3 content-read gate·진단 개인정보**
 - [ ] **T4 Generic parser·review 불변식**
 - [ ] **T5 headless 배선·Claude 소비 계약**
 - [ ] **T6 설정 UI**
@@ -412,34 +412,34 @@ Local JVM에서는 Android `SharedPreferences`를 직접 실행하지 않음
 
 **기존 잘못된 계약 제거:**
 
-- [ ] `unsupportedPackagesStillWriteDiagnostic` 삭제/대체
-- [ ] `LastNotificationDiagnostic.fromUnsupportedPackage(snapshot)` 삭제
-- [ ] listener의 snapshot-before-gate 순서 제거
+- [x] `unsupportedPackagesStillWriteDiagnostic` 삭제/대체
+- [x] `LastNotificationDiagnostic.fromUnsupportedPackage(snapshot)` 삭제
+- [x] listener의 snapshot-before-gate 순서 제거
 
 **RED:**
 
-- [ ] `BLOCKED` source에서 throwing `readContent` lambda가 0회
-- [ ] `TRUSTED` / `SELECTED_UNVERIFIED`에서 lambda 정확히 1회
-- [ ] blocked source prepare 결과 null, Service가 ingestion coroutine을 시작하지 않음
-- [ ] blocked source가 기존 last financial diagnostic을 덮어쓰지 않음
-- [ ] listener source에서 모든 `notification/extras/key` 접근이 lazy content lambda 내부에만 위치
-- [ ] oversized title/text/expanded lines가 제한됨
-- [ ] diagnostic error에 raw `throwable.message` 저장하지 않음
-- [ ] legacy `message=unsupported package` 진단 load 시 null 처리
+- [x] `BLOCKED` source에서 throwing `readContent` lambda가 0회
+- [x] `TRUSTED` / `SELECTED_UNVERIFIED`에서 lambda 정확히 1회
+- [x] blocked source prepare 결과 null, Service가 ingestion coroutine을 시작하지 않음
+- [x] blocked source가 기존 last financial diagnostic을 덮어쓰지 않음
+- [x] listener source에서 모든 `notification/extras/key` 접근이 lazy content lambda 내부에만 위치
+- [x] oversized title/text/expanded lines가 제한됨
+- [x] diagnostic error에 raw `throwable.message` 저장하지 않음
+- [x] legacy `message=unsupported package` 진단 load 시 null 처리
 
 **GREEN:**
 
-- [ ] blocked source는 observed metadata만 저장
-- [ ] 허용 source만 snapshot/ingestion/상세 diagnostic 생성
-- [ ] `readContent`에서 textLines `take(10)` 및 문자열 길이 제한 후 snapshot builder 전달
-- [ ] CharSequence는 전체 `.toString()` 전에 `subSequence(0, min(length, limit))`로 제한
-- [ ] textLines는 전체 `.map` 전에 `asSequence().take(10)` 적용
-- [ ] error diagnostic은 예외 class 또는 고정 error code만 저장
-- [ ] 마스킹 preview 기존 동작 유지
-- [ ] unverified diagnostic은 raw title/text preview 미저장
-- [ ] legacy unsupported preference는 load 시 실제 clear
-- [ ] AppContainer가 coordinator 단일 인스턴스를 제공
-- [ ] `onDestroy()` scope cancel 유지
+- [x] blocked source는 observed metadata만 저장
+- [x] 허용 source만 snapshot/ingestion/상세 diagnostic 생성
+- [x] `readContent`에서 textLines `take(10)` 및 문자열 길이 제한 후 snapshot builder 전달
+- [x] CharSequence는 전체 `.toString()` 전에 `subSequence(0, min(length, limit))`로 제한
+- [x] textLines는 전체 `.map` 전에 `asSequence().take(10)` 적용
+- [x] error diagnostic은 예외 class 또는 고정 error code만 저장
+- [x] 마스킹 preview 기존 동작 유지
+- [x] unverified diagnostic은 raw title/text preview 미저장
+- [x] legacy unsupported preference는 load 시 실제 clear
+- [x] AppContainer가 coordinator 단일 인스턴스를 제공
+- [x] `onDestroy()` scope cancel 유지
 
 **검증:**
 
@@ -822,16 +822,16 @@ docs plan
 
 - Current branch: `main`
 - Last commit SHA: `19c48d6` (T1)
-- First unchecked task: T3
-- Prerequisite main push status: T1 pushed, T2 push pending
+- First unchecked task: T4
+- Prerequisite main push status: T1-T2 pushed, T3 verification complete
 - Active claims: Codex `di/AppContainer.kt` through T5
-- Uncommitted files: T2 owned files + claim + plan only
-- Last verification command/result: T2 unit tests + androidTest compile + `:app:assembleDebug` PASS
+- Uncommitted files: T3 owned files + plan only
+- Last verification command/result: T3 targeted unit tests + androidTest compile + `:app:assembleDebug` PASS
 - Galaxy verification status: not started
 
 현재 상태:
 
 - 계획 작성 완료
-- T1·T2 구현·검증 완료
-- active claim 없음
+- T1-T3 구현·검증 완료
+- active claim: Codex `di/AppContainer.kt` through T5
 - 실기기 기존 결함 재현 완료

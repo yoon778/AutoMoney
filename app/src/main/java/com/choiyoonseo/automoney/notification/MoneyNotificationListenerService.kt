@@ -4,6 +4,7 @@ import android.app.Notification
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import com.choiyoonseo.automoney.AutoMoneyApplication
+import java.time.Instant
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,49 +13,58 @@ import kotlinx.coroutines.launch
 
 class MoneyNotificationListenerService : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private val snapshotBuilder = NotificationSnapshotBuilder()
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
-        val extras = sbn.notification.extras
-        val snapshot = snapshotBuilder.build(
-            NotificationContentFields(
-                packageName = sbn.packageName,
-                notificationKey = sbn.key,
-                title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString(),
-                text = extras.getCharSequence(Notification.EXTRA_TEXT)?.toString(),
-                bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString(),
-                textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
-                    ?.map { it.toString() }
-                    .orEmpty(),
-                postTimeMillis = sbn.postTime
-            )
-        )
-
-        if (!FinancialAppRegistry.isSupportedPackage(sbn.packageName)) {
-            scope.launch {
-                val app = applicationContext as AutoMoneyApplication
-                app.container.notificationDiagnosticsStore.save(
-                    LastNotificationDiagnostic.fromUnsupportedPackage(snapshot)
+        val app = applicationContext as AutoMoneyApplication
+        val prepared = app.container.notificationDispatchCoordinator.prepare(
+            packageName = sbn.packageName,
+            postedAt = Instant.ofEpochMilli(sbn.postTime),
+            readContent = {
+                val notification = sbn.notification
+                val extras = notification.extras
+                NotificationContentFields(
+                    packageName = sbn.packageName,
+                    notificationKey = sbn.key.take(MAX_NOTIFICATION_KEY_READ_LENGTH),
+                    title = extras.getCharSequence(Notification.EXTRA_TITLE)
+                        .toBoundedString(MAX_NOTIFICATION_TITLE_LENGTH),
+                    text = extras.getCharSequence(Notification.EXTRA_TEXT)
+                        .toBoundedString(MAX_NOTIFICATION_TEXT_LENGTH),
+                    bigText = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)
+                        .toBoundedString(MAX_NOTIFICATION_EXPANDED_TEXT_LENGTH),
+                    textLines = extras.getCharSequenceArray(Notification.EXTRA_TEXT_LINES)
+                        .orEmpty()
+                        .asSequence()
+                        .take(MAX_NOTIFICATION_EXPANDED_LINES)
+                        .mapNotNull { it.toBoundedString(MAX_NOTIFICATION_TEXT_LENGTH) }
+                        .toList(),
+                    postTimeMillis = sbn.postTime
                 )
             }
-            return
-        }
+        )
+        prepared ?: return
 
         scope.launch {
-            val app = applicationContext as AutoMoneyApplication
             try {
-                val result = app.container.notificationIngestionUseCase.ingest(snapshot)
+                val result = when (prepared.sourceAccess) {
+                    NotificationSourceAccess.TRUSTED ->
+                        app.container.notificationIngestionUseCase.ingest(prepared.snapshot)
+                    NotificationSourceAccess.SELECTED_UNVERIFIED ->
+                        IngestionResult.Ignored("UNVERIFIED_PARSER_PENDING")
+                    NotificationSourceAccess.BLOCKED -> return@launch
+                }
                 app.container.notificationDiagnosticsStore.save(
                     LastNotificationDiagnostic.fromIngestionResult(
-                        snapshot = snapshot,
-                        result = result
+                        snapshot = prepared.snapshot,
+                        result = result,
+                        sourceAccess = prepared.sourceAccess
                     )
                 )
             } catch (e: RuntimeException) {
                 app.container.notificationDiagnosticsStore.save(
                     LastNotificationDiagnostic.fromError(
-                        snapshot = snapshot,
-                        throwable = e
+                        snapshot = prepared.snapshot,
+                        throwable = e,
+                        sourceAccess = prepared.sourceAccess
                     )
                 )
             }
@@ -66,3 +76,11 @@ class MoneyNotificationListenerService : NotificationListenerService() {
         super.onDestroy()
     }
 }
+
+private fun CharSequence?.toBoundedString(maxLength: Int): String? {
+    if (this == null) return null
+    val endIndex = minOf(length, maxLength)
+    return subSequence(0, endIndex).toString()
+}
+
+private const val MAX_NOTIFICATION_KEY_READ_LENGTH = 256

@@ -15,13 +15,13 @@ class MoneyNotificationListenerServiceTest {
     }
 
     @Test
-    fun unsupportedPackagesStillWriteDiagnostic() {
+    fun listenerGatesContentBeforeStartingIngestionCoroutine() {
         val service = File("src/main/java/com/choiyoonseo/automoney/notification/MoneyNotificationListenerService.kt")
             .readText()
 
-        assertThat(service).contains("LastNotificationDiagnostic.fromUnsupportedPackage")
-        assertThat(service.indexOf("snapshotBuilder.build")).isLessThan(
-            service.indexOf("FinancialAppRegistry.isSupportedPackage")
-        )
+        assertThat(service).doesNotContain("LastNotificationDiagnostic.fromUnsupportedPackage")
+        assertThat(service).contains("notificationDispatchCoordinator.prepare")
+        assertThat(service.indexOf("readContent = {")).isLessThan(service.indexOf("sbn.notification"))
+        assertThat(service.indexOf("prepared ?: return")).isLessThan(service.indexOf("scope.launch"))
     }
 }

@@ -19,7 +19,9 @@ import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
+import com.choiyoonseo.automoney.notification.NotificationDispatchCoordinator
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
+import com.choiyoonseo.automoney.notification.NotificationSnapshotBuilder
 import com.choiyoonseo.automoney.notification.RunSampleNotificationScenarioUseCase
 import com.choiyoonseo.automoney.notification.SharedPreferencesNotificationAppAccessStore
 import com.choiyoonseo.automoney.notification.SharedPreferencesObservedNotificationSourceStore
@@ -31,6 +33,11 @@ class AppContainer(context: Context) {
         SharedPreferencesNotificationAppAccessStore(context.applicationContext)
     val observedNotificationSourceStore =
         SharedPreferencesObservedNotificationSourceStore(context.applicationContext)
+    val notificationDispatchCoordinator = NotificationDispatchCoordinator(
+        accessFor = notificationAppAccessStore::accessFor,
+        recordObserved = observedNotificationSourceStore::record,
+        snapshotBuilder = NotificationSnapshotBuilder()
+    )
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
     val walletTopupNoticeStore = SharedPreferencesWalletTopupNoticeStore(context.applicationContext)
     val notificationOnboardingStore = SharedPreferencesNotificationOnboardingStore(context.applicationContext)

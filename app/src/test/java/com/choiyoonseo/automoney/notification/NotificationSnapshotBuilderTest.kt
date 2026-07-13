@@ -55,4 +55,23 @@ class NotificationSnapshotBuilderTest {
             "06.27 12:47"
         ).inOrder()
     }
+
+    @Test
+    fun limitsAllContentFields() {
+        val snapshot = builder.build(
+            NotificationContentFields(
+                packageName = "com.example.bank",
+                postTimeMillis = 0,
+                title = "T".repeat(300),
+                text = "X".repeat(2_000),
+                bigText = (1..20).joinToString("\n") { "$it-${"B".repeat(600)}" },
+                textLines = (1..20).map { "$it-${"L".repeat(600)}" }
+            )
+        )
+
+        assertThat(snapshot.title).hasLength(256)
+        assertThat(snapshot.text).hasLength(1_024)
+        assertThat(snapshot.bigText.orEmpty().lines().size).isAtMost(10)
+        assertThat(snapshot.bigText.orEmpty().length).isAtMost(4_096)
+    }
 }
