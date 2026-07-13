@@ -26,7 +26,7 @@ class NotificationIngestionFeedbackNotifier(
         NotificationManagerCompat.from(context).notify(
             nextNotificationId.incrementAndGet(),
             NotificationCompat.Builder(context, channelIdFor(feedback.kind))
-                .setSmallIcon(R.drawable.ic_launcher)
+                .setSmallIcon(R.mipmap.ic_launcher)
                 .setContentTitle(feedback.title)
                 .setContentText(feedback.text)
                 .setContentIntent(contentIntent())
