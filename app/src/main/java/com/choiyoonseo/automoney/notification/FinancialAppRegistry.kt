@@ -7,7 +7,8 @@ data class FinancialAppInfo(
     val displayName: String,
     val badgeText: String,
     val bankProvider: BankProvider?,
-    val aggregatesMultipleBanks: Boolean = false
+    val aggregatesMultipleBanks: Boolean = false,
+    val defaultContentAccess: Boolean = false
 )
 
 object FinancialAppRegistry {
@@ -28,61 +29,71 @@ object FinancialAppRegistry {
             displayName = "\ud1a0\uc2a4",
             badgeText = "T",
             bankProvider = null,
-            aggregatesMultipleBanks = true
+            aggregatesMultipleBanks = true,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = KB_STAR_BANKING_PACKAGE,
             displayName = "\uad6d\ubbfc\uc740\ud589",
             badgeText = "KB",
-            bankProvider = BankProvider.KB
+            bankProvider = BankProvider.KB,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = SHINHAN_BANKING_PACKAGE,
             displayName = BankProvider.SHINHAN.displayName,
             badgeText = BankProvider.SHINHAN.badgeText,
-            bankProvider = BankProvider.SHINHAN
+            bankProvider = BankProvider.SHINHAN,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = SHINHAN_LEGACY_PACKAGE,
             displayName = BankProvider.SHINHAN.displayName,
             badgeText = BankProvider.SHINHAN.badgeText,
-            bankProvider = BankProvider.SHINHAN
+            bankProvider = BankProvider.SHINHAN,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = HANA_BANKING_PACKAGE,
             displayName = BankProvider.HANA.displayName,
             badgeText = BankProvider.HANA.badgeText,
-            bankProvider = BankProvider.HANA
+            bankProvider = BankProvider.HANA,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = HANA_LEGACY_PACKAGE,
             displayName = BankProvider.HANA.displayName,
             badgeText = BankProvider.HANA.badgeText,
-            bankProvider = BankProvider.HANA
+            bankProvider = BankProvider.HANA,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = WOORI_BANKING_PACKAGE,
             displayName = BankProvider.WOORI.displayName,
             badgeText = BankProvider.WOORI.badgeText,
-            bankProvider = BankProvider.WOORI
+            bankProvider = BankProvider.WOORI,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = NH_BANKING_PACKAGE,
             displayName = BankProvider.NH.displayName,
             badgeText = BankProvider.NH.badgeText,
-            bankProvider = BankProvider.NH
+            bankProvider = BankProvider.NH,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = IBK_BANKING_PACKAGE,
             displayName = BankProvider.IBK.displayName,
             badgeText = BankProvider.IBK.badgeText,
-            bankProvider = BankProvider.IBK
+            bankProvider = BankProvider.IBK,
+            defaultContentAccess = true
         ),
         FinancialAppInfo(
             packageName = KAKAO_BANKING_PACKAGE,
             displayName = BankProvider.KAKAO_BANK.displayName,
             badgeText = BankProvider.KAKAO_BANK.badgeText,
-            bankProvider = BankProvider.KAKAO_BANK
+            bankProvider = BankProvider.KAKAO_BANK,
+            defaultContentAccess = true
         )
     )
     private val appInfoByPackage = supportedAppInfos.associateBy { it.packageName }
@@ -93,6 +104,9 @@ object FinancialAppRegistry {
 
     fun infoForPackage(packageName: String): FinancialAppInfo? =
         appInfoByPackage[packageName]
+
+    fun allAppInfos(): List<FinancialAppInfo> =
+        supportedAppInfos.toList()
 
     fun providerCandidateForPackage(packageName: String): BankProvider? =
         appInfoByPackage[packageName]?.bankProvider

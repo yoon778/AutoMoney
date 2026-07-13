@@ -3,6 +3,7 @@ package com.choiyoonseo.automoney.notification
 import com.choiyoonseo.automoney.domain.assets.BankProvider
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -77,7 +78,8 @@ class FinancialAppRegistryTest {
                 displayName = "\ud1a0\uc2a4",
                 badgeText = "T",
                 bankProvider = null,
-                aggregatesMultipleBanks = true
+                aggregatesMultipleBanks = true,
+                defaultContentAccess = true
             ),
             FinancialAppRegistry.infoForPackage("viva.republica.toss")
         )
@@ -86,10 +88,22 @@ class FinancialAppRegistryTest {
                 packageName = "com.kbstar.kbbank",
                 displayName = "\uad6d\ubbfc\uc740\ud589",
                 badgeText = "KB",
-                bankProvider = BankProvider.KB
+                bankProvider = BankProvider.KB,
+                defaultContentAccess = true
             ),
             FinancialAppRegistry.infoForPackage("com.kbstar.kbbank")
         )
         assertNull(FinancialAppRegistry.infoForPackage("com.shopping.adapp"))
+    }
+
+    @Test
+    fun exposesImmutableSnapshotOfAllRegisteredApps() {
+        val first = FinancialAppRegistry.allAppInfos()
+        val second = FinancialAppRegistry.allAppInfos()
+
+        assertEquals(10, first.size)
+        assertEquals(10, first.map { it.packageName }.distinct().size)
+        assertTrue(first.all { it.defaultContentAccess })
+        assertNotSame(first, second)
     }
 }

@@ -83,7 +83,7 @@ NotificationListenerService
 
 ### Task 상태
 
-- [ ] **T1 접근 정책·정적 catalog 계약**
+- [x] **T1 접근 정책·정적 catalog 계약**
 - [ ] **T2 선택/감지 저장소**
 - [ ] **T3 content-read gate·진단 개인정보**
 - [ ] **T4 Generic parser·review 불변식**
@@ -308,24 +308,24 @@ Service의 `readContent` lambda에서 먼저 자르고 `NotificationSnapshotBuil
 
 **RED:**
 
-- [ ] known package 기본 `TRUSTED`
-- [ ] future known package `defaultContentAccess=false`이면 기본 `BLOCKED`
-- [ ] future known package를 직접 허용해도 `SELECTED_UNVERIFIED`
-- [ ] known disabled package `BLOCKED`
-- [ ] unknown 기본 `BLOCKED`
-- [ ] unknown 직접 허용 `SELECTED_UNVERIFIED`
-- [ ] `com.bank` 허용이 `com.bank.fake`에 전파되지 않음
-- [ ] observed 여부만으로 허용되지 않음
-- [ ] catalog 조회 결과가 기존 10개를 exact package로 반환
+- [x] known package 기본 `TRUSTED`
+- [x] future known package `defaultContentAccess=false`이면 기본 `BLOCKED`
+- [x] future known package를 직접 허용해도 `SELECTED_UNVERIFIED`
+- [x] known disabled package `BLOCKED`
+- [x] unknown 기본 `BLOCKED`
+- [x] unknown 직접 허용 `SELECTED_UNVERIFIED`
+- [x] `com.bank` 허용이 `com.bank.fake`에 전파되지 않음
+- [x] observed 여부만으로 허용되지 않음
+- [x] catalog 조회 결과가 기존 10개를 exact package로 반환
 
 **GREEN:**
 
-- [ ] registry는 정적 메타데이터만 담당
-- [ ] `FinancialAppInfo.defaultContentAccess` 기본 false, 기존 10개만 true
-- [ ] 사용자 override는 별도 access store가 담당
-- [ ] 기존 10개 package 기본 동작 보존
-- [ ] `allAppInfos()`는 외부에서 registry를 변형할 수 없는 snapshot 반환
-- [ ] dynamic package를 registry map에 삽입하는 API 없음
+- [x] registry는 정적 메타데이터만 담당
+- [x] `FinancialAppInfo.defaultContentAccess` 기본 false, 기존 10개만 true
+- [x] 사용자 override는 별도 access store가 담당
+- [x] 기존 10개 package 기본 동작 보존
+- [x] `allAppInfos()`는 외부에서 registry를 변형할 수 없는 snapshot 반환
+- [x] dynamic package를 registry map에 삽입하는 API 없음
 
 **검증:**
 
@@ -820,18 +820,18 @@ docs plan
 
 기록 항목:
 
-- Current branch:
-- Last commit SHA:
-- First unchecked task:
-- Prerequisite main push status:
-- Active claims:
-- Uncommitted files:
-- Last verification command/result:
-- Galaxy verification status:
+- Current branch: `main`
+- Last commit SHA: T1 completion commit containing this checklist update
+- First unchecked task: T2
+- Prerequisite main push status: T1 push pending
+- Active claims: none
+- Uncommitted files: T1 owned files only
+- Last verification command/result: T1 targeted tests + `:app:assembleDebug` PASS
+- Galaxy verification status: not started
 
 현재 상태:
 
 - 계획 작성 완료
-- 구현 미시작
+- T1 구현·검증 완료
 - active claim 없음
 - 실기기 기존 결함 재현 완료
