@@ -134,6 +134,10 @@ class NotificationDiagnosticsStore(context: Context) {
     fun clear() {
         preferences.edit().clear().apply()
     }
+
+    fun clearIfPackage(packageName: String) {
+        if (load()?.packageName == packageName) clear()
+    }
 }
 
 internal fun LastNotificationDiagnostic.toPreferenceMap(): Map<String, String> =

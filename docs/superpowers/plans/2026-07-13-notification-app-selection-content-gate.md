@@ -87,7 +87,7 @@ NotificationListenerService
 - [x] **T2 선택/감지 저장소**
 - [x] **T3 content-read gate·진단 개인정보**
 - [x] **T4 Generic parser·review 불변식**
-- [ ] **T5 headless 배선·Claude 소비 계약**
+- [x] **T5 headless 배선·Claude 소비 계약**
 - [ ] **T6 설정 UI**
 - [ ] **T7 통합·Galaxy 검증**
 - [ ] **T8 최종 회귀·문서 완료**
@@ -544,22 +544,22 @@ class NotificationSourceSettingsService {
 
 **동작:**
 
-- [ ] options는 registry catalog + observed LRU + explicitly enabled package의 union
-- [ ] 전체 설치 앱 열거 없음, 정적 registry catalog만 사용
-- [ ] registry label → PackageManager label → packageName fallback
-- [ ] enabled 우선, 그 안에서 lastSeenAt 내림차순
-- [ ] registry 미감지 항목은 `lastSeenAt=null`, `count=0`
-- [ ] unknown ON → `SELECTED_UNVERIFIED`
-- [ ] default-trusted known ON → `TRUSTED`
-- [ ] registry default-false known ON → `SELECTED_UNVERIFIED`
-- [ ] OFF → 즉시 `BLOCKED`
-- [ ] 51번째 명시 허용은 `LIMIT_REACHED`, 상태 변경 없음
-- [ ] invalid/exact-deny package는 `INVALID_PACKAGE` 또는 `DENIED_PACKAGE`
-- [ ] OFF한 package가 최근 detailed diagnostic의 source면 즉시 clear
-- [ ] 거래/검토 기록은 toggle OFF로 삭제하지 않음
-- [ ] AppContainer가 Settings와 Listener가 공유할 동일 인스턴스 제공
-- [ ] Preview/테스트용 nullable/default wiring 가능
-- [ ] label resolver를 주입해 PackageManager 없는 JVM에서도 service 순수 테스트 가능
+- [x] options는 registry catalog + observed LRU + explicitly enabled package의 union
+- [x] 전체 설치 앱 열거 없음, 정적 registry catalog만 사용
+- [x] registry label → PackageManager label → packageName fallback
+- [x] enabled 우선, 그 안에서 lastSeenAt 내림차순
+- [x] registry 미감지 항목은 `lastSeenAt=null`, `count=0`
+- [x] unknown ON → `SELECTED_UNVERIFIED`
+- [x] default-trusted known ON → `TRUSTED`
+- [x] registry default-false known ON → `SELECTED_UNVERIFIED`
+- [x] OFF → 즉시 `BLOCKED`
+- [x] 51번째 명시 허용은 `LIMIT_REACHED`, 상태 변경 없음
+- [x] invalid/exact-deny package는 `INVALID_PACKAGE` 또는 `DENIED_PACKAGE`
+- [x] OFF한 package가 최근 detailed diagnostic의 source면 즉시 clear
+- [x] 거래/검토 기록은 toggle OFF로 삭제하지 않음
+- [x] AppContainer가 Settings와 Listener가 공유할 동일 인스턴스 제공
+- [x] Preview/테스트용 nullable/default wiring 가능
+- [x] label resolver를 주입해 PackageManager 없는 JVM에서도 service 순수 테스트 가능
 
 **검증:**
 

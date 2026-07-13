@@ -1,6 +1,7 @@
 package com.choiyoonseo.automoney.di
 
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.room.Room
 import com.choiyoonseo.automoney.data.local.AppDatabase
 import com.choiyoonseo.automoney.data.repository.RoomAssetRepository
@@ -23,6 +24,7 @@ import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationDispatchCoordinator
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
 import com.choiyoonseo.automoney.notification.NotificationSnapshotBuilder
+import com.choiyoonseo.automoney.notification.NotificationSourceSettingsService
 import com.choiyoonseo.automoney.notification.RunSampleNotificationScenarioUseCase
 import com.choiyoonseo.automoney.notification.SharedPreferencesNotificationAppAccessStore
 import com.choiyoonseo.automoney.notification.SharedPreferencesObservedNotificationSourceStore
@@ -40,6 +42,21 @@ class AppContainer(context: Context) {
         snapshotBuilder = NotificationSnapshotBuilder()
     )
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
+    val notificationSourceSettingsService = NotificationSourceSettingsService(
+        accessStore = notificationAppAccessStore,
+        observedStore = observedNotificationSourceStore,
+        resolveInstalledLabel = { packageName ->
+            try {
+                val packageManager = context.applicationContext.packageManager
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(packageName, 0)
+                ).toString()
+            } catch (_: PackageManager.NameNotFoundException) {
+                null
+            }
+        },
+        clearDiagnosticIfPackage = notificationDiagnosticsStore::clearIfPackage
+    )
     val walletTopupNoticeStore = SharedPreferencesWalletTopupNoticeStore(context.applicationContext)
     val notificationOnboardingStore = SharedPreferencesNotificationOnboardingStore(context.applicationContext)
 
