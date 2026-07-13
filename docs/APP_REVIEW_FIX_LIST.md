@@ -171,6 +171,12 @@ Claude next:
 
 ---
 
+## Branding (2026-07-13, 사용자 확정)
+
+- 런처 표시명: **짤랑** (`strings.xml app_name`), 아이콘: 노란 배경 + 동전 링·₩·소리선 adaptive icon
+- 스토어 등록명(추후 Play 제출 시): **짤랑 - 자동 가계부**
+- 패키지명/저장소명은 AutoMoney 유지
+
 ## N1/N2 Update (2026-07-13, notification source selection)
 
 - N1 **DONE (재설계)**: 2026-07-09의 "unsupported도 snapshot 생성 후 IGNORED 진단" 방식은 개인정보 접근 문제로 폐기. 이제 미허용 앱은 본문 접근 0회(`NotificationDispatchCoordinator` gate), `packageName + lastSeenAt + count`만 metadata-only 감지 목록에 기록. 설정 > "알림 수집 앱" 카드의 "추가 감지 앱"에 표시되어 사용자가 왜 처리가 안 됐는지 볼 수 있음. 미허용 앱은 최근 금융 진단을 덮어쓰지 않음.
