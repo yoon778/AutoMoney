@@ -86,7 +86,7 @@ NotificationListenerService
 - [x] **T1 접근 정책·정적 catalog 계약**
 - [x] **T2 선택/감지 저장소**
 - [x] **T3 content-read gate·진단 개인정보**
-- [ ] **T4 Generic parser·review 불변식**
+- [x] **T4 Generic parser·review 불변식**
 - [ ] **T5 headless 배선·Claude 소비 계약**
 - [ ] **T6 설정 UI**
 - [ ] **T7 통합·Galaxy 검증**
@@ -468,40 +468,41 @@ Local JVM에서는 Android `SharedPreferences`를 직접 실행하지 않음
 
 **양성 fixture:**
 
-- [ ] `스타벅스 6,100원 결제 완료` → EXPENSE + review
-- [ ] `10,000원 입금` → INCOME + review
-- [ ] `10,000원 출금` → TRANSFER/neutral + review
-- [ ] `12,000원 결제 취소` → REFUND + review
-- [ ] `카카오페이 30,000원 충전` → WALLET_TOPUP + review
+- [x] `스타벅스 6,100원 결제 완료` → EXPENSE + review
+- [x] `10,000원 입금` → INCOME + review
+- [x] `10,000원 출금` → TRANSFER/neutral + review
+- [x] `12,000원 결제 취소` → REFUND + review
+- [x] `카카오페이 30,000원 충전` → WALLET_TOPUP + review
 
 **음성 fixture:**
 
-- [ ] `지금 결제하면 10,000원 혜택`
-- [ ] `계좌이체 시 5,000원 할인`
-- [ ] `송금 이벤트 최대 10,000원`
-- [ ] `10,000원 결제 실패`
-- [ ] `오늘 10,000원 송금 예정`
-- [ ] 금액만 존재
-- [ ] 행위 단어만 존재
-- [ ] 거래금액과 잔액 등 복수 금액
-- [ ] title=`송금 이벤트`, body=`최대 10,000원`
+- [x] `지금 결제하면 10,000원 혜택`
+- [x] `계좌이체 시 5,000원 할인`
+- [x] `송금 이벤트 최대 10,000원`
+- [x] `10,000원 결제 실패`
+- [x] `오늘 10,000원 송금 예정`
+- [x] 금액만 존재
+- [x] 행위 단어만 존재
+- [x] 거래금액과 잔액 등 복수 금액
+- [x] title=`송금 이벤트`, body=`최대 10,000원`
 
 **방어선 테스트:**
 
-- [ ] fake parser가 AUTO_CONFIRMED draft를 반환해도 unverified source 저장값은 NEEDS_REVIEW
-- [ ] review reason은 type별 기존 reason으로 강제
-- [ ] blocked source 직접 ingest는 ignored
-- [ ] unverified 거래가 검토 전 report/asset balance에 반영되지 않음
-- [ ] unverified transaction의 merchant/counterparty/memo는 null
-- [ ] `RunSampleNotificationScenarioUseCase`는 합성 snapshot을 `TRUSTED`로 명시 호출
-- [ ] `ingest(snapshot, sourceAccess)` 변경 후 method reference 컴파일 정상
-- [ ] Toss·Common parser 기존 테스트 전부 유지
-- [ ] AppContainer가 trusted router와 Generic parser를 별도 주입
+- [x] fake parser가 AUTO_CONFIRMED draft를 반환해도 unverified source 저장값은 NEEDS_REVIEW
+- [x] review reason은 type별 기존 reason으로 강제
+- [x] blocked source 직접 ingest는 ignored
+- [x] unverified 거래가 검토 전 report/asset balance에 반영되지 않음
+- [x] unverified transaction의 merchant/counterparty/memo는 null
+- [x] `RunSampleNotificationScenarioUseCase`는 합성 snapshot을 `TRUSTED`로 명시 호출
+- [x] `ingest(snapshot, sourceAccess)` 변경 후 method reference 컴파일 정상
+- [x] Toss·Common parser 기존 테스트 전부 유지
+- [x] AppContainer가 trusted router와 Generic parser를 별도 주입
 
 **검증:**
 
 ```powershell
-.\gradlew.bat :app:testDebugUnitTest :app:assembleDebug --tests "com.choiyoonseo.automoney.domain.parser.GenericFinanceNotificationParserTest" --tests "com.choiyoonseo.automoney.domain.parser.NotificationParserRouterTest" --tests "com.choiyoonseo.automoney.domain.parser.TossNotificationParserTest" --tests "com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParserTest" --tests "com.choiyoonseo.automoney.notification.NotificationIngestionAtomicityTest" --tests "com.choiyoonseo.automoney.notification.RunSampleNotificationScenarioUseCaseTest" --no-daemon --console=plain
+.\gradlew.bat :app:testDebugUnitTest --tests "com.choiyoonseo.automoney.domain.parser.GenericFinanceNotificationParserTest" --tests "com.choiyoonseo.automoney.domain.parser.NotificationParserRouterTest" --tests "com.choiyoonseo.automoney.domain.parser.TossNotificationParserTest" --tests "com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParserTest" --tests "com.choiyoonseo.automoney.notification.NotificationIngestionAtomicityTest" --tests "com.choiyoonseo.automoney.notification.SampleNotificationScenariosTest" --no-daemon --console=plain
+.\gradlew.bat :app:assembleDebug --no-daemon --console=plain
 ```
 
 **Commit:** `feat: parse selected notification apps conservatively`

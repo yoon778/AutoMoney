@@ -35,12 +35,13 @@ class NotificationIngestionAtomicityTest {
         val repository = RecordingMoneyRepository()
         val useCase = NotificationIngestionUseCase(
             parser = StaticParser(reviewDraft().copy(bankAccountHint = accountHint())),
+            genericParser = ThrowingParser,
             categorizationEngine = CategorizationEngine(),
             duplicateDetector = DuplicateDetector(),
             repository = repository
         )
 
-        val result = useCase.ingest(snapshot())
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isInstanceOf(IngestionResult.Saved::class.java)
         assertThat(repository.saveNotificationCalls).isEqualTo(1)
@@ -56,12 +57,13 @@ class NotificationIngestionAtomicityTest {
         val repository = RecordingMoneyRepository(throwDuplicateOnSave = true)
         val useCase = NotificationIngestionUseCase(
             parser = StaticParser(expenseDraft()),
+            genericParser = ThrowingParser,
             categorizationEngine = CategorizationEngine(),
             duplicateDetector = DuplicateDetector(),
             repository = repository
         )
 
-        val result = useCase.ingest(snapshot())
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
     }
@@ -71,12 +73,13 @@ class NotificationIngestionAtomicityTest {
         val repository = RecordingMoneyRepository()
         val useCase = NotificationIngestionUseCase(
             parser = StaticParser(expenseDraft().copy(confidence = 0.45)),
+            genericParser = ThrowingParser,
             categorizationEngine = CategorizationEngine(),
             duplicateDetector = DuplicateDetector(),
             repository = repository
         )
 
-        val result = useCase.ingest(snapshot())
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
             IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
@@ -97,17 +100,62 @@ class NotificationIngestionAtomicityTest {
         )
         val useCase = NotificationIngestionUseCase(
             parser = StaticParser(expenseDraft()),
+            genericParser = ThrowingParser,
             categorizationEngine = CategorizationEngine(),
             duplicateDetector = DuplicateDetector(),
             repository = repository
         )
 
-        val result = useCase.ingest(snapshot())
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
             IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.ACCOUNT_AMBIGUOUS)
         )
     }
+
+    @Test
+    fun unverifiedSourceForcesReviewAndRemovesRawDetails() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = StaticParser(expenseDraft()),
+            genericParser = StaticParser(expenseDraft()),
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.SELECTED_UNVERIFIED)
+
+        assertThat(result).isEqualTo(
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+        )
+        assertThat(repository.savedTransaction?.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+        assertThat(repository.savedTransaction?.merchant).isNull()
+        assertThat(repository.savedTransaction?.counterparty).isNull()
+        assertThat(repository.savedTransaction?.memo).isNull()
+    }
+
+    @Test
+    fun blockedSourceDoesNotParseOrSave() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = ThrowingParser,
+            genericParser = ThrowingParser,
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.BLOCKED)
+
+        assertThat(result).isEqualTo(IngestionResult.Ignored("blocked source"))
+        assertThat(repository.saveNotificationCalls).isEqualTo(0)
+    }
+}
+
+private object ThrowingParser : NotificationParser {
+    override fun canParse(snapshot: NotificationSnapshot): Boolean = error("must not parse")
+    override fun parse(snapshot: NotificationSnapshot): ParseResult = error("must not parse")
 }
 
 private class StaticParser(
@@ -127,6 +175,7 @@ private class RecordingMoneyRepository(
     var createReviewItemCalls = 0
     var savedAccountHint: BankAccountHint? = null
     var savedReviewReason: ReviewReason? = null
+    var savedTransaction: MoneyTransaction? = null
 
     override suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction> = emptyList()
     override fun observeTransactionsForMonth(month: YearMonth): Flow<List<MoneyTransaction>> = flowOf(emptyList())
@@ -156,6 +205,7 @@ private class RecordingMoneyRepository(
         reviewReason: ReviewReason?
     ): NotificationSaveResult {
         saveNotificationCalls += 1
+        savedTransaction = transaction
         savedAccountHint = accountHint
         savedReviewReason = reviewReason
         if (throwDuplicateOnSave) {

@@ -4,7 +4,7 @@ import com.choiyoonseo.automoney.domain.parser.NotificationSnapshot
 import java.time.Instant
 
 class RunSampleNotificationScenarioUseCase(
-    private val ingestSnapshot: suspend (NotificationSnapshot) -> IngestionResult,
+    private val ingestSnapshot: suspend (NotificationSnapshot, NotificationSourceAccess) -> IngestionResult,
     private val saveDiagnostic: (LastNotificationDiagnostic) -> Unit,
     private val clock: () -> Instant = Instant::now
 ) {
@@ -20,7 +20,7 @@ class RunSampleNotificationScenarioUseCase(
         val now = clock()
         val snapshot = scenario.toSnapshot(postedAt = now)
         return try {
-            val result = ingestSnapshot(snapshot)
+            val result = ingestSnapshot(snapshot, NotificationSourceAccess.TRUSTED)
             saveDiagnostic(
                 LastNotificationDiagnostic.fromIngestionResult(
                     snapshot = snapshot,

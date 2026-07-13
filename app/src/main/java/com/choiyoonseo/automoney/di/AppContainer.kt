@@ -9,6 +9,7 @@ import com.choiyoonseo.automoney.data.repository.RoomUserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.parser.BankAccountHintExtractor
 import com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParser
+import com.choiyoonseo.automoney.domain.parser.GenericFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.NotificationParserRouter
 import com.choiyoonseo.automoney.domain.parser.TossNotificationParser
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
@@ -83,6 +84,7 @@ class AppContainer(context: Context) {
                 CommonFinanceNotificationParser(bankAccountHintExtractor)
             )
         ),
+        genericParser = GenericFinanceNotificationParser(),
         categorizationEngine = CategorizationEngine(),
         duplicateDetector = DuplicateDetector(),
         repository = repository

@@ -79,10 +79,12 @@ class SampleNotificationScenariosTest {
     @Test
     fun sampleNotificationScenarioRunnerIngestsAndStoresDiagnostic() = runTest {
         var ingestedPackage: String? = null
+        var sourceAccess: NotificationSourceAccess? = null
         var savedDiagnostic: LastNotificationDiagnostic? = null
         val runner = RunSampleNotificationScenarioUseCase(
-            ingestSnapshot = { snapshot ->
+            ingestSnapshot = { snapshot, access ->
                 ingestedPackage = snapshot.packageName
+                sourceAccess = access
                 IngestionResult.Ignored("test only")
             },
             saveDiagnostic = { diagnostic ->
@@ -94,6 +96,7 @@ class SampleNotificationScenariosTest {
         runner.run(sampleNotificationScenarios.first())
 
         assertThat(ingestedPackage).isEqualTo(TossNotificationParser.TOSS_PACKAGE)
+        assertThat(sourceAccess).isEqualTo(NotificationSourceAccess.TRUSTED)
         assertThat(savedDiagnostic?.result).isEqualTo(NotificationDiagnosticResult.IGNORED)
         assertThat(savedDiagnostic?.message).isEqualTo("test only")
     }

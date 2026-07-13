@@ -45,13 +45,10 @@ class MoneyNotificationListenerService : NotificationListenerService() {
 
         scope.launch {
             try {
-                val result = when (prepared.sourceAccess) {
-                    NotificationSourceAccess.TRUSTED ->
-                        app.container.notificationIngestionUseCase.ingest(prepared.snapshot)
-                    NotificationSourceAccess.SELECTED_UNVERIFIED ->
-                        IngestionResult.Ignored("UNVERIFIED_PARSER_PENDING")
-                    NotificationSourceAccess.BLOCKED -> return@launch
-                }
+                val result = app.container.notificationIngestionUseCase.ingest(
+                    prepared.snapshot,
+                    prepared.sourceAccess
+                )
                 app.container.notificationDiagnosticsStore.save(
                     LastNotificationDiagnostic.fromIngestionResult(
                         snapshot = prepared.snapshot,

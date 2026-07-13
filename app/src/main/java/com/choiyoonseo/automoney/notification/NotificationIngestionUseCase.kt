@@ -17,19 +17,36 @@ import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
 
 class NotificationIngestionUseCase(
     private val parser: NotificationParser,
+    private val genericParser: NotificationParser,
     private val categorizationEngine: CategorizationEngine,
     private val duplicateDetector: DuplicateDetector,
     private val repository: MoneyRepository
 ) {
-    suspend fun ingest(snapshot: NotificationSnapshot): IngestionResult {
-        val parsed = parser.parse(snapshot)
+    suspend fun ingest(
+        snapshot: NotificationSnapshot,
+        sourceAccess: NotificationSourceAccess
+    ): IngestionResult {
+        if (sourceAccess == NotificationSourceAccess.BLOCKED) {
+            return IngestionResult.Ignored("blocked source")
+        }
+        val selectedParser = when (sourceAccess) {
+            NotificationSourceAccess.TRUSTED -> parser
+            NotificationSourceAccess.SELECTED_UNVERIFIED -> genericParser
+            NotificationSourceAccess.BLOCKED -> error("handled above")
+        }
+        val parsed = selectedParser.parse(snapshot)
         if (parsed !is ParseResult.Parsed) {
             val reason = (parsed as? ParseResult.Ignored)?.reason ?: "not parsed"
             return IngestionResult.Ignored(reason)
         }
 
+        val sourceGuarded = if (sourceAccess == NotificationSourceAccess.SELECTED_UNVERIFIED) {
+            parsed.draft.forceUnverifiedReview()
+        } else {
+            parsed.draft
+        }
         val withRules = categorizationEngine
-            .applyRules(parsed.draft, repository.enabledRules())
+            .applyRules(sourceGuarded, repository.enabledRules())
             .routeLowConfidenceToReview()
         val duplicateDecision = duplicateDetector.detect(
             candidate = withRules,
@@ -61,6 +78,26 @@ class NotificationIngestionUseCase(
         }
     }
 }
+
+private fun TransactionDraft.forceUnverifiedReview(): TransactionDraft = copy(
+    category = null,
+    paymentMethod = null,
+    merchant = null,
+    counterparty = null,
+    memo = null,
+    bankAccountHint = null,
+    status = TransactionStatus.NEEDS_REVIEW,
+    reviewReason = when (type) {
+        TransactionType.EXPENSE,
+        TransactionType.FIXED_EXPENSE,
+        TransactionType.WALLET_SPEND -> ReviewReason.LOW_CONFIDENCE_CATEGORY
+        TransactionType.INCOME -> ReviewReason.INCOME_UNKNOWN
+        TransactionType.TRANSFER -> ReviewReason.TRANSFER_UNKNOWN
+        TransactionType.REFUND -> ReviewReason.REFUND_OR_CANCEL
+        TransactionType.WALLET_TOPUP -> ReviewReason.WALLET_TOPUP
+        else -> ReviewReason.LOW_CONFIDENCE_CATEGORY
+    }
+)
 
 sealed interface IngestionResult {
     data class Saved(
