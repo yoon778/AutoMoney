@@ -23,6 +23,7 @@ import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationDispatchCoordinator
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
+import com.choiyoonseo.automoney.notification.NotificationIngestionFeedbackNotifier
 import com.choiyoonseo.automoney.notification.NotificationSnapshotBuilder
 import com.choiyoonseo.automoney.notification.NotificationSourceSettingsService
 import com.choiyoonseo.automoney.notification.RunSampleNotificationScenarioUseCase
@@ -42,6 +43,8 @@ class AppContainer(context: Context) {
         snapshotBuilder = NotificationSnapshotBuilder()
     )
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
+    val notificationIngestionFeedbackNotifier =
+        NotificationIngestionFeedbackNotifier(context.applicationContext)
     val notificationSourceSettingsService = NotificationSourceSettingsService(
         accessStore = notificationAppAccessStore,
         observedStore = observedNotificationSourceStore,

@@ -56,6 +56,7 @@ class MoneyNotificationListenerService : NotificationListenerService() {
                         sourceAccess = prepared.sourceAccess
                     )
                 )
+                app.container.notificationIngestionFeedbackNotifier.notify(result)
             } catch (e: RuntimeException) {
                 app.container.notificationDiagnosticsStore.save(
                     LastNotificationDiagnostic.fromError(
