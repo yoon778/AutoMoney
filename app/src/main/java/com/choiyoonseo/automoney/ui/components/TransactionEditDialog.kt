@@ -277,44 +277,46 @@ fun TransactionEditDialog(
                 }
             }
         }
-        if (budgetUsages.isNotEmpty()) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                MoneyPickerField(
-                    label = "차감 예산",
-                    value = budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
-                        ?.let(::budgetOptionLabel)
-                        ?: "분류 따라 자동",
-                    onClick = { budgetMenuExpanded = true }
-                )
-                DropdownMenu(
-                    expanded = budgetMenuExpanded,
-                    onDismissRequest = { budgetMenuExpanded = false },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("분류 따라 자동") },
-                        onClick = {
-                            selectedBudgetPlanId = null
-                            budgetMenuExpanded = false
-                        }
+        if (selectedType.countsAsMonthlyExpense) {
+            if (budgetUsages.isNotEmpty()) {
+                Box(modifier = Modifier.fillMaxWidth()) {
+                    MoneyPickerField(
+                        label = "차감 예산",
+                        value = budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
+                            ?.let(::budgetOptionLabel)
+                            ?: "분류 따라 자동",
+                        onClick = { budgetMenuExpanded = true }
                     )
-                    budgetUsages.forEach { usage ->
+                    DropdownMenu(
+                        expanded = budgetMenuExpanded,
+                        onDismissRequest = { budgetMenuExpanded = false },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         DropdownMenuItem(
-                            text = { Text(budgetOptionLabel(usage)) },
+                            text = { Text("분류 따라 자동") },
                             onClick = {
-                                selectedBudgetPlanId = usage.plan.id
+                                selectedBudgetPlanId = null
                                 budgetMenuExpanded = false
                             }
                         )
+                        budgetUsages.forEach { usage ->
+                            DropdownMenuItem(
+                                text = { Text(budgetOptionLabel(usage)) },
+                                onClick = {
+                                    selectedBudgetPlanId = usage.plan.id
+                                    budgetMenuExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
+            } else {
+                Text(
+                    "예산에서 차감하려면 예산 탭에서 월계획 예산을 먼저 만들어 주세요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.muted
+                )
             }
-        } else {
-            Text(
-                "예산에서 차감하려면 예산 탭에서 월계획 예산을 먼저 만들어 주세요.",
-                style = MaterialTheme.typography.bodySmall,
-                color = colors.muted
-            )
         }
         OutlinedTextField(
             value = memoText,
