@@ -105,7 +105,8 @@ data class MoneyTransaction(
     // Compatibility for the pre-reset partial settlement work; storage normalizes these to the fields above
     val settlementDetails: SettlementDetails? = null,
     val recoveryOfSettlementTransactionId: Long? = null,
-    val budgetPlanId: Long? = null
+    val budgetPlanId: Long? = null,
+    val fixedExpensePlanId: Long? = null
 )
 
 fun MoneyTransaction.categoryDisplayName(): String? =

@@ -67,6 +67,8 @@ class EditTransactionUseCase(
             TransactionType.EXCLUDED -> transaction.balanceImpact ?: BalanceImpact.NONE
         }
         val categoryAssignment = categoryResolver.resolve(categoryText, transactionType)
+        val fixedExpensePlanId = transaction.fixedExpensePlanId
+            .takeIf { transactionType == TransactionType.FIXED_EXPENSE }
         val updatedTransaction = transaction.copy(
             occurredAt = occurredAt,
             amount = MoneyAmount(amountWon),
@@ -86,7 +88,10 @@ class EditTransactionUseCase(
             balanceImpact = nextImpact,
             customCategoryId = categoryAssignment.customCategoryId,
             customCategoryName = categoryAssignment.customCategoryName,
-            budgetPlanId = budgetPlanId.takeIf { transactionType.countsAsMonthlyExpense }
+            budgetPlanId = budgetPlanId.takeIf {
+                transactionType.countsAsMonthlyExpense && fixedExpensePlanId == null
+            },
+            fixedExpensePlanId = fixedExpensePlanId
         )
         repository.updateTransaction(updatedTransaction)
         saveLearnedRules(transaction, updatedTransaction)

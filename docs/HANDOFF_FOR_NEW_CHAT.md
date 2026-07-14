@@ -221,6 +221,13 @@ Recommended next logic tasks:
 
 ## Suggested Next Claude Tasks
 
+### Active handoff: manual transaction fixed-expense allocation — 2026-07-14
+
+- 거래 추가 `차감 예산` picker에 `고정지출` 항목도 함께 표시
+- `TransactionsScreen`에서 `assetRepository.observeFixedExpenses()` 구독 후 `ManualTransactionForm`에 전달
+- 고정지출 선택 시 `SaveManualTransactionUseCase.save(fixedExpensePlanId = plan.id)` 전달하고 `budgetPlanId=null`
+- Codex 계약: 저장 거래는 `FIXED_EXPENSE`, `fixedExpensePlanId` 유지, 변동 예산·예산 밖 지출에서 제외
+
 ### (완료 2026-07-14) transaction edit budget visibility
 
 - `TransactionEditDialog`: `차감 예산` picker와 예산 미등록 안내를 `selectedType.countsAsMonthlyExpense`일 때만 표시 (커밋 `d07da30`, 실기기 확인 완료)

@@ -56,7 +56,8 @@ data class TransactionEntity(
     val settlementMyShareWon: Long? = null,
     val settlementParentId: Long? = null,
     val settlementTrackingHidden: Boolean = false,
-    val budgetPlanId: Long? = null
+    val budgetPlanId: Long? = null,
+    val fixedExpensePlanId: Long? = null
 )
 
 @Entity(

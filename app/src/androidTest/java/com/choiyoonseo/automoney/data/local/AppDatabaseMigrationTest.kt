@@ -144,6 +144,23 @@ class AppDatabaseMigrationTest {
         assertNull(db.singleString("SELECT budgetPlanId FROM transactions WHERE id = 1"))
     }
 
+    @Test
+    fun migration11To12AddsNullableFixedExpensePlanId() {
+        helper.createDatabase(SIXTH_TEST_DB, 11).apply {
+            insertTransaction(id = 1, sourceNotificationHash = "legacy-fixed-expense-hash")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            SIXTH_TEST_DB,
+            12,
+            true,
+            AppDatabase.MIGRATION_11_12
+        )
+
+        assertNull(db.singleString("SELECT fixedExpensePlanId FROM transactions WHERE id = 1"))
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?
@@ -226,5 +243,6 @@ class AppDatabaseMigrationTest {
         const val THIRD_TEST_DB = "migration-test-8-9"
         const val FOURTH_TEST_DB = "migration-test-9-10"
         const val FIFTH_TEST_DB = "migration-test-10-11"
+        const val SIXTH_TEST_DB = "migration-test-11-12"
     }
 }

@@ -202,6 +202,41 @@ class SaveManualTransactionUseCaseTest {
 
         assertThat(repository.savedTransactions.single().budgetPlanId).isEqualTo(7)
     }
+
+    @Test
+    fun saveExpenseCanLinkFixedExpensePlan() = runTest {
+        val repository = FakeMoneyRepository()
+
+        SaveManualTransactionUseCase(repository).save(
+            type = ManualEntryType.EXPENSE,
+            amountWon = 70_000,
+            categoryText = "통신",
+            memo = "휴대폰 요금",
+            fixedExpensePlanId = 9
+        )
+
+        val saved = repository.savedTransactions.single()
+        assertThat(saved.type).isEqualTo(TransactionType.FIXED_EXPENSE)
+        assertThat(saved.fixedExpensePlanId).isEqualTo(9)
+        assertThat(saved.budgetPlanId).isNull()
+    }
+
+    @Test
+    fun saveExpenseIgnoresInvalidFixedExpensePlanId() = runTest {
+        val repository = FakeMoneyRepository()
+
+        SaveManualTransactionUseCase(repository).save(
+            type = ManualEntryType.EXPENSE,
+            amountWon = 70_000,
+            categoryText = "통신",
+            memo = "휴대폰 요금",
+            fixedExpensePlanId = 0
+        )
+
+        val saved = repository.savedTransactions.single()
+        assertThat(saved.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(saved.fixedExpensePlanId).isNull()
+    }
 }
 
 private class FakeMoneyRepository : MoneyRepository {

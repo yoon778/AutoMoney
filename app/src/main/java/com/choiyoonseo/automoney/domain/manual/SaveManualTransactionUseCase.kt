@@ -35,7 +35,8 @@ class SaveManualTransactionUseCase(
         occurredAt: Instant = Instant.now(),
         account: AssetAccount? = null,
         paymentMethod: String? = null,
-        budgetPlanId: Long? = null
+        budgetPlanId: Long? = null,
+        fixedExpensePlanId: Long? = null
     ): Long {
         require(amountWon > 0) { "금액은 0원보다 커야 해요." }
 
@@ -55,8 +56,13 @@ class SaveManualTransactionUseCase(
             type == ManualEntryType.INCOME -> BalanceImpact.CREDIT
             else -> BalanceImpact.NONE
         }
+        val selectedFixedExpensePlanId = fixedExpensePlanId?.takeIf { it > 0 }
         val transactionType = when (type) {
-            ManualEntryType.EXPENSE -> TransactionType.EXPENSE
+            ManualEntryType.EXPENSE -> if (selectedFixedExpensePlanId != null) {
+                TransactionType.FIXED_EXPENSE
+            } else {
+                TransactionType.EXPENSE
+            }
             ManualEntryType.INCOME -> TransactionType.INCOME
             ManualEntryType.TRANSFER -> TransactionType.TRANSFER
         }
@@ -66,7 +72,7 @@ class SaveManualTransactionUseCase(
                 occurredAt = occurredAt,
                 amount = MoneyAmount(amountWon),
                 direction = TransactionDirection.EXPENSE,
-                type = TransactionType.EXPENSE,
+                type = transactionType,
                 category = categoryAssignment.category,
                 paymentMethod = accountPaymentMethod,
                 merchant = cleanMemo.ifBlank { "수동 입력" },
@@ -82,7 +88,8 @@ class SaveManualTransactionUseCase(
                 balanceImpact = impact,
                 customCategoryId = categoryAssignment.customCategoryId,
                 customCategoryName = categoryAssignment.customCategoryName,
-                budgetPlanId = budgetPlanId
+                budgetPlanId = budgetPlanId.takeIf { selectedFixedExpensePlanId == null },
+                fixedExpensePlanId = selectedFixedExpensePlanId
             )
 
             ManualEntryType.INCOME -> MoneyTransaction(

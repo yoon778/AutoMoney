@@ -164,6 +164,27 @@ class CategoryBudgetUsageTest {
         assertThat(outsideWon).isEqualTo(50_000)
     }
 
+    @Test
+    fun fixedExpensePlanLinkedTransactionIsNotVariableOrUnbudgetedSpend() {
+        val fixedExpense = transaction(
+            amountWon = 70_000,
+            category = Category.TELECOM,
+            type = TransactionType.FIXED_EXPENSE
+        ).copy(fixedExpensePlanId = 9)
+        val telecomBudget = MonthlyPlanItem(
+            id = 1,
+            label = "통신비",
+            amountWon = 100_000,
+            type = MonthlyPlanItemType.BUDGET,
+            category = Category.TELECOM
+        )
+
+        assertThat(buildCategoryBudgetUsages(listOf(telecomBudget), listOf(fixedExpense)).single().spentWon)
+            .isEqualTo(0)
+        assertThat(calculateUnbudgetedExpenseWon(listOf(telecomBudget), listOf(fixedExpense)))
+            .isEqualTo(0)
+    }
+
     private val foodBudget = MonthlyPlanItem(
         label = "식비",
         amountWon = 400_000,

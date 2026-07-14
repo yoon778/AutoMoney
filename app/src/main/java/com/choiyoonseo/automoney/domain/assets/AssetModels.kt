@@ -127,7 +127,9 @@ fun calculateUnbudgetedExpenseWon(
     val budgets = plans.filter { it.type == MonthlyPlanItemType.BUDGET }
     return transactions
         .filter { transaction ->
-            transaction.countsAsActualExpense() && budgets.none { it.matchesBudget(transaction, budgets) }
+            transaction.fixedExpensePlanId == null &&
+                transaction.countsAsActualExpense() &&
+                budgets.none { it.matchesBudget(transaction, budgets) }
         }
         .sumOf { it.effectiveExpenseWon() }
 }
@@ -136,6 +138,7 @@ private fun MonthlyPlanItem.matchesBudget(
     transaction: MoneyTransaction,
     budgets: List<MonthlyPlanItem>
 ): Boolean {
+    if (transaction.fixedExpensePlanId != null) return false
     val explicitBudget = transaction.budgetPlanId
         ?.takeIf { it > 0 }
         ?.let { id -> budgets.firstOrNull { it.id == id } }
