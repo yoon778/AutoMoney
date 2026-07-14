@@ -64,21 +64,18 @@ class RoomMoneyRepositoryReviewItemTest {
     }
 
     @Test
-    fun unmatchedNotificationAccountIsStoredAsReviewTransaction() = runBlocking {
+    fun unmatchedNotificationAccountDoesNotCreateAccountReview() = runBlocking {
         val transactionId = repository.saveTransaction(autoExpense(paymentMethod = "Unknown Card"))
 
         val transaction = repository.observeTransactionsForMonth(YearMonth.of(2026, 7))
             .first()
             .single { it.id == transactionId }
-        val reviewItem = repository.observeOpenReviewItems().first().single()
-
-        assertEquals(TransactionStatus.NEEDS_REVIEW, transaction.status)
-        assertEquals(ReviewReason.ACCOUNT_UNMATCHED, reviewItem.reason)
-        assertEquals(transactionId, reviewItem.transaction.id)
+        assertEquals(TransactionStatus.AUTO_CONFIRMED, transaction.status)
+        assertTrue(repository.observeOpenReviewItems().first().isEmpty())
     }
 
     @Test
-    fun unmatchedAccountTakesPriorityOverGenericReviewReason() = runBlocking {
+    fun genericReviewReasonIsNotReplacedByAccountReview() = runBlocking {
         val transactionId = repository.saveTransactionWithReview(
             autoExpense(
                 paymentMethod = "Unknown Card",
@@ -93,12 +90,12 @@ class RoomMoneyRepositoryReviewItemTest {
         val reviewItem = repository.observeOpenReviewItems().first().single()
 
         assertEquals(TransactionStatus.NEEDS_REVIEW, transaction.status)
-        assertEquals(ReviewReason.ACCOUNT_UNMATCHED, reviewItem.reason)
+        assertEquals(ReviewReason.LOW_CONFIDENCE_CATEGORY, reviewItem.reason)
         assertEquals(transactionId, reviewItem.transaction.id)
     }
 
     @Test
-    fun matchedReviewTransferAppliesDebitExactlyOnce() = runBlocking {
+    fun matchedReviewTransferDoesNotLinkOrChangeAccount() = runBlocking {
         val accountId = saveBankAccount(balanceWon = 50_000)
         val result = repository.saveNotificationTransaction(
             transaction = bankTransfer(hash = "matched-review"),
@@ -110,16 +107,16 @@ class RoomMoneyRepositoryReviewItemTest {
         val reviewItems = repository.observeOpenReviewItems().first()
 
         assertEquals(ReviewReason.TRANSFER_UNKNOWN, result.reviewReason)
-        assertEquals(accountId, stored.linkedAssetAccountId)
-        assertEquals(BalanceImpact.DEBIT, stored.balanceImpact)
+        assertEquals(null, stored.linkedAssetAccountId)
+        assertEquals(BalanceImpact.NONE, stored.balanceImpact)
         assertEquals(TransactionStatus.NEEDS_REVIEW, stored.status)
-        assertEquals(40_000, accountBalance(accountId))
+        assertEquals(50_000, accountBalance(accountId))
         assertEquals(1, reviewItems.size)
         assertEquals(ReviewReason.TRANSFER_UNKNOWN, reviewItems.single().reason)
     }
 
     @Test
-    fun missingSuffixStoresNoneAndAccountUnmatchedReview() = runBlocking {
+    fun missingSuffixKeepsOriginalTransferReview() = runBlocking {
         val accountId = saveBankAccount(balanceWon = 50_000)
         val result = repository.saveNotificationTransaction(
             transaction = bankTransfer(hash = "missing-suffix"),
@@ -130,17 +127,17 @@ class RoomMoneyRepositoryReviewItemTest {
         val stored = transaction(result.transactionId)
         val reviewItems = repository.observeOpenReviewItems().first()
 
-        assertEquals(ReviewReason.ACCOUNT_UNMATCHED, result.reviewReason)
+        assertEquals(ReviewReason.TRANSFER_UNKNOWN, result.reviewReason)
         assertEquals(null, stored.linkedAssetAccountId)
         assertEquals(BalanceImpact.NONE, stored.balanceImpact)
         assertEquals(TransactionStatus.NEEDS_REVIEW, stored.status)
         assertEquals(50_000, accountBalance(accountId))
         assertEquals(1, reviewItems.size)
-        assertEquals(ReviewReason.ACCOUNT_UNMATCHED, reviewItems.single().reason)
+        assertEquals(ReviewReason.TRANSFER_UNKNOWN, reviewItems.single().reason)
     }
 
     @Test
-    fun duplicateSuffixStoresNoneAndAccountAmbiguousReview() = runBlocking {
+    fun duplicateSuffixDoesNotCreateAccountReview() = runBlocking {
         saveBankAccount(name = "Primary", balanceWon = 50_000)
         saveBankAccount(name = "Secondary", balanceWon = 30_000)
         val result = repository.saveNotificationTransaction(
@@ -152,12 +149,11 @@ class RoomMoneyRepositoryReviewItemTest {
         val stored = transaction(result.transactionId)
         val reviewItems = repository.observeOpenReviewItems().first()
 
-        assertEquals(ReviewReason.ACCOUNT_AMBIGUOUS, result.reviewReason)
+        assertEquals(null, result.reviewReason)
         assertEquals(null, stored.linkedAssetAccountId)
         assertEquals(BalanceImpact.NONE, stored.balanceImpact)
         assertEquals(listOf(50_000L, 30_000L), assetRepository.observeAccounts().first().map { it.balanceWon })
-        assertEquals(1, reviewItems.size)
-        assertEquals(ReviewReason.ACCOUNT_AMBIGUOUS, reviewItems.single().reason)
+        assertTrue(reviewItems.isEmpty())
     }
 
     @Test
@@ -180,7 +176,7 @@ class RoomMoneyRepositoryReviewItemTest {
     }
 
     @Test
-    fun duplicateNotificationRollsBackBalanceEffect() = runBlocking {
+    fun duplicateNotificationNeverChangesAccountBalance() = runBlocking {
         val accountId = saveBankAccount(balanceWon = 50_000)
         val transaction = bankTransfer(hash = "duplicate")
         repository.saveNotificationTransaction(
@@ -201,12 +197,12 @@ class RoomMoneyRepositoryReviewItemTest {
         }
 
         assertTrue(duplicateThrown)
-        assertEquals(40_000, accountBalance(accountId))
+        assertEquals(50_000, accountBalance(accountId))
         assertEquals(1, repository.observeTransactionsForMonth(YearMonth.of(2026, 7)).first().size)
     }
 
     @Test
-    fun explicitUpdateAndDeleteReplaceThenReverseEffect() = runBlocking {
+    fun explicitUpdateAndDeleteNeverChangeAccountBalance() = runBlocking {
         val accountId = saveBankAccount(balanceWon = 50_000)
         val result = repository.saveNotificationTransaction(
             transaction = bankTransfer(hash = "update-delete"),
@@ -217,7 +213,7 @@ class RoomMoneyRepositoryReviewItemTest {
 
         repository.updateTransaction(stored.copy(amount = MoneyAmount(5_000)))
 
-        assertEquals(45_000, accountBalance(accountId))
+        assertEquals(50_000, accountBalance(accountId))
 
         repository.deleteTransaction(result.transactionId)
 
