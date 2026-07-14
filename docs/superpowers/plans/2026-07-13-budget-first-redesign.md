@@ -1,7 +1,7 @@
 # 예산 중심 개편(라이트 짤랑) Implementation Plan
 
-Status: in-progress
-Owner: Codex 로직(T1·T2) + Claude UI(T3·T4·T5) + 통합(T6)
+Status: complete (2026-07-14, 실기기 SM_S931N 확인)
+Owner: Codex 로직(T1·T2) + Claude UI(T3·T4·T5·T6)
 Branch: `main` only
 
 > **For agentic workers:** 태스크별 TDD, 작은 경로별 커밋, `git add .` / `git add -A` 금지
@@ -57,7 +57,7 @@ Branch: `main` only
 - [x] **T3 수정·수동입력 UI** — 수정 dialog·수동입력에 `차감 예산` 선택(남은/초과 표시, 기본 `분류 따라 자동`), 계좌 칸·계좌 helper 제거
 - [x] **T4 예산 탭 개편** — 탭 라벨 자산→예산(아이콘 Savings), 상단 `이번 달 예산` 카드(카테고리 진행바·초과 빨강·예산 밖 지출 하이라이트 배너), 계좌 서브탭·총 잔액 카드·계좌 폼 삭제, 고정지출 출금 수단은 자유 입력
 - [x] **T5 검토 화면 정리** — 수정 dialog가 예산 선택으로 교체됨. 계좌 이동 제안은 계좌 ≥2 gate인데 계좌 등록 경로가 사라져 도달 불가(로직은 잠듦)
-- [ ] **T6 통합 검증** — full unit tests + assembleDebug PASS. 실기기 설치·화면 확인은 기기 연결 시 수행
+- [x] **T6 통합 검증** — full unit tests + assembleDebug PASS, 실기기 SM_S931N 확인 완료. 후속 UI 조정: 배분 스택 바(수입 대비 고정/변동/남는 돈), 차감 예산 picker 지출 유형 한정, 타일 helper 잘림 수정
 
 ## T1 계약 초안 (Codex 구체화)
 

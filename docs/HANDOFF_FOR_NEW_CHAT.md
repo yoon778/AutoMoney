@@ -197,12 +197,11 @@ SM_S931N / R3KYB05QDFP
 
 ## Suggested Next Codex Tasks
 
-### Active handoff: budget-first redesign T3-T5 — 2026-07-13
+### (완료 2026-07-14) budget-first redesign T1-T6 done
 
-- Read `docs/superpowers/plans/2026-07-13-budget-first-redesign.md` (사용자 grilling으로 결정 10개 확정됨 — 재논의 불필요)
-- Codex T1·T2 완료: `MoneyTransaction.budgetPlanId`, Room 10→11, 예산 override/fallback, 예산 밖 지출 집계, 수동저장·수정·검토확정 배선
-- 계좌 관련 테이블·로직 삭제 금지 — 화면 단절은 Claude T3-T5 몫
-- Claude 다음 작업: T3-T5 (수정 dialog 예산 선택, 자산→예산 탭 개편, 검토 정리)
+- Codex T1·T2: `MoneyTransaction.budgetPlanId`, Room 10→11, 예산 override/fallback, 예산 밖 지출 집계, 수동저장·수정·검토확정 배선
+- Claude T3·T4·T5: 수정 dialog·수동입력 `차감 예산` picker(지출 유형만), 자산→예산 탭 개편(수입 배분 스택 바·예산 밖 지출 하이라이트), 계좌 화면 제거(로직·DB는 잠듦)
+- plan은 Status 참고, 실기기 SM_S931N 확인 완료
 - 참고: 최근 parser 수정 3건 — CommonFinanceNotificationParser(단일 금액 ambiguous movement 검토行), GenericFinanceNotificationParser(잔액 라벨 금액 제외), NotificationSnapshot.combinedText(text/bigText 중복 제거). 앱 표시명은 짤랑으로 리브랜딩됨
 
 ### (완료 2026-07-13) notification source selection T1-T8 done
@@ -222,11 +221,11 @@ Recommended next logic tasks:
 
 ## Suggested Next Claude Tasks
 
-### Active handoff: transaction edit budget visibility — 2026-07-14
+### (완료 2026-07-14) transaction edit budget visibility
 
-- `TransactionEditDialog`: `차감 예산` picker와 예산 미등록 안내를 `selectedType.countsAsMonthlyExpense`일 때만 표시
-- Codex 로직은 비지출 유형 저장 시 `budgetPlanId=null`로 정리
-- 수동 입력은 이미 `ManualEntryType.EXPENSE`에서만 picker 표시됨
+- `TransactionEditDialog`: `차감 예산` picker와 예산 미등록 안내를 `selectedType.countsAsMonthlyExpense`일 때만 표시 (커밋 `d07da30`, 실기기 확인 완료)
+- Codex 로직은 비지출 유형 저장 시 `budgetPlanId=null`로 정리됨
+- 수동 입력은 `ManualEntryType.EXPENSE`에서만 picker 표시
 
 ### (완료 2026-07-13) notification source selection UI — T6 done at `b0995c9`, ownership returned to Codex for T7
 
