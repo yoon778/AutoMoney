@@ -15,7 +15,9 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -36,6 +38,7 @@ import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.manual.ManualEntryType
 import com.choiyoonseo.automoney.ui.model.formatWon
+import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import java.time.Instant
 import java.time.LocalDate
 
@@ -188,11 +191,11 @@ fun ManualTransactionForm(
                     value = when {
                         selectedFixedPlanId != null ->
                             fixedExpenses.firstOrNull { it.id == selectedFixedPlanId }
-                                ?.let { "${it.name} · 고정지출" }
+                                ?.let { "고정 · ${it.name}" }
                                 ?: "분류 따라 자동"
                         selectedBudgetPlanId != null ->
                             budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
-                                ?.let { "${it.plan.label} · 남음 ${formatWon(it.remainingWon)}" }
+                                ?.let { "예산 · ${it.plan.label} 남음 ${formatWon(it.remainingWon)}" }
                                 ?: "분류 따라 자동"
                         else -> "분류 따라 자동"
                     },
@@ -211,25 +214,34 @@ fun ManualTransactionForm(
                             budgetMenuExpanded = false
                         }
                     )
-                    budgetUsages.forEach { usage ->
-                        DropdownMenuItem(
-                            text = { Text("${usage.plan.label} · 남음 ${formatWon(usage.remainingWon)}") },
-                            onClick = {
-                                selectedBudgetPlanId = usage.plan.id
-                                selectedFixedPlanId = null
-                                budgetMenuExpanded = false
-                            }
-                        )
+                    if (budgetUsages.isNotEmpty()) {
+                        DropdownSectionHeader("변동 예산")
+                        budgetUsages.forEach { usage ->
+                            DropdownMenuItem(
+                                text = { Text("${usage.plan.label} · 남음 ${formatWon(usage.remainingWon)}") },
+                                onClick = {
+                                    selectedBudgetPlanId = usage.plan.id
+                                    selectedFixedPlanId = null
+                                    budgetMenuExpanded = false
+                                }
+                            )
+                        }
                     }
-                    fixedExpenses.forEach { plan ->
-                        DropdownMenuItem(
-                            text = { Text("${plan.name} · 고정지출 ${formatWon(plan.amountWon)}") },
-                            onClick = {
-                                selectedFixedPlanId = plan.id
-                                selectedBudgetPlanId = null
-                                budgetMenuExpanded = false
-                            }
-                        )
+                    if (fixedExpenses.isNotEmpty()) {
+                        if (budgetUsages.isNotEmpty()) {
+                            HorizontalDivider(color = MoneyTheme.colors.canvas)
+                        }
+                        DropdownSectionHeader("고정지출")
+                        fixedExpenses.forEach { plan ->
+                            DropdownMenuItem(
+                                text = { Text("${plan.name} · ${formatWon(plan.amountWon)}") },
+                                onClick = {
+                                    selectedFixedPlanId = plan.id
+                                    selectedBudgetPlanId = null
+                                    budgetMenuExpanded = false
+                                }
+                            )
+                        }
                     }
                 }
             }
@@ -313,4 +325,14 @@ fun ManualTransactionForm(
             }
         }
     }
+}
+
+@Composable
+private fun DropdownSectionHeader(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MoneyTheme.colors.muted,
+        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 2.dp)
+    )
 }
