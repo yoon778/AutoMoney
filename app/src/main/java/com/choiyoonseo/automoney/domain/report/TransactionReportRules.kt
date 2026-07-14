@@ -1,5 +1,6 @@
 package com.choiyoonseo.automoney.domain.report
 
+import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
@@ -17,6 +18,7 @@ fun MoneyTransaction.countsAsReportIncome(): Boolean =
 
 fun MoneyTransaction.countsAsActualExpense(): Boolean =
     isReportableTransaction() &&
+        !isSavingCategory() &&
         (type.countsAsMonthlyExpense ||
             (type == TransactionType.SETTLEMENT && settlementMyShareWon != null))
 
@@ -25,4 +27,8 @@ fun MoneyTransaction.effectiveExpenseWon(): Long =
 
 fun MoneyTransaction.countsAsSavingMovement(): Boolean =
     isReportableTransaction() &&
-        (type == TransactionType.SAVING || type == TransactionType.INVESTMENT)
+        (type == TransactionType.SAVING || type == TransactionType.INVESTMENT || isSavingCategory())
+
+// 고정지출 계획에 연결돼 종류가 FIXED_EXPENSE로 고정된 저축도 인식하려면 카테고리를 본다.
+private fun MoneyTransaction.isSavingCategory(): Boolean =
+    category == Category.SAVING && direction == TransactionDirection.EXPENSE
