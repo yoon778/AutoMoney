@@ -15,6 +15,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -43,11 +44,13 @@ fun SpendingCalendarCard(
     title: String,
     calendar: MonthlySpendCalendarUi,
     modifier: Modifier = Modifier,
-    currentDate: LocalDate = LocalDate.now(AppDateZoneId)
+    currentDate: LocalDate = LocalDate.now(AppDateZoneId),
+    onDaySelected: (Int) -> Unit = {}
 ) {
     var selectedDay by remember(calendar.monthTitle, calendar.dailySpends, currentDate) {
         mutableStateOf(calendar.defaultSelectedDay(currentDate))
     }
+    LaunchedEffect(selectedDay) { onDaySelected(selectedDay) }
     val selectedSpend = calendar.spendForDay(selectedDay)
 
     val colors = MoneyTheme.colors

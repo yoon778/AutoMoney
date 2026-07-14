@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.CategoryBar
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
@@ -91,6 +93,20 @@ fun MonthlyReportScreen(
         transactionsToRows(transactions.filter { it.countsAsSavingMovement() }, limit = 30)
     }
     var activeDetail by remember { mutableStateOf<ReportDetailDialogState?>(null) }
+    var selectedReportDay by remember(month) { mutableStateOf<Int?>(null) }
+    val dayExpenseRows = remember(transactions, selectedReportDay) {
+        val day = selectedReportDay
+        if (day == null) {
+            emptyList()
+        } else {
+            transactionsToRows(
+                transactions
+                    .filter { it.countsAsActualExpense() && it.occurredAt.atZone(AppDateZoneId).dayOfMonth == day }
+                    .sortedByDescending { it.effectiveExpenseWon() },
+                limit = 50
+            )
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -185,8 +201,24 @@ fun MonthlyReportScreen(
 
         SpendingCalendarCard(
             title = "날짜별 사용",
-            calendar = calendar
+            calendar = calendar,
+            onDaySelected = { selectedReportDay = it }
         )
+
+        selectedReportDay?.let { day ->
+            FinanceSectionCard(
+                title = "${month.monthValue}월 ${day}일 지출",
+                subtitle = "이 날 사용한 내역",
+                accent = MoneyCoral,
+                icon = Icons.Filled.BarChart
+            ) {
+                if (dayExpenseRows.isEmpty()) {
+                    Text("이 날은 지출 기록이 없어요")
+                } else {
+                    dayExpenseRows.forEach { row -> DayExpenseRow(row) }
+                }
+            }
+        }
 
         FinanceSectionCard(
             title = "카테고리별 지출",
@@ -218,6 +250,25 @@ fun MonthlyReportScreen(
         ReportDetailDialog(
             detail = detail,
             onDismiss = { activeDetail = null }
+        )
+    }
+}
+
+@Composable
+private fun DayExpenseRow(row: TransactionRowUi) {
+    val colors = MoneyTheme.colors
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(row.merchant, fontWeight = FontWeight.Medium, color = colors.ink)
+            Text(row.category, style = MaterialTheme.typography.labelSmall, color = colors.muted)
+        }
+        Text(
+            formatWon(row.amountWon),
+            fontWeight = FontWeight.Bold,
+            color = colors.ink
         )
     }
 }
