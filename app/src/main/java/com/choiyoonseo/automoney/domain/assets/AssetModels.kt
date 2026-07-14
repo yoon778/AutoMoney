@@ -23,22 +23,6 @@ data class AssetAccount(
     val providerLabel: String? = null
 )
 
-fun updateAssetAccount(
-    account: AssetAccount,
-    name: String,
-    balanceWon: Long,
-    kind: AssetAccountKind
-): AssetAccount = account.copy(
-    name = name,
-    balanceWon = balanceWon,
-    kind = kind,
-    bankProvider = account.bankProvider.takeIf { kind == AssetAccountKind.BANK },
-    accountLast4 = account.accountLast4.takeIf { kind == AssetAccountKind.BANK },
-    providerLabel = account.providerLabel.takeIf {
-        kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY
-    }
-).validatedForSave()
-
 fun AssetAccount.validatedForSave(): AssetAccount {
     val cleanName = name.trim()
     require(cleanName.isNotBlank()) { "계좌 이름을 입력해 주세요." }
@@ -195,6 +179,3 @@ fun buildAssetOverview(
 
 private fun ratioOf(amount: Long, total: Long): Float =
     if (total <= 0) 0f else (amount.toDouble() / total).coerceIn(0.0, 1.0).toFloat()
-
-fun assetOverviewBalanceHelper(accountCount: Int): String =
-    "${accountCount}개 계좌 · 현재 등록 잔액 기준"

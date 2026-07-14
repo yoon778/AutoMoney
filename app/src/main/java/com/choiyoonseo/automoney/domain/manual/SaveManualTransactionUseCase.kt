@@ -137,20 +137,4 @@ class SaveManualTransactionUseCase(
 
         return repository.saveTransaction(transaction)
     }
-
-    suspend fun saveExpense(
-        amountWon: Long,
-        categoryText: String,
-        memo: String,
-        occurredAt: Instant = Instant.now(),
-        budgetPlanId: Long? = null
-    ): Long = save(
-        type = ManualEntryType.EXPENSE,
-        amountWon = amountWon,
-        categoryText = categoryText,
-        memo = memo,
-        occurredAt = occurredAt,
-        budgetPlanId = budgetPlanId
-    )
-
 }

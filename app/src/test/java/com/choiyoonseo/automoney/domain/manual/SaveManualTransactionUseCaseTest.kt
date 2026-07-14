@@ -29,7 +29,8 @@ class SaveManualTransactionUseCaseTest {
         val repository = FakeMoneyRepository()
         val useCase = SaveManualTransactionUseCase(repository)
 
-        val id = useCase.saveExpense(
+        val id = useCase.save(
+            type = ManualEntryType.EXPENSE,
             amountWon = 6100,
             categoryText = "카페/간식",
             memo = "스타벅스 홍대입구",
@@ -58,7 +59,8 @@ class SaveManualTransactionUseCaseTest {
 
         var error: IllegalArgumentException? = null
         try {
-            useCase.saveExpense(
+            useCase.save(
+                type = ManualEntryType.EXPENSE,
                 amountWon = 0,
                 categoryText = "기타",
                 memo = "",
@@ -174,7 +176,8 @@ class SaveManualTransactionUseCaseTest {
         val categoryRepository = FakeUserCategoryRepository()
         val useCase = SaveManualTransactionUseCase(repository, categoryRepository)
 
-        useCase.saveExpense(
+        useCase.save(
+            type = ManualEntryType.EXPENSE,
             amountWon = 25_000,
             categoryText = "데이트비용",
             memo = "저녁",

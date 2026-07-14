@@ -99,9 +99,4 @@ class AssetOverviewCalculatorTest {
         assertThat(error).hasMessageThat().contains("출금일")
     }
 
-    @Test
-    fun assetOverviewBalanceHelperDoesNotClaimPreviousMonthComparison() {
-        assertThat(assetOverviewBalanceHelper(accountCount = 2))
-            .isEqualTo("2개 계좌 · 현재 등록 잔액 기준")
-    }
 }

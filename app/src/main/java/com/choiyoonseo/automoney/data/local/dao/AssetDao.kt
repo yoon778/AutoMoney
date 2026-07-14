@@ -14,9 +14,6 @@ interface AssetDao {
     @Query("SELECT * FROM asset_accounts ORDER BY balanceWon DESC")
     fun observeAccounts(): Flow<List<AssetAccountEntity>>
 
-    @Query("SELECT * FROM asset_accounts ORDER BY balanceWon DESC")
-    suspend fun accountsOnce(): List<AssetAccountEntity>
-
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccount(entity: AssetAccountEntity): Long
 

@@ -97,10 +97,6 @@ object FinancialAppRegistry {
         )
     )
     private val appInfoByPackage = supportedAppInfos.associateBy { it.packageName }
-    private val supportedPackages = appInfoByPackage.keys
-
-    fun isSupportedPackage(packageName: String): Boolean =
-        packageName in supportedPackages
 
     fun infoForPackage(packageName: String): FinancialAppInfo? =
         appInfoByPackage[packageName]

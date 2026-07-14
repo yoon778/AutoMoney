@@ -7,6 +7,7 @@ enum class UserCategoryKind {
     INCOME
 }
 
+@ConsistentCopyVisibility
 data class UserCategory private constructor(
     val id: Long,
     val kind: UserCategoryKind,

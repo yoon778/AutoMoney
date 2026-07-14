@@ -18,9 +18,6 @@ interface ReviewItemDao {
     @Update
     suspend fun update(entity: ReviewItemEntity)
 
-    @Query("SELECT * FROM review_items WHERE resolvedAt IS NULL ORDER BY createdAt DESC")
-    fun observeOpenItems(): Flow<List<ReviewItemEntity>>
-
     @Query("SELECT COUNT(*) FROM review_items WHERE resolvedAt IS NULL")
     fun observeOpenItemCount(): Flow<Int>
 

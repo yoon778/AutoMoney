@@ -131,7 +131,7 @@ fun transactionsToDateSections(
         .filter { it.isVisibleInLedger() }
         .sortedByDescending { it.occurredAt }
         .take(limit)
-        .groupBy { LocalDate.ofInstant(it.occurredAt, zoneId) }
+        .groupBy { it.occurredAt.atZone(zoneId).toLocalDate() }
         .map { (date, datedTransactions) ->
             TransactionDateSectionUi(
                 date = date,

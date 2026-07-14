@@ -1,7 +1,6 @@
 package com.choiyoonseo.automoney.notification
 
 import com.choiyoonseo.automoney.domain.assets.BankProvider
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertNull
@@ -22,7 +21,7 @@ class FinancialAppRegistryTest {
             "viva.republica.toss"
         )
 
-        assertTrue(packages.all(FinancialAppRegistry::isSupportedPackage))
+        assertTrue(packages.all { FinancialAppRegistry.infoForPackage(it) != null })
     }
 
     @Test
@@ -32,7 +31,7 @@ class FinancialAppRegistryTest {
             "com.kebhana.hanapush"
         )
 
-        assertTrue(packages.all(FinancialAppRegistry::isSupportedPackage))
+        assertTrue(packages.all { FinancialAppRegistry.infoForPackage(it) != null })
     }
 
     @Test
@@ -66,8 +65,8 @@ class FinancialAppRegistryTest {
 
     @Test
     fun rejectsUnknownAndBlankPackages() {
-        assertFalse(FinancialAppRegistry.isSupportedPackage("com.shopping.adapp"))
-        assertFalse(FinancialAppRegistry.isSupportedPackage(""))
+        assertNull(FinancialAppRegistry.infoForPackage("com.shopping.adapp"))
+        assertNull(FinancialAppRegistry.infoForPackage(""))
     }
 
     @Test

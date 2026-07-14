@@ -16,12 +16,3 @@ enum class BalanceImpact {
     DEBIT,
     NONE
 }
-
-fun normalizeAccountLast4(raw: String): String {
-    val digits = raw.filter(Char::isDigit)
-    require(digits.length >= 4) { "계좌번호는 숫자 4자리 이상 입력해 주세요." }
-    return digits.takeLast(4)
-}
-
-fun maskedAccountLast4(last4: String?): String? =
-    last4?.takeIf { it.length == 4 && it.all(Char::isDigit) }?.let { "****$it" }

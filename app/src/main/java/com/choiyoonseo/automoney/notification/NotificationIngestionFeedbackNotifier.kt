@@ -23,17 +23,21 @@ class NotificationIngestionFeedbackNotifier(
         if (!canPostNotifications()) return
 
         ensureChannel(feedback.kind)
-        NotificationManagerCompat.from(context).notify(
-            nextNotificationId.incrementAndGet(),
-            NotificationCompat.Builder(context, channelIdFor(feedback.kind))
-                .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle(feedback.title)
-                .setContentText(feedback.text)
-                .setContentIntent(contentIntent())
-                .setAutoCancel(true)
-                .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
-                .build()
-        )
+        try {
+            NotificationManagerCompat.from(context).notify(
+                nextNotificationId.incrementAndGet(),
+                NotificationCompat.Builder(context, channelIdFor(feedback.kind))
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setContentTitle(feedback.title)
+                    .setContentText(feedback.text)
+                    .setContentIntent(contentIntent())
+                    .setAutoCancel(true)
+                    .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+                    .build()
+            )
+        } catch (_: SecurityException) {
+            // Permission can be revoked after canPostNotifications().
+        }
     }
 
     private fun canPostNotifications(): Boolean =
@@ -44,7 +48,6 @@ class NotificationIngestionFeedbackNotifier(
             ) == PackageManager.PERMISSION_GRANTED
 
     private fun ensureChannel(kind: NotificationIngestionFeedbackKind) {
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         val channel = NotificationChannel(
             channelIdFor(kind),
             if (kind == NotificationIngestionFeedbackKind.NEEDS_REVIEW) {
