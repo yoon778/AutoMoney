@@ -63,3 +63,30 @@ fun isCategoryLabelValidForEdit(
     enabledIncome: List<Category>? = null
 ): Boolean =
     transactionEditCategoryOptionsFor(type, enabledExpense, enabledIncome).any { it.label == label }
+
+// 기본 분류 + 사용자 정의 분류를 미리 병합한 라벨 목록을 다루는 버전.
+fun categoryLabelsFor(
+    type: TransactionType,
+    expenseLabels: List<String>,
+    incomeLabels: List<String>
+): List<String> = when (type) {
+    TransactionType.INCOME -> incomeLabels
+    TransactionType.EXPENSE,
+    TransactionType.FIXED_EXPENSE,
+    TransactionType.WALLET_SPEND -> expenseLabels
+    else -> emptyList()
+}
+
+fun defaultCategoryLabelFor(
+    type: TransactionType,
+    category: Category?,
+    customCategoryName: String?,
+    expenseLabels: List<String>,
+    incomeLabels: List<String>
+): String {
+    val options = categoryLabelsFor(type, expenseLabels, incomeLabels)
+    val current = customCategoryName ?: categoryLabelForEdit(category)
+    return options.firstOrNull { it == current }
+        ?: options.firstOrNull()
+        ?: Category.OTHER.displayName
+}

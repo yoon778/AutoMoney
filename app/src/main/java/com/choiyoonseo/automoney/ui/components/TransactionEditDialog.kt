@@ -29,14 +29,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.ui.model.formatWon
-import com.choiyoonseo.automoney.ui.settings.SharedPreferencesCategoryPreferenceStore
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import java.time.Instant
@@ -49,6 +47,8 @@ fun TransactionEditDialog(
     errorMessage: String?,
     budgetUsages: List<CategoryBudgetUsage> = emptyList(),
     fixedExpenses: List<FixedExpensePlan> = emptyList(),
+    expenseCategoryLabels: List<String> = emptyList(),
+    incomeCategoryLabels: List<String> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (
         amountWon: Long,
@@ -64,10 +64,8 @@ fun TransactionEditDialog(
     excludeLabel: String = "\uc9c0\ucd9c\uc5d0\uc11c \uc81c\uc678",
     deleteLabel: String = "\uc0ad\uc81c"
 ) {
-    val context = LocalContext.current
-    val categoryStore = remember { SharedPreferencesCategoryPreferenceStore(context) }
-    val enabledExpense = remember { categoryStore.enabledExpenseCategories() }
-    val enabledIncome = remember { categoryStore.enabledIncomeCategories() }
+    val expLabels = expenseCategoryLabels.ifEmpty { transactionEditExpenseCategoryOptions.map { it.label } }
+    val incLabels = incomeCategoryLabels.ifEmpty { transactionEditIncomeCategoryOptions.map { it.label } }
     var amountText by remember(transaction.id) { mutableStateOf(transaction.amount.won.toString()) }
     var selectedDate by remember(transaction.id) {
         mutableStateOf(transaction.occurredAt.toTransactionEditLocalDate())
@@ -78,8 +76,16 @@ fun TransactionEditDialog(
     var isDatePickerOpen by remember(transaction.id) { mutableStateOf(false) }
     var isTimePickerOpen by remember(transaction.id) { mutableStateOf(false) }
     var selectedType by remember(transaction.id) { mutableStateOf(transaction.type) }
-    var selectedCategoryLabel by remember(transaction.id) {
-        mutableStateOf(defaultCategoryLabelForEdit(transaction.type, transaction.category, enabledExpense, enabledIncome))
+    var selectedCategoryLabel by remember(transaction.id, expLabels, incLabels) {
+        mutableStateOf(
+            defaultCategoryLabelFor(
+                transaction.type,
+                transaction.category,
+                transaction.customCategoryName,
+                expLabels,
+                incLabels
+            )
+        )
     }
     var categoryMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
     var typeMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
@@ -95,7 +101,7 @@ fun TransactionEditDialog(
     }
     var localErrorMessage by remember(transaction.id) { mutableStateOf<String?>(null) }
     val title = transaction.merchant ?: transaction.counterparty ?: "거래"
-    val categoryOptions = transactionEditCategoryOptionsFor(selectedType, enabledExpense, enabledIncome)
+    val categoryOptions = categoryLabelsFor(selectedType, expLabels, incLabels)
 
     if (isDatePickerOpen) {
         val datePickerState = rememberDatePickerState(
@@ -253,8 +259,14 @@ fun TransactionEditDialog(
                         text = { Text(option.label) },
                         onClick = {
                             selectedType = option.type
-                            if (!isCategoryLabelValidForEdit(option.type, selectedCategoryLabel, enabledExpense, enabledIncome)) {
-                                selectedCategoryLabel = defaultCategoryLabelForEdit(option.type, transaction.category, enabledExpense, enabledIncome)
+                            if (selectedCategoryLabel !in categoryLabelsFor(option.type, expLabels, incLabels)) {
+                                selectedCategoryLabel = defaultCategoryLabelFor(
+                                    option.type,
+                                    transaction.category,
+                                    transaction.customCategoryName,
+                                    expLabels,
+                                    incLabels
+                                )
                             }
                             typeMenuExpanded = false
                         }
@@ -274,11 +286,11 @@ fun TransactionEditDialog(
                     onDismissRequest = { categoryMenuExpanded = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    categoryOptions.forEach { option ->
+                    categoryOptions.forEach { label ->
                         DropdownMenuItem(
-                            text = { Text(option.label) },
+                            text = { Text(label) },
                             onClick = {
-                                selectedCategoryLabel = option.label
+                                selectedCategoryLabel = label
                                 categoryMenuExpanded = false
                             }
                         )

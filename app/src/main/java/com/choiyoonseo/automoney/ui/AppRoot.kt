@@ -161,7 +161,8 @@ fun AppRoot(
                     notificationOnboardingStore?.markDismissed()
                     notificationOnboardingDismissed = true
                 },
-                onOpenNotificationSettings = openNotificationSettings
+                onOpenNotificationSettings = openNotificationSettings,
+                userCategoryRepository = userCategoryRepository
             )
             AppTab.TRANSACTIONS -> TransactionsScreen(
                 padding = padding,
@@ -171,6 +172,7 @@ fun AppRoot(
                 assetRepository = assetRepository,
                 walletTopupNoticeStore = walletTopupNoticeStore,
                 notificationAccessEnabled = notificationAccessEnabled,
+                userCategoryRepository = userCategoryRepository,
                 onOpenNotificationSettings = openNotificationSettings
             )
             AppTab.REVIEW -> ReviewScreen(
@@ -181,7 +183,8 @@ fun AppRoot(
                 assetRepository = assetRepository,
                 resolveReviewUseCase = resolveReviewUseCase,
                 resolveAccountTransferUseCase = resolveAccountTransferUseCase,
-                linkSettlementRepaymentUseCase = linkSettlementRepaymentUseCase
+                linkSettlementRepaymentUseCase = linkSettlementRepaymentUseCase,
+                userCategoryRepository = userCategoryRepository
             )
             AppTab.ASSETS -> AssetsScreen(
                 padding = padding,

@@ -36,6 +36,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -46,6 +47,7 @@ import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
+import com.choiyoonseo.automoney.ui.components.rememberMergedCategoryLabels
 import com.choiyoonseo.automoney.ui.components.TransactionRow
 import com.choiyoonseo.automoney.ui.model.TransactionDateSectionUi
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
@@ -65,6 +67,7 @@ fun TransactionsScreen(
     assetRepository: AssetRepository? = null,
     walletTopupNoticeStore: WalletTopupNoticeStore? = null,
     notificationAccessEnabled: Boolean? = null,
+    userCategoryRepository: UserCategoryRepository? = null,
     onOpenNotificationSettings: () -> Unit = {}
 ) {
     val colors = MoneyTheme.colors
@@ -83,6 +86,7 @@ fun TransactionsScreen(
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     val dateSections = if (moneyRepository == null) {
         listOf(
             TransactionDateSectionUi(
@@ -235,7 +239,9 @@ fun TransactionsScreen(
                 isSaving = isSavingManual,
                 resetSignal = manualFormResetSignal,
                 budgetUsages = budgetUsages,
-                fixedExpenses = fixedExpenses
+                fixedExpenses = fixedExpenses,
+                expenseCategoryLabels = expenseCategoryLabels,
+                incomeCategoryLabels = incomeCategoryLabels
             ) { type, amountWon, category, memo, occurredAt, budgetPlanId, fixedExpensePlanId ->
                 val useCase = saveManualTransactionUseCase
                 if (useCase == null) {
@@ -287,6 +293,8 @@ fun TransactionsScreen(
             errorMessage = editErrorMessage,
             budgetUsages = budgetUsages,
             fixedExpenses = fixedExpenses,
+            expenseCategoryLabels = expenseCategoryLabels,
+            incomeCategoryLabels = incomeCategoryLabels,
             onDismiss = {
                 activeEditTransaction = null
                 editErrorMessage = null

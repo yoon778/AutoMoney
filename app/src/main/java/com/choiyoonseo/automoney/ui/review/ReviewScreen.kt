@@ -77,6 +77,8 @@ import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.ReviewActionCard
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
+import com.choiyoonseo.automoney.ui.components.rememberMergedCategoryLabels
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.ui.components.reviewAccentForLabel
 import com.choiyoonseo.automoney.ui.model.ReviewCardKind
 import com.choiyoonseo.automoney.ui.model.ReviewCardUi
@@ -99,7 +101,8 @@ fun ReviewScreen(
     assetRepository: AssetRepository? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
     resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null,
-    linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null
+    linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
     val scope = rememberCoroutineScope()
     val reviewService = remember { WalletTopupReviewService() }
@@ -129,6 +132,7 @@ fun ReviewScreen(
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     var sampleReviewCardsState by remember { mutableStateOf(sampleReviewCards) }
     val reviewCards = if (moneyRepository == null) sampleReviewCardsState else dbReviewCards
     var activeWalletCard by remember { mutableStateOf<ReviewCardUi?>(null) }
@@ -628,6 +632,8 @@ fun ReviewScreen(
                 errorMessage = editErrorMessage,
                 budgetUsages = budgetUsages,
                 fixedExpenses = fixedExpenses,
+                expenseCategoryLabels = expenseCategoryLabels,
+                incomeCategoryLabels = incomeCategoryLabels,
                 onDismiss = {
                     activeEditReviewCard = null
                     editErrorMessage = null

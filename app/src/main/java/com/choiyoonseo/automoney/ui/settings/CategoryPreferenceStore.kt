@@ -1,7 +1,11 @@
 package com.choiyoonseo.automoney.ui.settings
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.choiyoonseo.automoney.domain.model.Category
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 
 val expenseCategoryPool: List<Category> = listOf(
     Category.FOOD,
@@ -58,6 +62,8 @@ fun resolveEnabledCategories(
 interface CategoryPreferenceStore {
     fun enabledExpenseCategories(): List<Category>
     fun enabledIncomeCategories(): List<Category>
+    fun observeEnabledExpenseCategories(): Flow<List<Category>>
+    fun observeEnabledIncomeCategories(): Flow<List<Category>>
     fun setEnabledExpenseCategories(categories: Collection<Category>)
     fun setEnabledIncomeCategories(categories: Collection<Category>)
 }
@@ -81,6 +87,24 @@ class SharedPreferencesCategoryPreferenceStore(context: Context) : CategoryPrefe
             incomeCategoryPool,
             defaultEnabledIncomeCategories
         )
+
+    override fun observeEnabledExpenseCategories(): Flow<List<Category>> =
+        observeCategories(KEY_EXPENSE, ::enabledExpenseCategories)
+
+    override fun observeEnabledIncomeCategories(): Flow<List<Category>> =
+        observeCategories(KEY_INCOME, ::enabledIncomeCategories)
+
+    private fun observeCategories(
+        key: String,
+        read: () -> List<Category>
+    ): Flow<List<Category>> = callbackFlow {
+        trySend(read())
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, changedKey ->
+            if (changedKey == key || changedKey == null) trySend(read())
+        }
+        preferences.registerOnSharedPreferenceChangeListener(listener)
+        awaitClose { preferences.unregisterOnSharedPreferenceChangeListener(listener) }
+    }
 
     override fun setEnabledExpenseCategories(categories: Collection<Category>) {
         preferences.edit()

@@ -25,13 +25,11 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import com.choiyoonseo.automoney.ui.components.MoneyPickerField
-import com.choiyoonseo.automoney.ui.settings.SharedPreferencesCategoryPreferenceStore
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
@@ -49,6 +47,8 @@ fun ManualTransactionForm(
     resetSignal: Int = 0,
     budgetUsages: List<CategoryBudgetUsage> = emptyList(),
     fixedExpenses: List<FixedExpensePlan> = emptyList(),
+    expenseCategoryLabels: List<String> = emptyList(),
+    incomeCategoryLabels: List<String> = emptyList(),
     onSave: (
         type: ManualEntryType,
         amountWon: Long,
@@ -65,18 +65,16 @@ fun ManualTransactionForm(
     var entryType by remember(resetSignal) { mutableStateOf(defaults.entryType) }
     var selectedDate by remember(resetSignal) { mutableStateOf(defaults.selectedDate) }
     var amount by remember(resetSignal) { mutableStateOf(defaults.amount) }
-    var category by remember(resetSignal) { mutableStateOf(defaults.expenseCategory) }
-    var incomeCategory by remember(resetSignal) { mutableStateOf(defaults.incomeCategory) }
+    var expenseCategoryLabel by remember(resetSignal) { mutableStateOf(defaults.expenseCategory.label) }
+    var incomeCategoryLabel by remember(resetSignal) { mutableStateOf(defaults.incomeCategory.label) }
     var memo by remember(resetSignal) { mutableStateOf(defaults.memo) }
     var inputError by remember(resetSignal) { mutableStateOf(defaults.inputError) }
     var categoryMenuExpanded by remember(resetSignal) { mutableStateOf(defaults.isCategoryMenuExpanded) }
     var budgetMenuExpanded by remember(resetSignal) { mutableStateOf(false) }
     var selectedBudgetPlanId by remember(resetSignal) { mutableStateOf<Long?>(null) }
     var selectedFixedPlanId by remember(resetSignal) { mutableStateOf<Long?>(null) }
-    val categoryContext = LocalContext.current
-    val categoryStore = remember { SharedPreferencesCategoryPreferenceStore(categoryContext) }
-    val enabledExpenseOptions = remember { categoryStore.enabledExpenseCategories().map { ManualCategoryOption(it) } }
-    val enabledIncomeOptions = remember { categoryStore.enabledIncomeCategories().map { ManualCategoryOption(it) } }
+    val expenseOptions = expenseCategoryLabels.ifEmpty { manualExpenseCategoryOptions.map { it.label } }
+    val incomeOptions = incomeCategoryLabels.ifEmpty { manualIncomeCategoryOptions.map { it.label } }
     var isDatePickerOpen by remember(resetSignal) { mutableStateOf(defaults.isDatePickerOpen) }
 
     if (isDatePickerOpen) {
@@ -248,14 +246,14 @@ fun ManualTransactionForm(
         }
         if (entryType != ManualEntryType.TRANSFER) {
             val categoryOptions = when (entryType) {
-                ManualEntryType.EXPENSE -> enabledExpenseOptions
-                ManualEntryType.INCOME -> enabledIncomeOptions
+                ManualEntryType.EXPENSE -> expenseOptions
+                ManualEntryType.INCOME -> incomeOptions
                 ManualEntryType.TRANSFER -> emptyList()
             }
             val selectedCategory = when (entryType) {
-                ManualEntryType.EXPENSE -> category
-                ManualEntryType.INCOME -> incomeCategory
-                ManualEntryType.TRANSFER -> defaultManualCategoryOption
+                ManualEntryType.EXPENSE -> expenseCategoryLabel
+                ManualEntryType.INCOME -> incomeCategoryLabel
+                ManualEntryType.TRANSFER -> defaultManualCategoryOption.label
             }
             Text("분류")
             Box(Modifier.fillMaxWidth()) {
@@ -263,7 +261,7 @@ fun ManualTransactionForm(
                     onClick = { categoryMenuExpanded = true },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(selectedCategory.label, modifier = Modifier.weight(1f))
+                    Text(selectedCategory, modifier = Modifier.weight(1f))
                     Icon(Icons.Filled.KeyboardArrowDown, contentDescription = "분류 선택")
                 }
                 DropdownMenu(
@@ -271,13 +269,13 @@ fun ManualTransactionForm(
                     onDismissRequest = { categoryMenuExpanded = false },
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    categoryOptions.forEach { option ->
+                    categoryOptions.forEach { label ->
                         DropdownMenuItem(
-                            text = { Text(option.label) },
+                            text = { Text(label) },
                             onClick = {
                                 when (entryType) {
-                                    ManualEntryType.EXPENSE -> category = option
-                                    ManualEntryType.INCOME -> incomeCategory = option
+                                    ManualEntryType.EXPENSE -> expenseCategoryLabel = label
+                                    ManualEntryType.INCOME -> incomeCategoryLabel = label
                                     ManualEntryType.TRANSFER -> Unit
                                 }
                                 categoryMenuExpanded = false
@@ -304,8 +302,8 @@ fun ManualTransactionForm(
                     } else {
                         inputError = null
                         val categoryForSave = when (entryType) {
-                            ManualEntryType.EXPENSE -> category.label
-                            ManualEntryType.INCOME -> incomeCategory.label
+                            ManualEntryType.EXPENSE -> expenseCategoryLabel
+                            ManualEntryType.INCOME -> incomeCategoryLabel
                             ManualEntryType.TRANSFER -> "기타"
                         }
                         onSave(

@@ -56,6 +56,8 @@ import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.model.MetricTileUi
 import com.choiyoonseo.automoney.ui.model.TransactionRowUi
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
+import com.choiyoonseo.automoney.ui.components.rememberMergedCategoryLabels
+import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.ui.components.TransactionRow
 import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
@@ -77,7 +79,8 @@ fun HomeScreen(
     notificationAccessEnabled: Boolean? = null,
     showNotificationOnboarding: Boolean = false,
     onDismissNotificationOnboarding: () -> Unit = {},
-    onOpenNotificationSettings: () -> Unit = {}
+    onOpenNotificationSettings: () -> Unit = {},
+    userCategoryRepository: UserCategoryRepository? = null
 ) {
     val colors = MoneyTheme.colors
     val month = remember { YearMonth.now(AppDateZoneId) }
@@ -129,6 +132,7 @@ fun HomeScreen(
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
+    val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }
     var isEditingTransaction by remember { mutableStateOf(false) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -268,6 +272,8 @@ fun HomeScreen(
                 errorMessage = editErrorMessage,
                 budgetUsages = budgetUsages,
                 fixedExpenses = fixedExpenses,
+                expenseCategoryLabels = expenseCategoryLabels,
+                incomeCategoryLabels = incomeCategoryLabels,
                 onDismiss = {
                     activeEditTransaction = null
                     editErrorMessage = null
