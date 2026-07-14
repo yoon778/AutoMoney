@@ -12,8 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -33,6 +31,8 @@ import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.CategoryBar
+import com.choiyoonseo.automoney.ui.components.DetailBottomSheet
+import com.choiyoonseo.automoney.ui.components.DetailSheetState
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
@@ -92,7 +92,7 @@ fun MonthlyReportScreen(
     } else {
         transactionsToRows(transactions.filter { it.countsAsSavingMovement() }, limit = 30)
     }
-    var activeDetail by remember { mutableStateOf<ReportDetailDialogState?>(null) }
+    var activeDetail by remember { mutableStateOf<DetailSheetState?>(null) }
     var selectedReportDay by remember(month) { mutableStateOf<Int?>(null) }
     val dayExpenseRows = remember(transactions, selectedReportDay) {
         val day = selectedReportDay
@@ -148,13 +148,14 @@ fun MonthlyReportScreen(
             spentLabel = formatWon(summary?.expenseWon ?: 898000),
             savedLabel = formatWon(summary?.savingWon ?: 0),
             onClick = {
-                activeDetail = ReportDetailDialogState(
+                activeDetail = DetailSheetState(
                     title = "${month.monthValue}월 요약",
+                    headlineValue = formatWon(summary?.netWon ?: 0),
+                    caption = "남은 돈",
                     summaryLines = listOf(
                         "수입 ${formatWon(summary?.incomeWon ?: 0)}",
                         "지출 ${formatWon(summary?.expenseWon ?: 0)}",
-                        "저축 ${formatWon(summary?.savingWon ?: 0)}",
-                        "남은 돈 ${formatWon(summary?.netWon ?: 0)}"
+                        "저축 ${formatWon(summary?.savingWon ?: 0)}"
                     ),
                     rows = incomeRows + expenseRows + savingRows
                 )
@@ -170,9 +171,9 @@ fun MonthlyReportScreen(
                 MoneyGreen,
                 Modifier.weight(1f),
                 onClick = {
-                    activeDetail = ReportDetailDialogState(
+                    activeDetail = DetailSheetState(
                         title = "${month.monthValue}월 수입",
-                        summaryLines = listOf("합계 ${formatWon(summary?.incomeWon ?: 0)}"),
+                        headlineValue = formatWon(summary?.incomeWon ?: 0),
                         rows = incomeRows
                     )
                 }
@@ -190,9 +191,9 @@ fun MonthlyReportScreen(
                 MoneyCoral,
                 Modifier.weight(1f),
                 onClick = {
-                    activeDetail = ReportDetailDialogState(
+                    activeDetail = DetailSheetState(
                         title = "${month.monthValue}월 지출",
-                        summaryLines = listOf("합계 ${formatWon(summary?.expenseWon ?: 0)}"),
+                        headlineValue = formatWon(summary?.expenseWon ?: 0),
                         rows = expenseRows
                     )
                 }
@@ -232,9 +233,9 @@ fun MonthlyReportScreen(
                     category = category,
                     color = categoryAccentForName(category.name),
                     onClick = {
-                        activeDetail = ReportDetailDialogState(
+                        activeDetail = DetailSheetState(
                             title = category.name,
-                            summaryLines = listOf("합계 ${formatWon(category.amountWon)}"),
+                            headlineValue = formatWon(category.amountWon),
                             rows = expenseRows.filter { it.category == category.name }
                         )
                     }
@@ -247,8 +248,8 @@ fun MonthlyReportScreen(
     }
 
     activeDetail?.let { detail ->
-        ReportDetailDialog(
-            detail = detail,
+        DetailBottomSheet(
+            state = detail,
             onDismiss = { activeDetail = null }
         )
     }
@@ -273,38 +274,3 @@ private fun DayExpenseRow(row: TransactionRowUi) {
     }
 }
 
-private data class ReportDetailDialogState(
-    val title: String,
-    val summaryLines: List<String>,
-    val rows: List<TransactionRowUi>
-)
-
-@Composable
-private fun ReportDetailDialog(
-    detail: ReportDetailDialogState,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(detail.title) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                detail.summaryLines.forEach { line ->
-                    Text(line, fontWeight = FontWeight.Medium)
-                }
-                if (detail.rows.isEmpty()) {
-                    Text("표시할 거래가 없어요")
-                } else {
-                    detail.rows.take(12).forEach { row ->
-                        Text("${row.merchant} · ${row.category} · ${formatWon(row.amountWon)}")
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = onDismiss) {
-                Text("확인")
-            }
-        }
-    )
-}
