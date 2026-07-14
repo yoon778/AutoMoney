@@ -222,6 +222,12 @@ Recommended next logic tasks:
 
 ## Suggested Next Claude Tasks
 
+### Active handoff: transaction edit budget visibility — 2026-07-14
+
+- `TransactionEditDialog`: `차감 예산` picker와 예산 미등록 안내를 `selectedType.countsAsMonthlyExpense`일 때만 표시
+- Codex 로직은 비지출 유형 저장 시 `budgetPlanId=null`로 정리
+- 수동 입력은 이미 `ManualEntryType.EXPENSE`에서만 picker 표시됨
+
 ### (완료 2026-07-13) notification source selection UI — T6 done at `b0995c9`, ownership returned to Codex for T7
 
 Recommended UI tasks:

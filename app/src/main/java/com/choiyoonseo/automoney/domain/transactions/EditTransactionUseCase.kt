@@ -86,7 +86,7 @@ class EditTransactionUseCase(
             balanceImpact = nextImpact,
             customCategoryId = categoryAssignment.customCategoryId,
             customCategoryName = categoryAssignment.customCategoryName,
-            budgetPlanId = budgetPlanId
+            budgetPlanId = budgetPlanId.takeIf { transactionType.countsAsMonthlyExpense }
         )
         repository.updateTransaction(updatedTransaction)
         saveLearnedRules(transaction, updatedTransaction)
