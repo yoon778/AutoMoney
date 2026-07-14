@@ -101,10 +101,8 @@ fun ManualTransactionForm(
     }
 
     Column(
-        modifier = Modifier.padding(top = 12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Text("수동 입력")
         Text("종류")
         Row(
             modifier = Modifier.fillMaxWidth(),
