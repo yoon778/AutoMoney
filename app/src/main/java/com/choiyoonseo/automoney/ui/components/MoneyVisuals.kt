@@ -580,7 +580,6 @@ fun ReviewActionCard(
     modifier: Modifier = Modifier,
     onPrimaryAction: () -> Unit = {},
     onSecondaryAction: () -> Unit = {},
-    onAccountTransferAction: (() -> Unit)? = null,
     onEditAction: (() -> Unit)? = null
 ) {
     val colors = MoneyTheme.colors
@@ -639,11 +638,6 @@ fun ReviewActionCard(
                 }
                 OutlinedButton(onClick = onSecondaryAction, modifier = Modifier.weight(1f)) {
                     Text(card.secondaryAction, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                }
-            }
-            if (onAccountTransferAction != null) {
-                OutlinedButton(onClick = onAccountTransferAction, modifier = Modifier.fillMaxWidth()) {
-                    Text("내 계좌 이동", maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
             }
             if (card.editAction != null && onEditAction != null) {

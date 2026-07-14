@@ -44,10 +44,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
-import com.choiyoonseo.automoney.domain.assets.AssetAccount
-import com.choiyoonseo.automoney.domain.assets.applyAccountTransfer
 import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
-import com.choiyoonseo.automoney.domain.assets.findAccountTransferCandidates
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -57,7 +54,6 @@ import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
-import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.settlement.findSettlementMatch
@@ -100,7 +96,6 @@ fun ReviewScreen(
     editTransactionUseCase: EditTransactionUseCase? = null,
     assetRepository: AssetRepository? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
-    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null,
     linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
     userCategoryRepository: UserCategoryRepository? = null
 ) {
@@ -110,12 +105,6 @@ fun ReviewScreen(
         moneyRepository?.observeOpenReviewItems() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val dbReviewCards = remember(openReviewItems) { openReviewItemsToCards(openReviewItems) }
-    val accountTransferCandidates = remember(openReviewItems) {
-        findAccountTransferCandidates(openReviewItems.map { it.transaction })
-    }
-    val assetAccounts by remember(assetRepository) {
-        assetRepository?.observeAccounts() ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
     val allTransactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -139,7 +128,6 @@ fun ReviewScreen(
     var activeUnusedWalletCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeReviewMemoAction by remember { mutableStateOf<ReviewMemoAction?>(null) }
     var activeEditReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
-    var activeAccountTransferCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeSettlementCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -184,36 +172,8 @@ fun ReviewScreen(
                 primaryAction = "정산 받은 돈"
             )
         }
-        return when (reviewReasonFor(card)) {
-            ReviewReason.ACCOUNT_AMBIGUOUS -> card.copy(
-                tag = "계좌",
-                iconText = "계",
-                message = "같은 은행, 같은 끝자리 계좌가 여러 개라 자동으로 연결하지 못했어요. 어떤 계좌인지 확인해 주세요.",
-                primaryAction = "계좌 확인"
-            )
-            ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN -> card.copy(
-                tag = "계좌",
-                iconText = "계",
-                message = "입금인지 출금인지 확인하지 못해 잔액에는 반영하지 않았어요. 내역을 확인해 주세요.",
-                primaryAction = "내역 확인"
-            )
-            ReviewReason.BALANCE_MISMATCH -> card.copy(
-                tag = "잔액",
-                iconText = "잔",
-                message = "계좌에 남은 돈보다 큰 금액이라 잔액에 자동 반영하지 않았어요. 금액과 계좌를 확인해 주세요.",
-                primaryAction = "내역 확인"
-            )
-            else -> card
-        }
+        return card
     }
-
-    fun opensAccountEdit(card: ReviewCardUi): Boolean =
-        reviewReasonFor(card) in setOf(
-            ReviewReason.ACCOUNT_UNMATCHED,
-            ReviewReason.ACCOUNT_AMBIGUOUS,
-            ReviewReason.ACCOUNT_MOVEMENT_UNKNOWN,
-            ReviewReason.BALANCE_MISMATCH
-        )
 
     fun handleSettlement(card: ReviewCardUi, partyCount: Int, myShareWon: Long, memo: String?) {
         val source = card.sourceTransaction
@@ -272,7 +232,6 @@ fun ReviewScreen(
     fun filterKindFor(card: ReviewCardUi): ReviewFilterKind = when {
         card.kind == ReviewCardKind.WALLET_TOPUP -> ReviewFilterKind.TOPUP
         card.kind == ReviewCardKind.TRANSFER -> ReviewFilterKind.TRANSFER
-        opensAccountEdit(card) -> ReviewFilterKind.ACCOUNT
         reviewReasonFor(card) == ReviewReason.DUPLICATE_SUSPECTED -> ReviewFilterKind.DUPLICATE
         else -> ReviewFilterKind.OTHER
     }
@@ -283,15 +242,6 @@ fun ReviewScreen(
     } else {
         reviewCards.filter { filterKindFor(it) == selectedFilter }
     }
-
-    fun pairedIncomingReviewItem(card: ReviewCardUi) =
-        card.sourceTransaction?.id?.let { transactionId ->
-            accountTransferCandidates
-                .firstOrNull { it.outgoingTransactionId == transactionId }
-                ?.let { candidate ->
-                    openReviewItems.firstOrNull { it.transaction.id == candidate.incomingTransactionId }
-                }
-        }
 
     fun handleReviewMemoAction(action: ReviewMemoAction, userMemo: String?) {
         scope.launch {
@@ -365,63 +315,6 @@ fun ReviewScreen(
         }
     }
 
-    fun recordAccountTransfer(card: ReviewCardUi, fromAccount: AssetAccount, toAccount: AssetAccount) {
-        isSaving = true
-        errorMessage = null
-
-        scope.launch {
-            try {
-                val sourceTransaction = card.sourceTransaction
-                val pairedItem = pairedIncomingReviewItem(card)
-                    ?.takeIf { it.id != card.reviewItemId }
-                if (resolveAccountTransferUseCase != null && card.reviewItemId != null && sourceTransaction != null) {
-                    resolveAccountTransferUseCase.resolve(
-                        accounts = assetAccounts,
-                        reviewItemId = card.reviewItemId,
-                        transaction = sourceTransaction,
-                        fromAccountName = fromAccount.name,
-                        toAccountName = toAccount.name,
-                        amountWon = card.amountWon,
-                        pairedIncomingReviewItem = pairedItem
-                    )
-                    resultMessage = buildString {
-                        append("${fromAccount.name}에서 ${toAccount.name}으로 ${formatWon(card.amountWon)} 이동 처리했어요.")
-                        if (pairedItem != null) {
-                            append(" 입금 알림도 같이 검토 완료했어요.")
-                        }
-                    }
-                } else {
-                    val repository = assetRepository ?: return@launch
-                    val transfer = applyAccountTransfer(
-                        accounts = assetAccounts,
-                        fromAccountName = fromAccount.name,
-                        toAccountName = toAccount.name,
-                        amountWon = card.amountWon
-                    )
-                    repository.saveAccount(transfer.fromAccount)
-                    repository.saveAccount(transfer.toAccount)
-                    resolveCard(
-                        card = card,
-                        message = "${fromAccount.name}에서 ${toAccount.name}으로 ${formatWon(card.amountWon)} 이동 처리했어요.",
-                        transactionUpdate = { transaction ->
-                            transaction.resolveReview(
-                                resolution = ReviewResolution.ACCOUNT_TRANSFER,
-                                userMemo = "${fromAccount.name} -> ${toAccount.name}"
-                            )
-                        }
-                    )
-                }
-                activeAccountTransferCard = null
-            } catch (e: IllegalArgumentException) {
-                errorMessage = e.message ?: "계좌 이동값을 확인해 주세요."
-            } catch (e: RuntimeException) {
-                errorMessage = "계좌 이동 저장 중 문제가 생겼어요."
-            } finally {
-                isSaving = false
-            }
-        }
-    }
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -465,7 +358,6 @@ fun ReviewScreen(
                 val counts = reviewCards.groupingBy { filterKindFor(it) }.eachCount()
                 counts[ReviewFilterKind.TRANSFER]?.let { add(Triple(ReviewFilterKind.TRANSFER, "송금 $it", reviewAccentForLabel("송금"))) }
                 counts[ReviewFilterKind.TOPUP]?.let { add(Triple(ReviewFilterKind.TOPUP, "충전 $it", reviewAccentForLabel("충전"))) }
-                counts[ReviewFilterKind.ACCOUNT]?.let { add(Triple(ReviewFilterKind.ACCOUNT, "계좌 $it", reviewAccentForLabel("확인"))) }
                 counts[ReviewFilterKind.DUPLICATE]?.let { add(Triple(ReviewFilterKind.DUPLICATE, "중복 $it", reviewAccentForLabel("중복"))) }
                 counts[ReviewFilterKind.OTHER]?.let { add(Triple(ReviewFilterKind.OTHER, "기타 $it", MoneyMuted)) }
             }
@@ -491,9 +383,6 @@ fun ReviewScreen(
                     } else if (card.kind == ReviewCardKind.TRANSFER) {
                         activeSettlementCard = card
                         errorMessage = null
-                    } else if (opensAccountEdit(card) && card.sourceTransaction != null && editTransactionUseCase != null) {
-                        activeEditReviewCard = card
-                        editErrorMessage = null
                     } else {
                         activeReviewMemoAction = card.toPrimaryMemoAction()
                     }
@@ -504,18 +393,6 @@ fun ReviewScreen(
                     } else {
                         activeReviewMemoAction = card.toSecondaryMemoAction()
                     }
-                },
-                onAccountTransferAction = if (
-                    card.kind == ReviewCardKind.TRANSFER &&
-                    assetRepository != null &&
-                    assetAccounts.size >= 2
-                ) {
-                    {
-                        activeAccountTransferCard = card
-                        errorMessage = null
-                    }
-                } else {
-                    null
                 },
                 onEditAction = if (card.sourceTransaction != null && editTransactionUseCase != null) {
                     {
@@ -587,22 +464,6 @@ fun ReviewScreen(
             },
             onSave = { memo ->
             handleReviewMemoAction(action, memo)
-            }
-        )
-    }
-
-    activeAccountTransferCard?.let { card ->
-        AccountTransferDialog(
-            card = card,
-            accounts = assetAccounts,
-            isSaving = isSaving,
-            errorMessage = errorMessage,
-            onDismiss = {
-                activeAccountTransferCard = null
-                errorMessage = null
-            },
-            onSave = { fromAccount, toAccount ->
-                recordAccountTransfer(card, fromAccount, toAccount)
             }
         )
     }
@@ -825,108 +686,7 @@ private fun ReviewFilterChip(
     }
 }
 
-enum class ReviewFilterKind { ALL, TRANSFER, TOPUP, ACCOUNT, DUPLICATE, OTHER }
-
-@Composable
-private fun AccountTransferDialog(
-    card: ReviewCardUi,
-    accounts: List<AssetAccount>,
-    isSaving: Boolean,
-    errorMessage: String?,
-    onDismiss: () -> Unit,
-    onSave: (fromAccount: AssetAccount, toAccount: AssetAccount) -> Unit
-) {
-    var fromAccount by remember(card.id, accounts) {
-        mutableStateOf<AssetAccount?>(accounts.firstOrNull())
-    }
-    var toAccount by remember(card.id, accounts) {
-        mutableStateOf<AssetAccount?>(accounts.drop(1).firstOrNull() ?: accounts.firstOrNull())
-    }
-    val canSave = fromAccount != null &&
-        toAccount != null &&
-        fromAccount?.name != toAccount?.name &&
-        !isSaving
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("내 계좌 이동") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text("${formatWon(card.amountWon)}을 지출이 아닌 계좌 이동으로 처리해요.")
-                AccountPicker(
-                    label = "출금 계좌",
-                    selectedAccount = fromAccount,
-                    accounts = accounts,
-                    onSelected = { fromAccount = it }
-                )
-                AccountPicker(
-                    label = "입금 계좌",
-                    selectedAccount = toAccount,
-                    accounts = accounts,
-                    onSelected = { toAccount = it }
-                )
-                errorMessage?.let { Text(it) }
-            }
-        },
-        confirmButton = {
-            Button(
-                enabled = canSave,
-                onClick = {
-                    val from = fromAccount
-                    val to = toAccount
-                    if (from != null && to != null) {
-                        onSave(from, to)
-                    }
-                }
-            ) {
-                Text(if (isSaving) "저장 중" else "저장")
-            }
-        },
-        dismissButton = {
-            OutlinedButton(onClick = onDismiss, enabled = !isSaving) {
-                Text("취소")
-            }
-        }
-    )
-}
-
-@Composable
-private fun AccountPicker(
-    label: String,
-    selectedAccount: AssetAccount?,
-    accounts: List<AssetAccount>,
-    onSelected: (AssetAccount) -> Unit
-) {
-    var expanded by remember(label, accounts) { mutableStateOf(false) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontWeight = FontWeight.Medium)
-        Box {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    selectedAccount?.let { "${it.name}  ${formatWon(it.balanceWon)}" } ?: "계좌 없음"
-                )
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false }
-            ) {
-                accounts.forEach { account ->
-                    DropdownMenuItem(
-                        text = { Text("${account.name}  ${formatWon(account.balanceWon)}") },
-                        onClick = {
-                            onSelected(account)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
+enum class ReviewFilterKind { ALL, TRANSFER, TOPUP, DUPLICATE, OTHER }
 
 @Composable
 private fun WalletUsageInputDialog(

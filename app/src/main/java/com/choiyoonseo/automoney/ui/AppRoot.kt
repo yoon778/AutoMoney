@@ -33,7 +33,6 @@ import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
-import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
@@ -78,7 +77,6 @@ fun AppRoot(
     notificationOnboardingStore: NotificationOnboardingStore? = null,
     runSampleNotificationScenarioUseCase: RunSampleNotificationScenarioUseCase? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
-    resolveAccountTransferUseCase: ResolveAccountTransferUseCase? = null,
     linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
     userCategoryRepository: UserCategoryRepository? = null,
     notificationSourceSettingsService: NotificationSourceSettingsService? = null
@@ -182,7 +180,6 @@ fun AppRoot(
                 editTransactionUseCase = editTransactionUseCase,
                 assetRepository = assetRepository,
                 resolveReviewUseCase = resolveReviewUseCase,
-                resolveAccountTransferUseCase = resolveAccountTransferUseCase,
                 linkSettlementRepaymentUseCase = linkSettlementRepaymentUseCase,
                 userCategoryRepository = userCategoryRepository
             )
