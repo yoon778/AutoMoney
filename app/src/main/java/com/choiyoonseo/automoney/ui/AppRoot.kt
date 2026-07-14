@@ -5,8 +5,8 @@ import android.provider.Settings as AndroidSettings
 import com.choiyoonseo.automoney.BuildConfig
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
@@ -60,7 +60,7 @@ private enum class AppTab(val label: String, val icon: ImageVector) {
     HOME("홈", Icons.Filled.Home),
     TRANSACTIONS("거래", Icons.AutoMirrored.Filled.List),
     REVIEW("검토", Icons.Filled.CheckCircle),
-    ASSETS("자산", Icons.Filled.AccountBalance),
+    ASSETS("예산", Icons.Filled.Savings),
     REPORT("보고서", Icons.Filled.BarChart),
     SETTINGS("설정", Icons.Filled.Settings)
 }

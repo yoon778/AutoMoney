@@ -62,24 +62,20 @@ import com.choiyoonseo.automoney.domain.category.UserCategoryKind
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
+import com.choiyoonseo.automoney.domain.assets.calculateUnbudgetedExpenseWon
 import com.choiyoonseo.automoney.ui.settings.expenseCategoryPool
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.YearMonth
-import com.choiyoonseo.automoney.domain.assets.AssetAccount
-import com.choiyoonseo.automoney.domain.assets.AssetAccountKind
-import com.choiyoonseo.automoney.domain.assets.BankProvider
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
-import com.choiyoonseo.automoney.domain.assets.assetOverviewBalanceHelper
 import com.choiyoonseo.automoney.domain.assets.buildAssetOverview
 import com.choiyoonseo.automoney.domain.assets.fixedExpenseWithdrawalDayOptions
 import com.choiyoonseo.automoney.domain.assets.validatedForSave
 import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
-import com.choiyoonseo.automoney.ui.components.IllustratedSummaryCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyDialog
@@ -88,7 +84,6 @@ import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
-import com.choiyoonseo.automoney.ui.components.accountAccentForName
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
 import com.choiyoonseo.automoney.ui.model.MetricTileUi
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
@@ -97,9 +92,8 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
 private enum class AssetSection(val label: String) {
-    ACCOUNTS("계좌"),
-    FIXED("고정지출"),
-    PLAN("월계획")
+    PLAN("월계획"),
+    FIXED("고정지출")
 }
 
 @Composable
@@ -110,9 +104,6 @@ fun AssetsScreen(
     userCategoryRepository: UserCategoryRepository? = null
 ) {
     val scope = rememberCoroutineScope()
-    val accounts by remember(assetRepository) {
-        assetRepository?.observeAccounts() ?: flowOf(sampleAccounts)
-    }.collectAsState(initial = emptyList())
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(sampleFixedExpenses)
     }.collectAsState(initial = emptyList())
@@ -123,9 +114,9 @@ fun AssetsScreen(
     val monthTransactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val overview = remember(accounts, fixedExpenses, monthlyPlans, monthTransactions) {
+    val overview = remember(fixedExpenses, monthlyPlans, monthTransactions) {
         buildAssetOverview(
-            accounts,
+            emptyList(),
             fixedExpenses,
             monthlyPlans,
             spentThisMonthWon = monthTransactions
@@ -136,10 +127,13 @@ fun AssetsScreen(
     val budgetUsages = remember(monthlyPlans, monthTransactions) {
         buildCategoryBudgetUsages(monthlyPlans, monthTransactions)
     }
+    val unbudgetedExpenseWon = remember(monthlyPlans, monthTransactions) {
+        calculateUnbudgetedExpenseWon(monthlyPlans, monthTransactions)
+    }
     val userExpenseCategories by remember(userCategoryRepository) {
         userCategoryRepository?.observeActiveCategories() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    var selectedSection by remember { mutableStateOf(AssetSection.ACCOUNTS) }
+    var selectedSection by remember { mutableStateOf(AssetSection.PLAN) }
     var message by remember { mutableStateOf<String?>(null) }
     AutoClearMessageEffect(message) {
         message = null
@@ -155,19 +149,56 @@ fun AssetsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ScreenTitle(
-            title = "자산",
-            subtitle = "계좌 잔액, 고정지출, 이번 달 계획을 한곳에서 봐요"
+            title = "예산",
+            subtitle = "카테고리별 예산에서 얼마나 썼는지 봐요"
         )
 
         message?.let { AssistChip(onClick = {}, label = { Text(it) }) }
 
-        IllustratedSummaryCard(
-            title = "총 계좌 잔액",
-            value = formatWon(overview.totalAssetsWon),
-            helper = assetOverviewBalanceHelper(accounts.size),
-            accent = MoneyMint,
+        FinanceSectionCard(
+            title = "이번 달 예산",
+            subtitle = "남은 금액 기준 · 초과는 빨간색",
+            accent = MoneyBlue,
             icon = Icons.Filled.AccountBalance
-        )
+        ) {
+            budgetUsages.forEach { usage ->
+                val over = usage.remainingWon < 0
+                AssetRow(
+                    title = usage.plan.label,
+                    subtitle = if (over) {
+                        "${formatWon(usage.spentWon)} 사용 · ${formatWon(-usage.remainingWon)} 초과"
+                    } else {
+                        "${formatWon(usage.spentWon)} 사용 · ${formatWon(usage.remainingWon)} 남음"
+                    },
+                    amountWon = usage.plan.amountWon,
+                    ratio = usage.usedRatio,
+                    accent = if (over) MoneyCoral else categoryAccentForName(usage.plan.label)
+                )
+            }
+            if (budgetUsages.isEmpty()) {
+                Text("아래 월계획에서 예산을 만들면 여기에 남은 금액이 표시돼요.")
+            }
+            if (unbudgetedExpenseWon > 0) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(14.dp),
+                    color = MoneyTheme.colors.soft(MoneyCoral)
+                ) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            "예산 밖 지출 ${formatWon(unbudgetedExpenseWon)}",
+                            fontWeight = FontWeight.Bold,
+                            color = MoneyCoral
+                        )
+                        Text(
+                            "어느 예산에도 안 잡힌 지출이에요. 월계획에 예산을 추가해 관리해 보세요.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MoneyTheme.colors.muted
+                        )
+                    }
+                }
+            }
+        }
 
         val incomeSet = overview.totalIncomeWon > 0
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -215,24 +246,8 @@ fun AssetsScreen(
         }
 
         when (selectedSection) {
-            AssetSection.ACCOUNTS -> AccountsPanel(
-                accounts = accounts,
-                onSave = { account ->
-                    val repository = assetRepository
-                    if (repository == null) {
-                        message = "미리보기에서는 저장하지 않아요."
-                    } else {
-                        scope.launch {
-                            repository.saveAccount(account)
-                            message = "${account.name} 계좌를 저장했어요."
-                        }
-                    }
-                }
-            )
-
             AssetSection.FIXED -> FixedExpensePanel(
                 plans = fixedExpenses,
-                accounts = accounts,
                 onSave = { plan ->
                     val repository = assetRepository
                     if (repository == null) {
@@ -290,366 +305,8 @@ fun AssetsScreen(
 }
 
 @Composable
-private fun AccountsPanel(
-    accounts: List<AssetAccount>,
-    onSave: (AssetAccount) -> Unit
-) {
-    var editingAccount by remember(accounts) { mutableStateOf<AssetAccount?>(null) }
-    val maxBalance = remember(accounts) { accounts.maxOfOrNull { it.balanceWon }?.coerceAtLeast(1) ?: 1 }
-
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        FinanceSectionCard(
-            title = "계좌 잔액",
-            subtitle = "잔고를 수정하면 총 자산도 바로 바뀌어요",
-            accent = MoneyMint,
-            icon = Icons.Filled.AccountBalance
-        ) {
-            accounts.forEach { account ->
-                AssetRow(
-                    title = account.name,
-                    subtitle = assetAccountMetadataLabel(account),
-                    amountWon = account.balanceWon,
-                    ratio = account.balanceWon.toFloat() / maxBalance.toFloat(),
-                    accent = accountAccentForName(account.name),
-                    actionLabel = "수정",
-                    onAction = { editingAccount = account }
-                )
-            }
-            if (accounts.isEmpty()) {
-                Text("아직 등록된 계좌가 없어요.")
-            }
-        }
-        AccountInputCard(onSave)
-    }
-
-    editingAccount?.let { account ->
-        AccountEditDialog(
-            account = account,
-            onDismiss = { editingAccount = null },
-            onSave = { updated ->
-                onSave(updated)
-                editingAccount = null
-            }
-        )
-    }
-}
-
-@Composable
-private fun AccountInputCard(onSave: (AssetAccount) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var balance by remember { mutableStateOf("") }
-    var kind by remember { mutableStateOf(AssetAccountKind.BANK) }
-    var kindExpanded by remember { mutableStateOf(false) }
-    var bankProvider by remember { mutableStateOf<BankProvider?>(null) }
-    var accountNumberInput by remember { mutableStateOf("") }
-    var providerLabelInput by remember { mutableStateOf("") }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-
-    InputCard(title = "계좌 추가") {
-        OutlinedTextField(name, { name = it }, label = { Text("계좌 이름") }, modifier = Modifier.fillMaxWidth())
-        OutlinedTextField(
-            value = balance,
-            onValueChange = { balance = it },
-            label = { Text("잔액") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
-        )
-        Box(Modifier.fillMaxWidth()) {
-            MoneyPickerField(
-                label = "종류",
-                value = kind.label,
-                onClick = { kindExpanded = true }
-            )
-            DropdownMenu(
-                expanded = kindExpanded,
-                onDismissRequest = { kindExpanded = false },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                AssetAccountKind.entries.forEach { option ->
-                    DropdownMenuItem(
-                        text = { Text(option.label) },
-                        onClick = {
-                            kind = option
-                            if (option != AssetAccountKind.BANK) {
-                                bankProvider = null
-                                accountNumberInput = ""
-                            }
-                            if (option != AssetAccountKind.SECURITIES && option != AssetAccountKind.PAY) {
-                                providerLabelInput = ""
-                            }
-                            kindExpanded = false
-                        }
-                    )
-                }
-            }
-        }
-        if (kind == AssetAccountKind.BANK) {
-            BankProviderPicker(
-                selectedProvider = bankProvider,
-                onSelected = { bankProvider = it }
-            )
-            if (bankProvider != null) {
-                OutlinedTextField(
-                    value = accountNumberInput,
-                    onValueChange = { accountNumberInput = it },
-                    label = { Text("계좌번호") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        }
-        if (kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY) {
-            ProviderLabelSection(
-                kind = kind,
-                value = providerLabelInput,
-                onValueChange = { providerLabelInput = it }
-            )
-        }
-        errorMessage?.let {
-            Text(it, color = MoneyTheme.colors.negative, style = MaterialTheme.typography.bodySmall)
-        }
-        Button(
-            onClick = {
-                val amount = balance.cleanWonOrNull()
-                if (name.isNotBlank() && amount != null) {
-                    try {
-                        onSave(
-                            createAssetAccountFromForm(
-                                name = name,
-                                balanceWon = amount,
-                                kind = kind,
-                                bankProvider = bankProvider,
-                                accountNumberInput = accountNumberInput,
-                                providerLabel = providerLabelInput
-                            )
-                        )
-                        name = ""
-                        balance = ""
-                        bankProvider = null
-                        accountNumberInput = ""
-                        providerLabelInput = ""
-                        errorMessage = null
-                    } catch (e: IllegalArgumentException) {
-                        errorMessage = e.message ?: "입력값을 확인해 주세요."
-                    }
-                } else {
-                    errorMessage = "계좌 이름과 잔액을 확인해 주세요."
-                }
-            },
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("저장")
-        }
-    }
-}
-
-@Composable
-private fun AccountEditDialog(
-    account: AssetAccount,
-    onDismiss: () -> Unit,
-    onSave: (AssetAccount) -> Unit
-) {
-    var name by remember(account.id) { mutableStateOf(account.name) }
-    var balance by remember(account.id) { mutableStateOf(account.balanceWon.toString()) }
-    var kind by remember(account.id) { mutableStateOf(account.kind) }
-    var kindExpanded by remember(account.id) { mutableStateOf(false) }
-    var bankProvider by remember(account.id) { mutableStateOf(account.bankProvider) }
-    var accountNumberInput by remember(account.id) { mutableStateOf("") }
-    var providerLabelInput by remember(account.id) { mutableStateOf(account.providerLabel ?: "") }
-    var errorMessage by remember(account.id) { mutableStateOf<String?>(null) }
-
-    MoneyDialog(
-        title = "계좌 수정",
-        subtitle = account.name,
-        onDismiss = onDismiss,
-        buttons = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
-                    Text("취소")
-                }
-                Button(
-                    modifier = Modifier.weight(1f),
-                    onClick = {
-                        val cleanBalance = balance.cleanWonOrNull()
-                        if (cleanBalance == null) {
-                            errorMessage = "잔액을 확인해 주세요."
-                            return@Button
-                        }
-                        try {
-                            onSave(
-                                updateAssetAccountFromForm(
-                                    account = account,
-                                    name = name,
-                                    balanceWon = cleanBalance,
-                                    kind = kind,
-                                    bankProvider = bankProvider,
-                                    accountNumberInput = accountNumberInput
-                                )
-                            )
-                        } catch (e: IllegalArgumentException) {
-                            errorMessage = e.message ?: "입력값을 확인해 주세요."
-                        }
-                    }
-                ) {
-                    Text("저장")
-                }
-            }
-        }
-    ) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("계좌 이름") },
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = balance,
-                    onValueChange = { balance = it },
-                    label = { Text("현재 잔액") },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-                Box(Modifier.fillMaxWidth()) {
-                    MoneyPickerField(
-                        label = "종류",
-                        value = kind.label,
-                        onClick = { kindExpanded = true }
-                    )
-                    DropdownMenu(
-                        expanded = kindExpanded,
-                        onDismissRequest = { kindExpanded = false },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        AssetAccountKind.entries.forEach { option ->
-                            DropdownMenuItem(
-                                text = { Text(option.label) },
-                                onClick = {
-                                    kind = option
-                                    if (option != AssetAccountKind.BANK) {
-                                        bankProvider = null
-                                        accountNumberInput = ""
-                                    }
-                                    kindExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-                if (kind == AssetAccountKind.BANK) {
-                    BankProviderPicker(
-                        selectedProvider = bankProvider,
-                        onSelected = { bankProvider = it }
-                    )
-                    account.accountLast4?.let { last4 ->
-                        Text(
-                            "등록된 계좌번호 ****$last4 · 바꾸려면 새 번호를 입력하세요",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MoneyTheme.colors.muted
-                        )
-                    }
-                    if (bankProvider != null) {
-                        OutlinedTextField(
-                            value = accountNumberInput,
-                            onValueChange = { accountNumberInput = it },
-                            label = { Text("새 계좌번호") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                }
-                if (kind == AssetAccountKind.SECURITIES || kind == AssetAccountKind.PAY) {
-                    ProviderLabelSection(
-                        kind = kind,
-                        value = providerLabelInput,
-                        onValueChange = { providerLabelInput = it }
-                    )
-                }
-                errorMessage?.let {
-                    Text(it, color = MoneyTheme.colors.negative, style = MaterialTheme.typography.bodySmall)
-                }
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ProviderLabelSection(
-    kind: AssetAccountKind,
-    value: String,
-    onValueChange: (String) -> Unit
-) {
-    val colors = MoneyTheme.colors
-    val presets = providerPresetsFor(kind.label)
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            presets.forEach { preset ->
-                val selected = value.trim() == preset
-                Surface(
-                    modifier = Modifier.clickable { onValueChange(preset) },
-                    shape = RoundedCornerShape(50),
-                    color = if (selected) colors.soft(colors.primary) else colors.canvas
-                ) {
-                    Text(
-                        preset,
-                        color = if (selected) colors.primary else colors.muted,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        maxLines = 1
-                    )
-                }
-            }
-        }
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text("회사 이름 (직접 입력 가능)") },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun BankProviderPicker(
-    selectedProvider: BankProvider?,
-    onSelected: (BankProvider) -> Unit
-) {
-    val colors = MoneyTheme.colors
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text("은행", style = MaterialTheme.typography.labelMedium, color = colors.muted)
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            BankProvider.entries.forEach { provider ->
-                val selected = provider == selectedProvider
-                Surface(
-                    modifier = Modifier.clickable { onSelected(provider) },
-                    shape = RoundedCornerShape(50),
-                    color = if (selected) colors.soft(colors.primary) else colors.canvas
-                ) {
-                    Text(
-                        provider.displayName,
-                        color = if (selected) colors.primary else colors.muted,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        maxLines = 1
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun FixedExpensePanel(
     plans: List<FixedExpensePlan>,
-    accounts: List<AssetAccount>,
     onSave: (FixedExpensePlan) -> Unit,
     onDelete: (FixedExpensePlan) -> Unit
 ) {
@@ -687,39 +344,30 @@ private fun FixedExpensePanel(
                 Text("아직 등록된 고정지출이 없어요.")
             }
         }
-        FixedExpenseInputCard(accounts = accounts, onSave = onSave)
+        FixedExpenseInputCard(onSave = onSave)
     }
 }
 
 @Composable
 private fun FixedExpenseInputCard(
-    accounts: List<AssetAccount>,
     onSave: (FixedExpensePlan) -> Unit
 ) {
     var name by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
     var day by remember { mutableStateOf(1) }
-    var accountName by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.name.orEmpty()) }
-    var accountId by remember(accounts) { mutableStateOf(accounts.firstOrNull()?.id) }
+    var accountName by remember { mutableStateOf("") }
 
     InputCard(title = "고정지출 추가") {
         OutlinedTextField(name, { name = it }, label = { Text("이름") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(amount, { amount = it }, label = { Text("금액") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         WithdrawalDayPicker(selectedDay = day, onSelected = { day = it })
-        if (accounts.isEmpty()) {
-            Text(
-                "출금 계좌는 '계좌' 탭에서 먼저 등록해 주세요.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MoneyTheme.colors.muted
-            )
-        } else {
-            AssetAccountNamePicker(
-                label = "출금 계좌",
-                selectedName = accountName,
-                accounts = accounts,
-                onSelected = { accountName = it.name; accountId = it.id }
-            )
-        }
+        OutlinedTextField(
+            value = accountName,
+            onValueChange = { accountName = it },
+            label = { Text("출금 수단 (예: 국민은행)") },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
         Button(
             onClick = {
                 val cleanAmount = amount.cleanWonOrNull()
@@ -729,15 +377,13 @@ private fun FixedExpenseInputCard(
                             name = name,
                             amountWon = cleanAmount,
                             withdrawalDay = day,
-                            accountName = accountName,
-                            accountId = accountId
+                            accountName = accountName
                         ).validatedForSave()
                     )
                     name = ""
                     amount = ""
                     day = 1
                     accountName = ""
-                    accountId = null
                 }
             },
             modifier = Modifier.fillMaxWidth()
@@ -974,43 +620,6 @@ private fun WithdrawalDayPicker(
 }
 
 @Composable
-private fun AssetAccountNamePicker(
-    label: String,
-    selectedName: String,
-    accounts: List<AssetAccount>,
-    onSelected: (AssetAccount) -> Unit
-) {
-    var expanded by remember(label, accounts) { mutableStateOf(false) }
-
-    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Text(label, fontWeight = FontWeight.Medium)
-        Box(Modifier.fillMaxWidth()) {
-            OutlinedButton(
-                onClick = { expanded = true },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(selectedName.ifBlank { "계좌 선택" })
-            }
-            DropdownMenu(
-                expanded = expanded,
-                onDismissRequest = { expanded = false },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                accounts.forEach { account ->
-                    DropdownMenuItem(
-                        text = { Text("${account.name} · ${formatWon(account.balanceWon)}") },
-                        onClick = {
-                            onSelected(account)
-                            expanded = false
-                        }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun AssetRow(
     title: String,
     subtitle: String,
@@ -1107,12 +716,6 @@ private fun AssetRow(
 
 private fun String.cleanWonOrNull(): Long? =
     replace(",", "").trim().toLongOrNull()?.takeIf { it >= 0 }
-
-private val sampleAccounts = listOf(
-    AssetAccount(name = "국민은행", balanceWon = 3_799_195),
-    AssetAccount(name = "카카오뱅크", balanceWon = 110_067),
-    AssetAccount(name = "네이버페이", balanceWon = 40_000, kind = AssetAccountKind.PAY)
-)
 
 private val sampleFixedExpenses = listOf(
     FixedExpensePlan(name = "통신비", amountWon = 70_000, withdrawalDay = 15, accountName = "국민은행"),
