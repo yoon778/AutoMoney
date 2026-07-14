@@ -80,6 +80,9 @@ fun TransactionsScreen(
     val budgetUsages = remember(monthlyPlans, transactions) {
         buildCategoryBudgetUsages(monthlyPlans, transactions)
     }
+    val fixedExpenses by remember(assetRepository) {
+        assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
     val dateSections = if (moneyRepository == null) {
         listOf(
             TransactionDateSectionUi(
@@ -231,8 +234,9 @@ fun TransactionsScreen(
             ManualTransactionForm(
                 isSaving = isSavingManual,
                 resetSignal = manualFormResetSignal,
-                budgetUsages = budgetUsages
-            ) { type, amountWon, category, memo, occurredAt, budgetPlanId ->
+                budgetUsages = budgetUsages,
+                fixedExpenses = fixedExpenses
+            ) { type, amountWon, category, memo, occurredAt, budgetPlanId, fixedExpensePlanId ->
                 val useCase = saveManualTransactionUseCase
                 if (useCase == null) {
                     saveSuccessMessage = null
@@ -249,7 +253,8 @@ fun TransactionsScreen(
                             categoryText = category,
                             memo = memo,
                             occurredAt = occurredAt,
-                            budgetPlanId = budgetPlanId
+                            budgetPlanId = budgetPlanId,
+                            fixedExpensePlanId = fixedExpensePlanId
                         )
                         val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
                         saveSuccessMessage = if (savedMonth == month) {

@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
+import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.manual.ManualEntryType
 import com.choiyoonseo.automoney.ui.model.formatWon
 import java.time.Instant
@@ -44,13 +45,15 @@ fun ManualTransactionForm(
     isSaving: Boolean = false,
     resetSignal: Int = 0,
     budgetUsages: List<CategoryBudgetUsage> = emptyList(),
+    fixedExpenses: List<FixedExpensePlan> = emptyList(),
     onSave: (
         type: ManualEntryType,
         amountWon: Long,
         category: String,
         memo: String,
         occurredAt: Instant,
-        budgetPlanId: Long?
+        budgetPlanId: Long?,
+        fixedExpensePlanId: Long?
     ) -> Unit
 ) {
     val defaults = remember(resetSignal) {
@@ -66,6 +69,7 @@ fun ManualTransactionForm(
     var categoryMenuExpanded by remember(resetSignal) { mutableStateOf(defaults.isCategoryMenuExpanded) }
     var budgetMenuExpanded by remember(resetSignal) { mutableStateOf(false) }
     var selectedBudgetPlanId by remember(resetSignal) { mutableStateOf<Long?>(null) }
+    var selectedFixedPlanId by remember(resetSignal) { mutableStateOf<Long?>(null) }
     val categoryContext = LocalContext.current
     val categoryStore = remember { SharedPreferencesCategoryPreferenceStore(categoryContext) }
     val enabledExpenseOptions = remember { categoryStore.enabledExpenseCategories().map { ManualCategoryOption(it) } }
@@ -177,13 +181,21 @@ fun ManualTransactionForm(
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             modifier = Modifier.fillMaxWidth()
         )
-        if (entryType == ManualEntryType.EXPENSE && budgetUsages.isNotEmpty()) {
+        if (entryType == ManualEntryType.EXPENSE && (budgetUsages.isNotEmpty() || fixedExpenses.isNotEmpty())) {
             Box(Modifier.fillMaxWidth()) {
                 MoneyPickerField(
                     label = "차감 예산",
-                    value = budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
-                        ?.let { "${it.plan.label} · 남음 ${formatWon(it.remainingWon)}" }
-                        ?: "분류 따라 자동",
+                    value = when {
+                        selectedFixedPlanId != null ->
+                            fixedExpenses.firstOrNull { it.id == selectedFixedPlanId }
+                                ?.let { "${it.name} · 고정지출" }
+                                ?: "분류 따라 자동"
+                        selectedBudgetPlanId != null ->
+                            budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
+                                ?.let { "${it.plan.label} · 남음 ${formatWon(it.remainingWon)}" }
+                                ?: "분류 따라 자동"
+                        else -> "분류 따라 자동"
+                    },
                     onClick = { budgetMenuExpanded = true }
                 )
                 DropdownMenu(
@@ -195,6 +207,7 @@ fun ManualTransactionForm(
                         text = { Text("분류 따라 자동") },
                         onClick = {
                             selectedBudgetPlanId = null
+                            selectedFixedPlanId = null
                             budgetMenuExpanded = false
                         }
                     )
@@ -203,6 +216,17 @@ fun ManualTransactionForm(
                             text = { Text("${usage.plan.label} · 남음 ${formatWon(usage.remainingWon)}") },
                             onClick = {
                                 selectedBudgetPlanId = usage.plan.id
+                                selectedFixedPlanId = null
+                                budgetMenuExpanded = false
+                            }
+                        )
+                    }
+                    fixedExpenses.forEach { plan ->
+                        DropdownMenuItem(
+                            text = { Text("${plan.name} · 고정지출 ${formatWon(plan.amountWon)}") },
+                            onClick = {
+                                selectedFixedPlanId = plan.id
+                                selectedBudgetPlanId = null
                                 budgetMenuExpanded = false
                             }
                         )
@@ -278,7 +302,8 @@ fun ManualTransactionForm(
                             categoryForSave,
                             memo,
                             selectedDate.toManualTransactionInstant(),
-                            selectedBudgetPlanId.takeIf { entryType == ManualEntryType.EXPENSE }
+                            selectedBudgetPlanId.takeIf { entryType == ManualEntryType.EXPENSE },
+                            selectedFixedPlanId.takeIf { entryType == ManualEntryType.EXPENSE }
                         )
                     }
                 },
