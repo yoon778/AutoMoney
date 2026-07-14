@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -68,6 +69,7 @@ import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.YearMonth
+import com.choiyoonseo.automoney.domain.assets.AssetOverview
 import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
@@ -76,7 +78,6 @@ import com.choiyoonseo.automoney.domain.assets.fixedExpenseWithdrawalDayOptions
 import com.choiyoonseo.automoney.domain.assets.validatedForSave
 import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
-import com.choiyoonseo.automoney.ui.components.MetricTile
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.MoneyPickerField
@@ -85,7 +86,6 @@ import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
-import com.choiyoonseo.automoney.ui.model.MetricTileUi
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.model.formatWon
 import kotlinx.coroutines.flow.flowOf
@@ -200,36 +200,7 @@ fun AssetsScreen(
             }
         }
 
-        val incomeSet = overview.totalIncomeWon > 0
-        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            MetricTile(
-                MetricTileUi(
-                    "월 고정지출",
-                    formatWon(overview.totalFixedExpenseWon),
-                    progress = overview.fixedExpenseRatio,
-                    helper = if (incomeSet) "수입의 ${(overview.fixedExpenseRatio * 100).toInt()}%" else "매월 자동 출금"
-                ),
-                MoneyCoral,
-                Modifier.weight(1f)
-            )
-            val budgetSpentWon = budgetUsages.sumOf { it.spentWon }
-            MetricTile(
-                MetricTileUi(
-                    "변동지출 예산",
-                    formatWon(overview.totalBudgetWon),
-                    progress = if (overview.totalBudgetWon > 0) {
-                        (budgetSpentWon.toFloat() / overview.totalBudgetWon).coerceIn(0f, 1f)
-                    } else 0f,
-                    helper = if (overview.totalBudgetWon > 0) {
-                        "${formatWon(overview.totalBudgetWon - budgetSpentWon)} 남음"
-                    } else {
-                        "월계획에서 예산 등록"
-                    }
-                ),
-                MoneyBlue,
-                Modifier.weight(1f)
-            )
-        }
+        IncomeAllocationCard(overview)
 
         TabRow(
             selectedTabIndex = selectedSection.ordinal,
@@ -305,6 +276,75 @@ fun AssetsScreen(
 }
 
 @Composable
+private fun IncomeAllocationCard(overview: AssetOverview) {
+    val colors = MoneyTheme.colors
+    val income = overview.totalIncomeWon
+    val fixed = overview.totalFixedExpenseWon
+    val budget = overview.totalBudgetWon
+    val remaining = income - fixed - budget
+    val denom = maxOf(income, fixed + budget).coerceAtLeast(1L)
+
+    FinanceSectionCard(
+        title = "이번 달 배분",
+        subtitle = if (income > 0) "수입에서 고정·변동 예산을 뺀 나머지" else "수입을 등록하면 남는 돈까지 봐요",
+        accent = MoneyGreen,
+        icon = Icons.Filled.BarChart
+    ) {
+        Text(
+            when {
+                income <= 0 -> "이번 달 나갈 돈 ${formatWon(fixed + budget)}"
+                remaining >= 0 -> "쓸 수 있는 돈 ${formatWon(remaining)}"
+                else -> "예산이 수입보다 ${formatWon(-remaining)} 많아요"
+            },
+            fontWeight = FontWeight.Bold,
+            color = if (income > 0 && remaining < 0) MoneyCoral else colors.ink,
+            style = MaterialTheme.typography.titleMedium
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(20.dp)
+                .clip(RoundedCornerShape(50))
+                .background(colors.canvas)
+        ) {
+            if (fixed > 0) {
+                Box(Modifier.weight(fixed.toFloat() / denom).fillMaxHeight().background(MoneyCoral))
+            }
+            if (budget > 0) {
+                Box(Modifier.weight(budget.toFloat() / denom).fillMaxHeight().background(MoneyBlue))
+            }
+            if (remaining > 0) {
+                Box(Modifier.weight(remaining.toFloat() / denom).fillMaxHeight().background(MoneyGreen))
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+            AllocationLegend("고정지출", fixed, MoneyCoral)
+            AllocationLegend("변동지출 예산", budget, MoneyBlue)
+            if (income > 0) {
+                AllocationLegend("남는 돈", remaining.coerceAtLeast(0), MoneyGreen)
+            }
+        }
+    }
+}
+
+@Composable
+private fun AllocationLegend(label: String, amountWon: Long, accent: Color) {
+    val colors = MoneyTheme.colors
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+        Box(
+            modifier = Modifier
+                .size(9.dp)
+                .clip(RoundedCornerShape(50))
+                .background(accent)
+        )
+        Column {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = colors.muted)
+            Text(formatWon(amountWon), style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold, color = colors.ink)
+        }
+    }
+}
+
+@Composable
 private fun FixedExpensePanel(
     plans: List<FixedExpensePlan>,
     onSave: (FixedExpensePlan) -> Unit,
@@ -333,7 +373,6 @@ private fun FixedExpensePanel(
                     title = plan.name,
                     subtitle = "매월 ${plan.withdrawalDay}일 · ${plan.accountName}",
                     amountWon = plan.amountWon,
-                    ratio = plan.amountWon.toFloat() / (plans.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f),
                     accent = categoryAccentForName(plan.name),
                     actionLabel = "삭제",
                     onAction = { pendingDelete = plan },
@@ -624,7 +663,7 @@ private fun AssetRow(
     title: String,
     subtitle: String,
     amountWon: Long,
-    ratio: Float = 0f,
+    ratio: Float? = null,
     accent: Color = MoneyMint,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
@@ -701,15 +740,17 @@ private fun AssetRow(
                     }
                 }
             }
-            LinearProgressIndicator(
-                progress = { ratio.coerceIn(0f, 1f) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(7.dp)
-                    .clip(RoundedCornerShape(50)),
-                color = accent,
-                trackColor = colors.surface.copy(alpha = 0.75f)
-            )
+            if (ratio != null) {
+                LinearProgressIndicator(
+                    progress = { ratio.coerceIn(0f, 1f) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(7.dp)
+                        .clip(RoundedCornerShape(50)),
+                    color = accent,
+                    trackColor = colors.surface.copy(alpha = 0.75f)
+                )
+            }
         }
     }
 }
