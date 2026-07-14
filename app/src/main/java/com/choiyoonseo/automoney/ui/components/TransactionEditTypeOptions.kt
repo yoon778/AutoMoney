@@ -16,4 +16,12 @@ val transactionEditTypeOptions: List<TransactionEditTypeOption> = listOf(
 )
 
 fun typeLabelForEdit(type: TransactionType): String =
-    transactionEditTypeOptions.firstOrNull { it.type == type }?.label ?: type.name
+    transactionEditTypeOptions.firstOrNull { it.type == type }?.label ?: when (type) {
+        TransactionType.FIXED_EXPENSE -> "고정지출"
+        TransactionType.SAVING -> "저축"
+        TransactionType.INVESTMENT -> "투자"
+        TransactionType.WALLET_TOPUP -> "충전/포인트"
+        TransactionType.WALLET_SPEND -> "간편결제"
+        TransactionType.REFUND -> "환불/취소"
+        else -> type.name
+    }
