@@ -221,6 +221,18 @@ Recommended next logic tasks:
 
 ## Suggested Next Claude Tasks
 
+### (완료 2026-07-14) 계좌 UI 잔존 제거 (커밋 `79afe2f`)
+
+Codex `deb33b7`(계좌 결합 중단) 후속 UI 정리. 인계: 임시파일 `AUTOMONEY_CLAUDE_ACCOUNT_UI_REMOVAL_HANDOFF.md`.
+
+- 제거: 검토 화면 내 계좌 이동 dialog·`AccountPicker`·`recordAccountTransfer`·`assetAccounts` 수집·`accountTransferCandidates`·계좌 검토 분기(`opensAccountEdit`, presentedCard 계좌 문구)·`ACCOUNT` 필터·`ReviewActionCard.onAccountTransferAction` + 버튼·`AppRoot`/`MainActivity`의 `resolveAccountTransferUseCase`·미사용 `AssetAccountForm.kt`(+테스트)
+- 유지: `assetRepository`(월계획·고정지출 조회용), 송금 검토는 N분의1 / 내 지출 아님 / 수정
+- 검증: full unit test + assembleDebug 통과, 계좌 문자열 grep 0건, 실기기 SM_S931N 확인
+
+**Codex 후속 필요:**
+- 검토 카드 문구에 아직 "계좌 이동인지 확인", "출금 계좌 KB" 잔존 — `ui/model/ReviewItemMapper` 등 매퍼가 생성하는 문자열(Codex 소유). 정리 요망
+- 인계문서의 Codex 후속 목록: `ResolveAccountTransferUseCase`, `MoneyRepository.resolveAccountTransferReview`, `ReviewResolution.ACCOUNT_TRANSFER`, 계좌 `ReviewReason`값·레거시 카드 매핑, `AssetAccount`·계좌 저장소 API·DAO, `linkedAssetAccountId`·`balanceImpact`·`asset_accounts`, 계좌 파서·매처·잔액 동기화, `AppContainer.resolveAccountTransferUseCase`
+
 ### (완료 2026-07-14) manual transaction fixed-expense allocation
 
 - 거래 추가 `차감 예산` picker에 `고정지출` 항목 표시 (`분류 따라 자동` / 변동 예산 / 고정지출 순, 커밋 `72ed3fa`, 실기기 확인 완료)
