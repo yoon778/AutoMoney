@@ -207,7 +207,7 @@ fun AssetsScreen(
                     "월 고정지출",
                     formatWon(overview.totalFixedExpenseWon),
                     progress = overview.fixedExpenseRatio,
-                    helper = if (incomeSet) "매월 자동 출금 · 수입의 ${(overview.fixedExpenseRatio * 100).toInt()}%" else "매월 자동 출금 · 수입 미등록"
+                    helper = if (incomeSet) "수입의 ${(overview.fixedExpenseRatio * 100).toInt()}%" else "매월 자동 출금"
                 ),
                 MoneyCoral,
                 Modifier.weight(1f)
@@ -221,9 +221,9 @@ fun AssetsScreen(
                         (budgetSpentWon.toFloat() / overview.totalBudgetWon).coerceIn(0f, 1f)
                     } else 0f,
                     helper = if (overview.totalBudgetWon > 0) {
-                        "${formatWon(budgetSpentWon)} 사용 · ${formatWon(overview.totalBudgetWon - budgetSpentWon)} 남음"
+                        "${formatWon(overview.totalBudgetWon - budgetSpentWon)} 남음"
                     } else {
-                        "월계획에서 예산을 등록해 보세요"
+                        "월계획에서 예산 등록"
                     }
                 ),
                 MoneyBlue,
