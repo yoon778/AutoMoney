@@ -32,7 +32,8 @@ class EditTransactionUseCase(
         account: AssetAccount? = null,
         paymentMethod: String? = transaction.paymentMethod,
         transactionType: TransactionType = transaction.type,
-        budgetPlanId: Long? = transaction.budgetPlanId
+        budgetPlanId: Long? = transaction.budgetPlanId,
+        fixedExpensePlanId: Long? = transaction.fixedExpensePlanId
     ) {
         require(amountWon > 0) { "금액은 0원보다 커야 해요." }
 
@@ -66,18 +67,23 @@ class EditTransactionUseCase(
                 transaction.balanceImpact ?: BalanceImpact.NONE
             TransactionType.EXCLUDED -> transaction.balanceImpact ?: BalanceImpact.NONE
         }
-        val categoryAssignment = categoryResolver.resolve(categoryText, transactionType)
-        val fixedExpensePlanId = transaction.fixedExpensePlanId
-            .takeIf { transactionType == TransactionType.FIXED_EXPENSE }
+        val selectedFixedExpensePlanId = fixedExpensePlanId
+            ?.takeIf { it > 0 && transactionType.countsAsMonthlyExpense }
+        val effectiveType = if (selectedFixedExpensePlanId != null) {
+            TransactionType.FIXED_EXPENSE
+        } else {
+            transactionType
+        }
+        val categoryAssignment = categoryResolver.resolve(categoryText, effectiveType)
         val updatedTransaction = transaction.copy(
             occurredAt = occurredAt,
             amount = MoneyAmount(amountWon),
-            direction = transactionType.defaultDirection,
-            type = transactionType,
+            direction = effectiveType.defaultDirection,
+            type = effectiveType,
             category = categoryAssignment.category,
             paymentMethod = accountPaymentMethod,
             memo = cleanMemo.ifBlank { null },
-            status = if (transactionType == TransactionType.EXCLUDED) {
+            status = if (effectiveType == TransactionType.EXCLUDED) {
                 TransactionStatus.EXCLUDED
             } else {
                 TransactionStatus.USER_EDITED
@@ -89,9 +95,9 @@ class EditTransactionUseCase(
             customCategoryId = categoryAssignment.customCategoryId,
             customCategoryName = categoryAssignment.customCategoryName,
             budgetPlanId = budgetPlanId.takeIf {
-                transactionType.countsAsMonthlyExpense && fixedExpensePlanId == null
+                effectiveType.countsAsMonthlyExpense && selectedFixedExpensePlanId == null
             },
-            fixedExpensePlanId = fixedExpensePlanId
+            fixedExpensePlanId = selectedFixedExpensePlanId
         )
         repository.updateTransaction(updatedTransaction)
         saveLearnedRules(transaction, updatedTransaction)

@@ -286,11 +286,12 @@ fun TransactionsScreen(
             isSaving = isEditingTransaction,
             errorMessage = editErrorMessage,
             budgetUsages = budgetUsages,
+            fixedExpenses = fixedExpenses,
             onDismiss = {
                 activeEditTransaction = null
                 editErrorMessage = null
             },
-            onSave = { amountWon, category, memo, occurredAt, budgetPlanId, transactionType ->
+            onSave = { amountWon, category, memo, occurredAt, budgetPlanId, fixedExpensePlanId, transactionType ->
                 val useCase = editTransactionUseCase ?: return@TransactionEditDialog
                 scope.launch {
                     isEditingTransaction = true
@@ -303,7 +304,8 @@ fun TransactionsScreen(
                             memo,
                             occurredAt,
                             transactionType = transactionType,
-                            budgetPlanId = budgetPlanId
+                            budgetPlanId = budgetPlanId,
+                            fixedExpensePlanId = fixedExpensePlanId
                         )
                         saveSuccessMessage = "거래를 수정했어요. 최근 거래에 반영했어요."
                         activeEditTransaction = null

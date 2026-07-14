@@ -375,6 +375,26 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun updatePromotesExpenseToFixedWhenFixedPlanSelected() = runTest {
+        val repository = FakeMoneyRepository()
+
+        EditTransactionUseCase(repository).update(
+            transaction = transaction(),
+            amountWon = 50_000,
+            categoryText = "생활",
+            memo = "통신비",
+            transactionType = TransactionType.EXPENSE,
+            budgetPlanId = 4,
+            fixedExpensePlanId = 9
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.type).isEqualTo(TransactionType.FIXED_EXPENSE)
+        assertThat(updated.fixedExpensePlanId).isEqualTo(9)
+        assertThat(updated.budgetPlanId).isNull()
+    }
+
+    @Test
     fun excludeMarksTransactionExcludedWithoutDeletingIt() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)

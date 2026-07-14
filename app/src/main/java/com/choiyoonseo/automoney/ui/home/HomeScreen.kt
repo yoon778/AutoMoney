@@ -126,6 +126,9 @@ fun HomeScreen(
     val budgetUsages = remember(monthlyPlans, transactions) {
         buildCategoryBudgetUsages(monthlyPlans, transactions)
     }
+    val fixedExpenses by remember(assetRepository) {
+        assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
     var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }
     var isEditingTransaction by remember { mutableStateOf(false) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -264,11 +267,12 @@ fun HomeScreen(
                 isSaving = isEditingTransaction,
                 errorMessage = editErrorMessage,
                 budgetUsages = budgetUsages,
+                fixedExpenses = fixedExpenses,
                 onDismiss = {
                     activeEditTransaction = null
                     editErrorMessage = null
                 },
-                onSave = { amountWon, category, memo, occurredAt, budgetPlanId, transactionType ->
+                onSave = { amountWon, category, memo, occurredAt, budgetPlanId, fixedExpensePlanId, transactionType ->
                     scope.launch {
                         isEditingTransaction = true
                         editErrorMessage = null
@@ -280,7 +284,8 @@ fun HomeScreen(
                                 memo,
                                 occurredAt,
                                 transactionType = transactionType,
-                                budgetPlanId = budgetPlanId
+                                budgetPlanId = budgetPlanId,
+                                fixedExpensePlanId = fixedExpensePlanId
                             )
                             activeEditTransaction = null
                             activeDetail = null

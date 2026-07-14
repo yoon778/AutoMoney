@@ -3,6 +3,7 @@ package com.choiyoonseo.automoney.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
@@ -12,6 +13,7 @@ import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.OutlinedButton
@@ -31,6 +33,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
+import com.choiyoonseo.automoney.domain.assets.FixedExpensePlan
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.settings.SharedPreferencesCategoryPreferenceStore
@@ -45,6 +48,7 @@ fun TransactionEditDialog(
     isSaving: Boolean,
     errorMessage: String?,
     budgetUsages: List<CategoryBudgetUsage> = emptyList(),
+    fixedExpenses: List<FixedExpensePlan> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (
         amountWon: Long,
@@ -52,6 +56,7 @@ fun TransactionEditDialog(
         memo: String,
         occurredAt: Instant,
         budgetPlanId: Long?,
+        fixedExpensePlanId: Long?,
         transactionType: TransactionType
     ) -> Unit,
     onExclude: () -> Unit,
@@ -80,6 +85,9 @@ fun TransactionEditDialog(
     var typeMenuExpanded by remember(transaction.id) { mutableStateOf(false) }
     var selectedBudgetPlanId by remember(transaction.id, budgetUsages) {
         mutableStateOf(transaction.budgetPlanId?.takeIf { id -> budgetUsages.any { it.plan.id == id } })
+    }
+    var selectedFixedPlanId by remember(transaction.id, fixedExpenses) {
+        mutableStateOf(transaction.fixedExpensePlanId?.takeIf { id -> fixedExpenses.any { it.id == id } })
     }
     var budgetMenuExpanded by remember(transaction.id, budgetUsages) { mutableStateOf(false) }
     var memoText by remember(transaction.id) {
@@ -196,6 +204,7 @@ fun TransactionEditDialog(
                                     memoText,
                                     occurredAt,
                                     selectedBudgetPlanId,
+                                    selectedFixedPlanId,
                                     selectedType
                                 )
                             }
@@ -278,13 +287,21 @@ fun TransactionEditDialog(
             }
         }
         if (selectedType.countsAsMonthlyExpense) {
-            if (budgetUsages.isNotEmpty()) {
+            if (budgetUsages.isNotEmpty() || fixedExpenses.isNotEmpty()) {
                 Box(modifier = Modifier.fillMaxWidth()) {
                     MoneyPickerField(
                         label = "차감 예산",
-                        value = budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
-                            ?.let(::budgetOptionLabel)
-                            ?: "분류 따라 자동",
+                        value = when {
+                            selectedFixedPlanId != null ->
+                                fixedExpenses.firstOrNull { it.id == selectedFixedPlanId }
+                                    ?.let { "고정 · ${it.name}" }
+                                    ?: "분류 따라 자동"
+                            selectedBudgetPlanId != null ->
+                                budgetUsages.firstOrNull { it.plan.id == selectedBudgetPlanId }
+                                    ?.let { "예산 · ${budgetOptionLabel(it)}" }
+                                    ?: "분류 따라 자동"
+                            else -> "분류 따라 자동"
+                        },
                         onClick = { budgetMenuExpanded = true }
                     )
                     DropdownMenu(
@@ -296,23 +313,44 @@ fun TransactionEditDialog(
                             text = { Text("분류 따라 자동") },
                             onClick = {
                                 selectedBudgetPlanId = null
+                                selectedFixedPlanId = null
                                 budgetMenuExpanded = false
                             }
                         )
-                        budgetUsages.forEach { usage ->
-                            DropdownMenuItem(
-                                text = { Text(budgetOptionLabel(usage)) },
-                                onClick = {
-                                    selectedBudgetPlanId = usage.plan.id
-                                    budgetMenuExpanded = false
-                                }
-                            )
+                        if (budgetUsages.isNotEmpty()) {
+                            DropdownSectionHeader("변동 예산")
+                            budgetUsages.forEach { usage ->
+                                DropdownMenuItem(
+                                    text = { Text(budgetOptionLabel(usage)) },
+                                    onClick = {
+                                        selectedBudgetPlanId = usage.plan.id
+                                        selectedFixedPlanId = null
+                                        budgetMenuExpanded = false
+                                    }
+                                )
+                            }
+                        }
+                        if (fixedExpenses.isNotEmpty()) {
+                            if (budgetUsages.isNotEmpty()) {
+                                HorizontalDivider(color = colors.canvas)
+                            }
+                            DropdownSectionHeader("고정지출")
+                            fixedExpenses.forEach { plan ->
+                                DropdownMenuItem(
+                                    text = { Text("${plan.name} · ${formatWon(plan.amountWon)}") },
+                                    onClick = {
+                                        selectedFixedPlanId = plan.id
+                                        selectedBudgetPlanId = null
+                                        budgetMenuExpanded = false
+                                    }
+                                )
+                            }
                         }
                     }
                 }
             } else {
                 Text(
-                    "예산에서 차감하려면 예산 탭에서 월계획 예산을 먼저 만들어 주세요.",
+                    "예산에서 차감하려면 예산 탭에서 월계획 예산이나 고정지출을 먼저 만들어 주세요.",
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.muted
                 )
@@ -336,3 +374,13 @@ private fun budgetOptionLabel(usage: CategoryBudgetUsage): String =
     } else {
         "${usage.plan.label} · 초과 ${formatWon(-usage.remainingWon)}"
     }
+
+@Composable
+private fun DropdownSectionHeader(label: String) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MoneyTheme.colors.muted,
+        modifier = Modifier.padding(start = 12.dp, top = 8.dp, bottom = 2.dp)
+    )
+}

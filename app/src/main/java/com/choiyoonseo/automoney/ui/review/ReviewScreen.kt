@@ -126,6 +126,9 @@ fun ReviewScreen(
             allTransactions.filter { it.monthKey == budgetMonth }
         )
     }
+    val fixedExpenses by remember(assetRepository) {
+        assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
     var sampleReviewCardsState by remember { mutableStateOf(sampleReviewCards) }
     val reviewCards = if (moneyRepository == null) sampleReviewCardsState else dbReviewCards
     var activeWalletCard by remember { mutableStateOf<ReviewCardUi?>(null) }
@@ -624,11 +627,12 @@ fun ReviewScreen(
                 isSaving = isSaving,
                 errorMessage = editErrorMessage,
                 budgetUsages = budgetUsages,
+                fixedExpenses = fixedExpenses,
                 onDismiss = {
                     activeEditReviewCard = null
                     editErrorMessage = null
                 },
-                onSave = { amountWon, category, memo, occurredAt, budgetPlanId, transactionType ->
+                onSave = { amountWon, category, memo, occurredAt, budgetPlanId, fixedExpensePlanId, transactionType ->
                     scope.launch {
                         isSaving = true
                         editErrorMessage = null
@@ -640,7 +644,8 @@ fun ReviewScreen(
                                 memo,
                                 occurredAt,
                                 transactionType = transactionType,
-                                budgetPlanId = budgetPlanId
+                                budgetPlanId = budgetPlanId,
+                                fixedExpensePlanId = fixedExpensePlanId
                             )
                             if (moneyRepository != null && card.reviewItemId != null) {
                                 moneyRepository.resolveReviewItem(card.reviewItemId)
