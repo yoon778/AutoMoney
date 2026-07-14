@@ -58,6 +58,38 @@ class AppDatabaseMigrationTest {
     }
 
     @Test
+    fun migration4To12PreservesWalletBalancesAsAssets() {
+        helper.createDatabase(WALLET_TEST_DB, 4).apply {
+            insertWallet(name = "네이버페이", type = "PREPAID", balanceWon = 12_000)
+            insertWallet(name = "포인트", type = "POINT", balanceWon = 3_000)
+            insertWallet(name = "현금지갑", type = "CASH_LIKE", balanceWon = 50_000)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            WALLET_TEST_DB,
+            12,
+            true,
+            AppDatabase.MIGRATION_4_5,
+            AppDatabase.MIGRATION_5_6,
+            AppDatabase.MIGRATION_6_7,
+            AppDatabase.MIGRATION_7_8,
+            AppDatabase.MIGRATION_8_9,
+            AppDatabase.MIGRATION_9_10,
+            AppDatabase.MIGRATION_10_11,
+            AppDatabase.MIGRATION_11_12
+        )
+
+        assertEquals(12_000, db.singleLong("SELECT balanceWon FROM asset_accounts WHERE name = '네이버페이'"))
+        assertEquals("PAY", db.singleString("SELECT kind FROM asset_accounts WHERE name = '네이버페이'"))
+        assertEquals(3_000, db.singleLong("SELECT balanceWon FROM asset_accounts WHERE name = '포인트'"))
+        assertEquals("PAY", db.singleString("SELECT kind FROM asset_accounts WHERE name = '포인트'"))
+        assertEquals(50_000, db.singleLong("SELECT balanceWon FROM asset_accounts WHERE name = '현금지갑'"))
+        assertEquals("CASH", db.singleString("SELECT kind FROM asset_accounts WHERE name = '현금지갑'"))
+        assertEquals(0, db.singleLong("SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' AND name = 'wallets'"))
+    }
+
+    @Test
     fun migration7To8AddsCustomCategoryAndSettlementFields() {
         helper.createDatabase(SECOND_TEST_DB, 7).apply {
             insertTransaction(id = 1, sourceNotificationHash = "legacy-hash")
@@ -130,7 +162,11 @@ class AppDatabaseMigrationTest {
     @Test
     fun migration10To11AddsNullableTransactionBudgetPlanId() {
         helper.createDatabase(FIFTH_TEST_DB, 10).apply {
-            insertTransaction(id = 1, sourceNotificationHash = "legacy-budget-hash")
+            insertTransaction(
+                id = 1,
+                sourceNotificationHash = "legacy-budget-hash",
+                hasSettlementTrackingHidden = true
+            )
             close()
         }
 
@@ -147,7 +183,11 @@ class AppDatabaseMigrationTest {
     @Test
     fun migration11To12AddsNullableFixedExpensePlanId() {
         helper.createDatabase(SIXTH_TEST_DB, 11).apply {
-            insertTransaction(id = 1, sourceNotificationHash = "legacy-fixed-expense-hash")
+            insertTransaction(
+                id = 1,
+                sourceNotificationHash = "legacy-fixed-expense-hash",
+                hasSettlementTrackingHidden = true
+            )
             close()
         }
 
@@ -163,17 +203,20 @@ class AppDatabaseMigrationTest {
 
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
-        sourceNotificationHash: String?
+        sourceNotificationHash: String?,
+        hasSettlementTrackingHidden: Boolean = false
     ) {
+        val extraColumn = if (hasSettlementTrackingHidden) ", settlementTrackingHidden" else ""
+        val extraValue = if (hasSettlementTrackingHidden) ", 0" else ""
         execSQL(
             """
             INSERT INTO transactions (
                 id, occurredAt, amountWon, direction, type, category, paymentMethod,
                 merchant, counterparty, memo, sourceApp, sourceType, sourceNotificationHash,
-                status, confidence, monthKey
+                status, confidence, monthKey$extraColumn
             ) VALUES (
                 ?, '2026-07-01T00:00:00Z', 1000, 'EXPENSE', 'EXPENSE', 'FOOD', 'KB',
-                'store', NULL, NULL, 'test', 'NOTIFICATION', ?, 'AUTO_CONFIRMED', 0.9, '2026-07'
+                'store', NULL, NULL, 'test', 'NOTIFICATION', ?, 'AUTO_CONFIRMED', 0.9, '2026-07'$extraValue
             )
             """.trimIndent(),
             arrayOf<Any?>(id, sourceNotificationHash)
@@ -201,6 +244,17 @@ class AppDatabaseMigrationTest {
             VALUES (?, 'legacy account', 10000, 'BANK')
             """.trimIndent(),
             arrayOf<Any?>(id)
+        )
+    }
+
+    private fun SupportSQLiteDatabase.insertWallet(
+        name: String,
+        type: String,
+        balanceWon: Long
+    ) {
+        execSQL(
+            "INSERT INTO wallets (name, type, balanceWon) VALUES (?, ?, ?)",
+            arrayOf<Any?>(name, type, balanceWon)
         )
     }
 
@@ -244,5 +298,6 @@ class AppDatabaseMigrationTest {
         const val FOURTH_TEST_DB = "migration-test-9-10"
         const val FIFTH_TEST_DB = "migration-test-10-11"
         const val SIXTH_TEST_DB = "migration-test-11-12"
+        const val WALLET_TEST_DB = "migration-test-4-5-wallets"
     }
 }

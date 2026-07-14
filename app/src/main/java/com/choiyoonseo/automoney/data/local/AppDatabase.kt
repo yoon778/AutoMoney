@@ -172,6 +172,15 @@ abstract class AppDatabase : RoomDatabase() {
 
         val MIGRATION_4_5 = object : Migration(4, 5) {
             override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    INSERT INTO asset_accounts (name, balanceWon, kind)
+                    SELECT name,
+                           balanceWon,
+                           CASE type WHEN 'CASH_LIKE' THEN 'CASH' ELSE 'PAY' END
+                    FROM wallets
+                    """.trimIndent()
+                )
                 db.execSQL("DROP TABLE IF EXISTS wallets")
             }
         }
