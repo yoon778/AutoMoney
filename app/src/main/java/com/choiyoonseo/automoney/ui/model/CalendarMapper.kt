@@ -3,7 +3,7 @@ package com.choiyoonseo.automoney.ui.model
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.categoryDisplayName
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
-import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
+import com.choiyoonseo.automoney.domain.report.plannedUseContributions
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.YearMonth
 
@@ -11,18 +11,18 @@ fun transactionsToSpendCalendar(
     month: YearMonth,
     transactions: List<MoneyTransaction>
 ): MonthlySpendCalendarUi {
-    val dailySpends = transactions
-        .filter { it.monthKey == month && it.countsAsActualExpense() }
-        .groupBy { it.occurredAt.atZone(AppDateZoneId).dayOfMonth }
-        .map { (day, dayTransactions) ->
-            val label = if (dayTransactions.size == 1) {
-                dayTransactions.first().categoryDisplayName() ?: "기타"
+    val dailySpends = plannedUseContributions(transactions)
+        .filter { it.transaction.monthKey == month && it.transaction.countsAsActualExpense() }
+        .groupBy { it.transaction.occurredAt.atZone(AppDateZoneId).dayOfMonth }
+        .map { (day, dayContributions) ->
+            val label = if (dayContributions.size == 1) {
+                dayContributions.first().transaction.categoryDisplayName() ?: "기타"
             } else {
-                "${dayTransactions.size}건"
+                "${dayContributions.size}건"
             }
             DailySpendUi(
                 day = day,
-                amountWon = dayTransactions.sumOf { it.effectiveExpenseWon() },
+                amountWon = dayContributions.sumOf { it.amountWon },
                 label = label
             )
         }

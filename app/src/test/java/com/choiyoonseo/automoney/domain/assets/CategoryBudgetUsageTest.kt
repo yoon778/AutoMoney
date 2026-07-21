@@ -208,6 +208,19 @@ class CategoryBudgetUsageTest {
             .isEqualTo(0)
     }
 
+    @Test
+    fun linkedRefundReducesMatchingCategoryBudgetUsage() {
+        val payment = transaction(6_000, Category.FOOD).copy(id = 1)
+        val cashback = transaction(6, Category.FOOD, TransactionType.REFUND).copy(
+            id = 2,
+            refundParentTransactionId = 1
+        )
+
+        val usage = buildCategoryBudgetUsages(listOf(foodBudget), listOf(payment, cashback)).single()
+
+        assertThat(usage.spentWon).isEqualTo(5_994)
+    }
+
     private val foodBudget = MonthlyPlanItem(
         label = "식비",
         amountWon = 400_000,

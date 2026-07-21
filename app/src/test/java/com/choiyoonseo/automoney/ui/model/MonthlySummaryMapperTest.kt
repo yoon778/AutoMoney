@@ -230,6 +230,36 @@ class MonthlySummaryMapperTest {
     }
 
     @Test
+    fun linkedRefundInFollowingMonthReducesOriginalMonthExpenseAndCategory() {
+        val july = YearMonth.of(2026, 7)
+        val august = YearMonth.of(2026, 8)
+        val payment = tx(
+            "2026-07-31T01:00:00Z",
+            6_000,
+            TransactionType.EXPENSE,
+            Category.CAFE_SNACK,
+            july,
+            "스타벅스",
+            id = 1
+        )
+        val cashback = tx(
+            "2026-08-01T01:00:00Z",
+            6,
+            TransactionType.REFUND,
+            Category.DISCOUNT,
+            august,
+            "스타벅스",
+            id = 2,
+            refundParentTransactionId = 1
+        )
+
+        val summary = transactionsToMonthlySummary(july, listOf(payment, cashback), reviewCount = 0)
+
+        assertThat(summary.expenseWon).isEqualTo(5_994)
+        assertThat(summary.categorySpends).containsExactly(CategorySpendUi("카페/간식", 5_994, 1f))
+    }
+
+    @Test
     fun transactionsToRowsBuildsFullTransactionRowsWithoutTopups() {
         val month = YearMonth.of(2026, 7)
         val rows = transactionsToRows(
@@ -421,7 +451,8 @@ class MonthlySummaryMapperTest {
         sourceType: SourceType = SourceType.MANUAL,
         settlementMyShareWon: Long? = null,
         settlementParentId: Long? = null,
-        customCategoryName: String? = null
+        customCategoryName: String? = null,
+        refundParentTransactionId: Long? = null
     ) = MoneyTransaction(
         id = id,
         occurredAt = Instant.parse(occurredAt),
@@ -441,6 +472,7 @@ class MonthlySummaryMapperTest {
         monthKey = month,
         settlementMyShareWon = settlementMyShareWon,
         settlementParentId = settlementParentId,
-        customCategoryName = customCategoryName
+        customCategoryName = customCategoryName,
+        refundParentTransactionId = refundParentTransactionId
     )
 }

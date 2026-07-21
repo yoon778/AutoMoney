@@ -3,8 +3,7 @@ package com.choiyoonseo.automoney.domain.assets
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
-import com.choiyoonseo.automoney.domain.report.countsAsPlannedUse
-import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
+import com.choiyoonseo.automoney.domain.report.plannedUseContributions
 
 enum class AssetAccountKind(val label: String) {
     BANK("은행"),
@@ -91,11 +90,12 @@ fun buildCategoryBudgetUsages(
     transactions: List<MoneyTransaction>
 ): List<CategoryBudgetUsage> {
     val budgets = plans.filter { it.type == MonthlyPlanItemType.BUDGET }
+    val contributions = plannedUseContributions(transactions)
     return budgets
     .map { plan ->
-        val spentWon = transactions
-            .filter { it.countsAsPlannedUse() && plan.matchesBudget(it, budgets) }
-            .sumOf { it.effectiveExpenseWon() }
+        val spentWon = contributions
+            .filter { plan.matchesBudget(it.transaction, budgets) }
+            .sumOf { it.amountWon }
         CategoryBudgetUsage(
             plan = plan,
             spentWon = spentWon,
@@ -110,13 +110,14 @@ fun calculateUnbudgetedExpenseWon(
     transactions: List<MoneyTransaction>
 ): Long {
     val budgets = plans.filter { it.type == MonthlyPlanItemType.BUDGET }
-    return transactions
-        .filter { transaction ->
+    return plannedUseContributions(transactions)
+        .filter { contribution ->
+            val transaction = contribution.transaction
             transaction.fixedExpensePlanId == null &&
                 transaction.countsAsActualExpense() &&
                 budgets.none { it.matchesBudget(transaction, budgets) }
         }
-        .sumOf { it.effectiveExpenseWon() }
+        .sumOf { it.amountWon }
 }
 
 private fun MonthlyPlanItem.matchesBudget(

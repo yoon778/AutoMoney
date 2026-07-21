@@ -33,6 +33,34 @@ fun MoneyTransaction.countsAsPlannedUse(): Boolean =
     countsAsActualExpense() ||
         isReportableTransaction() && (type == TransactionType.SAVING || type == TransactionType.INVESTMENT)
 
+data class PlannedUseContribution(
+    val transaction: MoneyTransaction,
+    val amountWon: Long
+)
+
+fun plannedUseContributions(
+    transactions: List<MoneyTransaction>
+): List<PlannedUseContribution> {
+    val refundedByPayment = transactions
+        .filter { it.type == TransactionType.REFUND && it.isReportableTransaction() }
+        .mapNotNull { refund ->
+            refund.refundParentTransactionId?.let { parentId -> parentId to refund.amount.won }
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, amounts) -> amounts.sum() }
+
+    return transactions
+        .filter { it.countsAsPlannedUse() }
+        .map { transaction ->
+            PlannedUseContribution(
+                transaction = transaction,
+                amountWon = (
+                    transaction.effectiveExpenseWon() - (refundedByPayment[transaction.id] ?: 0L)
+                ).coerceAtLeast(0)
+            )
+        }
+}
+
 // 고정지출 계획에 연결돼 종류가 FIXED_EXPENSE로 고정된 저축도 인식하려면 카테고리를 본다.
 private fun MoneyTransaction.isSavingCategory(): Boolean =
     category == Category.SAVING && direction == TransactionDirection.EXPENSE

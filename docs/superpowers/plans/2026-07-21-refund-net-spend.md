@@ -429,7 +429,7 @@ git commit -m "feat: auto-link unambiguous refunds"
 - Consumes: linked refund relation
 - Produces: `plannedUseContributions(transactions): List<PlannedUseContribution>`
 
-- [ ] **Step 1: 순액 실패 테스트 작성**
+- [x] **Step 1: 순액 실패 테스트 작성**
 
 ```kotlin
 @Test fun kbankPaymentMinusCashbackEquals5994() {
@@ -447,13 +447,13 @@ git commit -m "feat: auto-link unambiguous refunds"
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*TransactionReportRulesTest' --tests '*CategoryBudgetUsageTest' --tests '*MonthlySummaryMapperTest' --tests '*CalendarMapperTest'`
 
 Expected: FAIL — contribution API 미정의
 
-- [ ] **Step 3: domain 구현**
+- [x] **Step 3: domain 구현**
 
 ```kotlin
 data class PlannedUseContribution(
@@ -487,7 +487,7 @@ val expenseContributions = plannedUseContributions(transactions).filter {
 val expenseWon = expenseContributions.sumOf(PlannedUseContribution::amountWon)
 ```
 
-- [ ] **Step 4: 검증과 커밋**
+- [x] **Step 4: 검증과 커밋**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*TransactionReportRulesTest' --tests '*CategoryBudgetUsageTest' --tests '*MonthlySummaryMapperTest' --tests '*CalendarMapperTest' :app:assembleDebug`
 

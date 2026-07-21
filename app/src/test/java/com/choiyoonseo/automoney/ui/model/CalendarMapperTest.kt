@@ -264,6 +264,33 @@ class CalendarMapperTest {
         assertThat(calendar.spendForDay(9)?.amountWon).isEqualTo(6100)
     }
 
+    @Test
+    fun linkedRefundReducesSpendOnOriginalPaymentDay() {
+        val month = YearMonth.of(2026, 7)
+        val payment = transaction(
+            occurredAt = "2026-07-15T01:00:00Z",
+            amountWon = 6_000,
+            type = TransactionType.EXPENSE,
+            category = Category.CAFE_SNACK,
+            month = month,
+            id = 1
+        )
+        val cashback = transaction(
+            occurredAt = "2026-07-16T01:00:00Z",
+            amountWon = 6,
+            type = TransactionType.REFUND,
+            category = Category.DISCOUNT,
+            month = month,
+            id = 2,
+            refundParentTransactionId = 1
+        )
+
+        val calendar = transactionsToSpendCalendar(month, listOf(payment, cashback))
+
+        assertThat(calendar.spendForDay(15)?.amountWon).isEqualTo(5_994)
+        assertThat(calendar.spendForDay(16)).isNull()
+    }
+
     private fun transaction(
         occurredAt: String,
         amountWon: Long,
@@ -272,8 +299,11 @@ class CalendarMapperTest {
         month: YearMonth,
         status: TransactionStatus = TransactionStatus.AUTO_CONFIRMED,
         settlementMyShareWon: Long? = null,
-        customCategoryName: String? = null
+        customCategoryName: String? = null,
+        id: Long = 0,
+        refundParentTransactionId: Long? = null
     ) = MoneyTransaction(
+        id = id,
         occurredAt = Instant.parse(occurredAt),
         amount = MoneyAmount(amountWon),
         direction = type.defaultDirection.takeIf { it != TransactionDirection.NEUTRAL }
@@ -291,6 +321,7 @@ class CalendarMapperTest {
         confidence = 1.0,
         monthKey = month,
         settlementMyShareWon = settlementMyShareWon,
-        customCategoryName = customCategoryName
+        customCategoryName = customCategoryName,
+        refundParentTransactionId = refundParentTransactionId
     )
 }
