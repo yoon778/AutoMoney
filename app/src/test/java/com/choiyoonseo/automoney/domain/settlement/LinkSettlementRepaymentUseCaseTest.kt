@@ -1,7 +1,6 @@
 package com.choiyoonseo.automoney.domain.settlement
 
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
-import com.choiyoonseo.automoney.domain.assets.AssetAccount
 import com.choiyoonseo.automoney.domain.assets.BankAccountHint
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount

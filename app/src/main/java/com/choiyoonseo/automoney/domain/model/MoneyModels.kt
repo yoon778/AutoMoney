@@ -43,8 +43,7 @@ enum class TransactionStatus {
 
 enum class SourceType {
     NOTIFICATION,
-    MANUAL,
-    IMPORT
+    MANUAL
 }
 
 enum class Category(val displayName: String) {
