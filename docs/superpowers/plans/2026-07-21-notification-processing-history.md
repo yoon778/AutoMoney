@@ -49,7 +49,7 @@ Owner: Codex logic → Claude UI
 - Consumes: `NotificationSnapshot`, `TransactionType`
 - Produces: `NotificationHistoryStatus`, `NotificationHistoryReason`, `NotificationHistoryRecord`, `SafeNotificationAmountExtractor.extract`
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
 ```kotlin
 @Test fun extractsOnlyOneActionAmount() {
@@ -62,13 +62,13 @@ Owner: Codex logic → Claude UI
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*SafeNotificationAmountExtractorTest'`
 
 Expected: FAIL — extractor 미정의
 
-- [ ] **Step 3: 모델과 extractor 구현**
+- [x] **Step 3: 모델과 extractor 구현**
 
 ```kotlin
 enum class NotificationHistoryStatus {
@@ -108,7 +108,7 @@ private val ACTIONS = listOf("결제", "승인", "사용", "입금", "출금", "
 private val AMOUNT = Regex("([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\\s*원")
 ```
 
-- [ ] **Step 4: 테스트·커밋**
+- [x] **Step 4: 테스트·커밋**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*SafeNotificationAmountExtractorTest'`
 
