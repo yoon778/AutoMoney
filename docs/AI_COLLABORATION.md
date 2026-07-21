@@ -161,6 +161,7 @@ Claude가 이미 정리해 `main`에 push 했다. 아래는 로직/DB/테스트 
    `transactionEditExpenseCategoryOptions`, `ui/transactions/ManualCategoryOptions.kt`의
    `manualExpenseCategoryOptions`. 멤버가 완전히 같아서 카테고리를 하나 추가할 때마다 3곳을 고쳐야 한다.
    수입 쪽도 마찬가지다. 단일 출처로 합치는 게 좋다.
+   **세 파일 모두 `ui/` 소유라 이 항목은 Claude가 처리한다. Codex는 건드리지 말 것.**
 10. 이 문서의 "File Ownership Map"에 `export/**` (CSV export)가 Codex 소유로 적혀 있는데
     해당 디렉터리가 실제로 존재하지 않는다. 표를 갱신하거나 기능을 만들어야 한다.
 
