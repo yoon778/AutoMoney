@@ -54,7 +54,6 @@ Package root: `app/src/main/java/com/choiyoonseo/automoney`
 | `data/**` (Room DB, DAO, entity, repository) | Persistence | Codex |
 | `domain/**` (parser, rules, report, review, use cases) | Business logic | Codex |
 | `notification/**` | Notification listener / ingestion | Codex |
-| `export/**` | CSV export | Codex |
 | `ui/theme`, `ui/components`, `ui/home`, `ui/report`, `ui/review`, `ui/settings`, `ui/assets`, `ui/edit`, `ui/transactions` | Screens & visuals | Claude |
 | `ui/model/**` mapper logic (`CalendarMapper`, `MonthlySummaryMapper`, `ReviewItemMapper`, `SourceAppUi`) | Domain → UI data conversion | Codex (see boundary zones) |
 | UI model data classes (e.g. `DashboardUiModels`) | Shared UI contract | Shared contract |
@@ -148,9 +147,6 @@ Claude가 이미 정리해 `main`에 push 했다. 아래는 로직/DB/테스트 
    `manualExpenseCategoryOptions`. 멤버가 완전히 같아서 카테고리를 하나 추가할 때마다 3곳을 고쳐야 한다.
    수입 쪽도 마찬가지다. 단일 출처로 합치는 게 좋다.
    **세 파일 모두 `ui/` 소유라 이 항목은 Claude가 처리한다. Codex는 건드리지 말 것.**
-10. 이 문서의 "File Ownership Map"에 `export/**` (CSV export)가 Codex 소유로 적혀 있는데
-    해당 디렉터리가 실제로 존재하지 않는다. 표를 갱신해야 한다.
-
 ## Current Product Direction
 
 - The app is an automated money management app for Android/Galaxy.
