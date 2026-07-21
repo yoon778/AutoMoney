@@ -37,7 +37,8 @@ class NotificationDispatchCoordinatorTest {
         val coordinator = NotificationDispatchCoordinator(
             accessFor = { NotificationSourceAccess.SELECTED_UNVERIFIED },
             recordObserved = { _, _ -> },
-            snapshotBuilder = NotificationSnapshotBuilder()
+            snapshotBuilder = NotificationSnapshotBuilder(),
+            resolveInstalledLabel = { "테스트 은행" }
         )
 
         val prepared = coordinator.prepare(
@@ -61,5 +62,6 @@ class NotificationDispatchCoordinatorTest {
             .isEqualTo(NotificationSourceAccess.SELECTED_UNVERIFIED)
         assertThat(prepared?.snapshot?.packageName).isEqualTo("com.example.bank")
         assertThat(prepared?.snapshot?.postedAt).isEqualTo(Instant.ofEpochMilli(1000))
+        assertThat(prepared?.sourceLabel).isEqualTo("테스트 은행")
     }
 }

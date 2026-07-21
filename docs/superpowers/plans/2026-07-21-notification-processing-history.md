@@ -245,7 +245,7 @@ git commit -m "feat: persist bounded notification history"
 - Consumes: `PreparedNotification`, `IngestionResult`, history repository
 - Produces: `PreparedNotification.sourceLabel`, `NotificationHistoryRecorder.recordResult`, `recordError`
 
-- [ ] **Step 1: privacy와 failure isolation 테스트 작성**
+- [x] **Step 1: privacy와 failure isolation 테스트 작성**
 
 ```kotlin
 @Test fun recordContainsNoSnapshotTextOrRawError() = runTest {
@@ -267,7 +267,7 @@ git commit -m "feat: persist bounded notification history"
 }
 ```
 
-- [ ] **Step 2: 구현**
+- [x] **Step 2: 구현**
 
 `PreparedNotification`에 `sourceLabel: String?`을 추가하고 coordinator 생성자에 `resolveInstalledLabel: (String) -> String?`를 주입한다. 차단 출처는 content를 읽기 전에 기존처럼 `null` 반환
 
@@ -299,7 +299,7 @@ listener는 ingestion 뒤 history를 기록한 후 기존 diagnostics·feedback�
 
 `IngestionResult.Saved`는 `reviewReason == null`이면 `SAVED`, 아니면 `REVIEW`; `Duplicate`는 `DUPLICATE`; `Ignored`는 `IGNORED`로 변환한다. reason 문자열과 exception message는 저장하지 않고 위 enum reason만 사용한다
 
-- [ ] **Step 3: DI claim·검증·커밋**
+- [x] **Step 3: DI claim·검증·커밋**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*NotificationHistoryRecorderTest' --tests '*NotificationDispatchCoordinatorTest' :app:assembleDebug`
 

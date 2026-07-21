@@ -26,6 +26,7 @@ import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.notification.NotificationDiagnosticsStore
 import com.choiyoonseo.automoney.notification.NotificationDispatchCoordinator
 import com.choiyoonseo.automoney.notification.NotificationIngestionUseCase
+import com.choiyoonseo.automoney.notification.NotificationHistoryRecorder
 import com.choiyoonseo.automoney.notification.NotificationIngestionFeedbackNotifier
 import com.choiyoonseo.automoney.notification.NotificationSnapshotBuilder
 import com.choiyoonseo.automoney.notification.NotificationSourceSettingsService
@@ -43,7 +44,17 @@ class AppContainer(context: Context) {
     val notificationDispatchCoordinator = NotificationDispatchCoordinator(
         accessFor = notificationAppAccessStore::accessFor,
         recordObserved = observedNotificationSourceStore::record,
-        snapshotBuilder = NotificationSnapshotBuilder()
+        snapshotBuilder = NotificationSnapshotBuilder(),
+        resolveInstalledLabel = { packageName ->
+            try {
+                val packageManager = context.applicationContext.packageManager
+                packageManager.getApplicationLabel(
+                    packageManager.getApplicationInfo(packageName, 0)
+                ).toString()
+            } catch (_: PackageManager.NameNotFoundException) {
+                null
+            }
+        }
     )
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
     val notificationIngestionFeedbackNotifier =
@@ -90,6 +101,7 @@ class AppContainer(context: Context) {
     val assetRepository = RoomAssetRepository(database)
     val userCategoryRepository = RoomUserCategoryRepository(database)
     val notificationHistoryRepository = RoomNotificationHistoryRepository(database)
+    val notificationHistoryRecorder = NotificationHistoryRecorder(notificationHistoryRepository)
 
     val recordWalletTopupUsageUseCase = RecordWalletTopupUsageUseCase(repository)
 

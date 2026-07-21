@@ -5,13 +5,15 @@ import java.time.Instant
 
 data class PreparedNotification(
     val snapshot: NotificationSnapshot,
-    val sourceAccess: NotificationSourceAccess
+    val sourceAccess: NotificationSourceAccess,
+    val sourceLabel: String? = null
 )
 
 class NotificationDispatchCoordinator(
     private val accessFor: (String) -> NotificationSourceAccess,
     private val recordObserved: (String, Instant) -> Unit,
-    private val snapshotBuilder: NotificationSnapshotBuilder
+    private val snapshotBuilder: NotificationSnapshotBuilder,
+    private val resolveInstalledLabel: (String) -> String? = { null }
 ) {
     fun prepare(
         packageName: String,
@@ -28,7 +30,8 @@ class NotificationDispatchCoordinator(
         )
         return PreparedNotification(
             snapshot = snapshotBuilder.build(fields),
-            sourceAccess = sourceAccess
+            sourceAccess = sourceAccess,
+            sourceLabel = resolveInstalledLabel(packageName)
         )
     }
 }

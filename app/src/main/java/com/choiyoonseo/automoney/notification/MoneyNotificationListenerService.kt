@@ -61,6 +61,7 @@ class MoneyNotificationListenerService : NotificationListenerService() {
             prepared.snapshot,
             prepared.sourceAccess
         )
+        app.container.notificationHistoryRecorder.recordResult(prepared, result)
         app.container.notificationDiagnosticsStore.save(
             LastNotificationDiagnostic.fromIngestionResult(
                 snapshot = prepared.snapshot,
@@ -71,15 +72,20 @@ class MoneyNotificationListenerService : NotificationListenerService() {
         app.container.notificationIngestionFeedbackNotifier.notify(result)
     }
 
-    private fun recordFailure(prepared: PreparedNotification, throwable: RuntimeException) {
+    private suspend fun recordFailure(prepared: PreparedNotification, throwable: RuntimeException) {
         val app = applicationContext as AutoMoneyApplication
-        app.container.notificationDiagnosticsStore.save(
-            LastNotificationDiagnostic.fromError(
-                snapshot = prepared.snapshot,
-                throwable = throwable,
-                sourceAccess = prepared.sourceAccess
+        app.container.notificationHistoryRecorder.recordError(prepared, throwable)
+        try {
+            app.container.notificationDiagnosticsStore.save(
+                LastNotificationDiagnostic.fromError(
+                    snapshot = prepared.snapshot,
+                    throwable = throwable,
+                    sourceAccess = prepared.sourceAccess
+                )
             )
-        )
+        } catch (_: RuntimeException) {
+            // 이력 기록과 진단 저장은 서로 실패를 전파하지 않는다.
+        }
     }
 
     override fun onDestroy() {
