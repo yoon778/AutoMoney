@@ -52,7 +52,7 @@ Owner: Codex logic → Claude UI
 - Consumes: `MoneyTransaction`, `TransactionType`, `TransactionStatus`
 - Produces: `MoneyTransaction.refundParentTransactionId: Long?`, `RefundMatchDecision`, `RefundLinkMatcher.eligibleCandidates`, `match`
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
 ```kotlin
 class RefundLinkMatcherTest {
@@ -85,13 +85,13 @@ class RefundLinkMatcherTest {
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*RefundLinkMatcherTest'`
 
 Expected: FAIL — `RefundLinkMatcher`와 `refundParentTransactionId` 미정의
 
-- [ ] **Step 3: 최소 구현**
+- [x] **Step 3: 최소 구현**
 
 `MoneyTransaction` 마지막 필드에 추가:
 
@@ -160,13 +160,13 @@ private fun normalizeMerchant(value: String?): String =
     value.orEmpty().lowercase().replace(Regex("[^가-힣a-z0-9]"), "")
 ```
 
-- [ ] **Step 4: 테스트 통과 확인**
+- [x] **Step 4: 테스트 통과 확인**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*RefundLinkMatcherTest'`
 
 Expected: PASS
 
-- [ ] **Step 5: 커밋**
+- [x] **Step 5: 커밋**
 
 ```bash
 git add app/src/main/java/com/choiyoonseo/automoney/domain/model/MoneyModels.kt app/src/main/java/com/choiyoonseo/automoney/domain/refund/RefundLinkMatcher.kt app/src/test/java/com/choiyoonseo/automoney/domain/refund/RefundLinkMatcherTest.kt

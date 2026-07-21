@@ -96,7 +96,8 @@ data class MoneyTransaction(
     val settlementParentId: Long? = null,
     val settlementTrackingHidden: Boolean = false,
     val budgetPlanId: Long? = null,
-    val fixedExpensePlanId: Long? = null
+    val fixedExpensePlanId: Long? = null,
+    val refundParentTransactionId: Long? = null
 )
 
 fun MoneyTransaction.categoryDisplayName(): String? =
