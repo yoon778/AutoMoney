@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.choiyoonseo.automoney.data.local.AppDatabase
 import com.choiyoonseo.automoney.data.repository.RoomAssetRepository
 import com.choiyoonseo.automoney.data.repository.RoomMoneyRepository
+import com.choiyoonseo.automoney.data.repository.RoomNotificationHistoryRepository
 import com.choiyoonseo.automoney.data.repository.RoomUserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
 import com.choiyoonseo.automoney.domain.parser.BankAccountHintExtractor
@@ -81,12 +82,14 @@ class AppContainer(context: Context) {
         AppDatabase.MIGRATION_9_10,
         AppDatabase.MIGRATION_10_11,
         AppDatabase.MIGRATION_11_12,
-        AppDatabase.MIGRATION_12_13
+        AppDatabase.MIGRATION_12_13,
+        AppDatabase.MIGRATION_13_14
     ).build()
 
     val repository = RoomMoneyRepository(database)
     val assetRepository = RoomAssetRepository(database)
     val userCategoryRepository = RoomUserCategoryRepository(database)
+    val notificationHistoryRepository = RoomNotificationHistoryRepository(database)
 
     val recordWalletTopupUsageUseCase = RecordWalletTopupUsageUseCase(repository)
 

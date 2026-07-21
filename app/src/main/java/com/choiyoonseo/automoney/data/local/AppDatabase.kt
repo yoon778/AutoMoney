@@ -7,12 +7,14 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import com.choiyoonseo.automoney.data.local.dao.AssetDao
 import com.choiyoonseo.automoney.data.local.dao.ReviewItemDao
+import com.choiyoonseo.automoney.data.local.dao.NotificationHistoryDao
 import com.choiyoonseo.automoney.data.local.dao.RuleDao
 import com.choiyoonseo.automoney.data.local.dao.TransactionDao
 import com.choiyoonseo.automoney.data.local.dao.UserCategoryDao
 import com.choiyoonseo.automoney.data.local.entity.AssetAccountEntity
 import com.choiyoonseo.automoney.data.local.entity.FixedExpenseEntity
 import com.choiyoonseo.automoney.data.local.entity.MonthlyPlanItemEntity
+import com.choiyoonseo.automoney.data.local.entity.NotificationHistoryEntity
 import com.choiyoonseo.automoney.data.local.entity.ReviewItemEntity
 import com.choiyoonseo.automoney.data.local.entity.RuleEntity
 import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
@@ -26,9 +28,10 @@ import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
         AssetAccountEntity::class,
         FixedExpenseEntity::class,
         MonthlyPlanItemEntity::class,
-        UserCategoryEntity::class
+        UserCategoryEntity::class,
+        NotificationHistoryEntity::class
     ],
-    version = 13,
+    version = 14,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -38,6 +41,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun ruleDao(): RuleDao
     abstract fun assetDao(): AssetDao
     abstract fun userCategoryDao(): UserCategoryDao
+    abstract fun notificationHistoryDao(): NotificationHistoryDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -300,6 +304,34 @@ abstract class AppDatabase : RoomDatabase() {
                 db.execSQL(
                     "CREATE INDEX IF NOT EXISTS index_transactions_refundParentTransactionId " +
                         "ON transactions(refundParentTransactionId)"
+                )
+            }
+        }
+
+        val MIGRATION_13_14 = object : Migration(13, 14) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS notification_history (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        packageName TEXT NOT NULL,
+                        sourceLabel TEXT,
+                        receivedAt TEXT NOT NULL,
+                        status TEXT NOT NULL,
+                        transactionType TEXT,
+                        amountWon INTEGER,
+                        reason TEXT NOT NULL,
+                        linkedTransactionId INTEGER
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_notification_history_receivedAt " +
+                        "ON notification_history(receivedAt)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_notification_history_linkedTransactionId " +
+                        "ON notification_history(linkedTransactionId)"
                 )
             }
         }

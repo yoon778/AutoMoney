@@ -32,7 +32,7 @@ class DatabaseIntegritySchemaTest {
         val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
             .readText()
 
-        assertThat(database).contains("version = 13")
+        assertThat(database).contains("version = 14")
         assertThat(database).contains("MIGRATION_2_3")
         assertThat(database).contains("MIGRATION_3_4")
         assertThat(database).contains("MIGRATION_4_5")
@@ -44,6 +44,7 @@ class DatabaseIntegritySchemaTest {
         assertThat(database).contains("MIGRATION_10_11")
         assertThat(database).contains("MIGRATION_11_12")
         assertThat(database).contains("MIGRATION_12_13")
+        assertThat(database).contains("MIGRATION_13_14")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
@@ -56,6 +57,7 @@ class DatabaseIntegritySchemaTest {
         assertThat(appContainer).contains("AppDatabase.MIGRATION_10_11")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_11_12")
         assertThat(appContainer).contains("AppDatabase.MIGRATION_12_13")
+        assertThat(appContainer).contains("AppDatabase.MIGRATION_13_14")
     }
 
     @Test
@@ -71,7 +73,7 @@ class DatabaseIntegritySchemaTest {
 
     @Test
     fun currentRoomSchemaFileIsGenerated() {
-        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/13.json")
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/14.json")
 
         assertThat(schema.exists()).isTrue()
     }

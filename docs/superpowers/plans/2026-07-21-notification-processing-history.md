@@ -135,7 +135,7 @@ git commit -m "feat: define private notification history model"
 - Consumes: Task 1 model
 - Produces: `observeRecent`, `recordAndPrune`, `clear`, `markResolvedManually`
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
 ```kotlin
 @Test fun recordPrunesOlderThan30DaysAndKeepsNewest200() = runTest {
@@ -147,13 +147,13 @@ git commit -m "feat: define private notification history model"
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `./gradlew :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL — entity와 repository 미정의
 
-- [ ] **Step 3: entity·DAO 구현**
+- [x] **Step 3: entity·DAO 구현**
 
 ```kotlin
 @Entity(
@@ -194,7 +194,7 @@ suspend fun markResolvedManually(historyId: Long, transactionId: Long): Int
 
 `recordAndPrune`는 `db.withTransaction`에서 insert → `deleteOlderThan(receivedAt.minus(30 days))` → `keepNewest(200)` 순서
 
-- [ ] **Step 4: migration과 schema**
+- [x] **Step 4: migration과 schema**
 
 `@Database` entities에 `NotificationHistoryEntity`, abstract DAO를 추가하고 version 14에서 다음 table/index 생성:
 
@@ -216,11 +216,13 @@ Run: `./gradlew :app:kspDebugKotlin :app:compileDebugAndroidTestKotlin`
 
 Expected: PASS와 `14.json` 생성
 
-- [ ] **Step 5: instrumented test·assemble·커밋**
+- [x] **Step 5: instrumented test·assemble·커밋**
 
 기기 연결 시 Run: `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.choiyoonseo.automoney.data.repository.RoomNotificationHistoryRepositoryTest`
 
 기기 없으면 `:app:compileDebugAndroidTestKotlin`만 확인했다고 기록
+
+2026-07-21: 연결 기기 없음, instrumented test는 컴파일만 확인
 
 Run: `./gradlew :app:assembleDebug`
 

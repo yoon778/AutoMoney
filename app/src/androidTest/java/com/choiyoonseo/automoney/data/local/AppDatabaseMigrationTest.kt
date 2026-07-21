@@ -231,6 +231,35 @@ class AppDatabaseMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration13To14AddsPrivacySafeNotificationHistory() {
+        helper.createDatabase(EIGHTH_TEST_DB, 13).close()
+
+        val db = helper.runMigrationsAndValidate(
+            EIGHTH_TEST_DB,
+            14,
+            true,
+            AppDatabase.MIGRATION_13_14
+        )
+
+        assertEquals(
+            1,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master " +
+                    "WHERE type = 'table' AND name = 'notification_history'"
+            )
+        )
+        assertEquals(
+            2,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' " +
+                    "AND name IN ('index_notification_history_receivedAt', " +
+                    "'index_notification_history_linkedTransactionId')"
+            )
+        )
+        db.close()
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?,
@@ -347,6 +376,7 @@ class AppDatabaseMigrationTest {
         const val FIFTH_TEST_DB = "migration-test-10-11"
         const val SIXTH_TEST_DB = "migration-test-11-12"
         const val SEVENTH_TEST_DB = "migration-test-12-13"
+        const val EIGHTH_TEST_DB = "migration-test-13-14"
         const val WALLET_TEST_DB = "migration-test-4-5-wallets"
     }
 }
