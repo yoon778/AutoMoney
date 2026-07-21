@@ -112,10 +112,9 @@ Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 Codex found UI-owned review flow issues while fixing app logic. Claude should apply these after the relevant Codex `main` commit is pushed and pulled:
 
-1. `ACCOUNT_UNMATCHED` review cards should not use the generic memo confirm flow. The primary action text is "계좌 확인", so it should open an account selection/edit flow or route to the transaction edit dialog with account focus.
-2. Review actions should use the atomic review use cases exposed from `AppContainer` instead of calling `updateTransaction()` and `resolveReviewItem()` separately.
-3. Account-transfer review UI should call the atomic account-transfer use case so account updates, paired transaction resolution, and review resolution happen in one repository transaction.
-4. Keep visual/copy polish in `ui/review/ReviewScreen.kt`; Codex will keep mapper/domain/repository behavior aligned.
+1. Review actions should use the atomic review use cases exposed from `AppContainer` instead of calling `updateTransaction()` and `resolveReviewItem()` separately.
+2. Account-transfer review UI should call the atomic account-transfer use case so account updates, paired transaction resolution, and review resolution happen in one repository transaction.
+3. Keep visual/copy polish in `ui/review/ReviewScreen.kt`; Codex will keep mapper/domain/repository behavior aligned.
 
 ## Codex Cleanup Notes (2026-07-21)
 
@@ -123,39 +122,26 @@ Claude가 저장소 전체를 훑어 마이그레이션·죽은 코드를 점검
 Claude가 이미 정리해 `main`에 push 했다. 아래는 로직/DB/테스트 층이라 Codex가 판단해야 하는 항목이다.
 지우기 전에 "미완성 기능"인지 "잔재"인지 먼저 구분할 것.
 
-### 마이그레이션
+### 남은 마이그레이션 판단
 
-1. `app/schemas/`에 `1.json`과 `3.json`이 없다. 그래서 `MIGRATION_1_2`는 테스트가 전혀 없고,
-   `MigrationTestHelper.createDatabase(db, 1)`이 스키마 파일을 요구하므로 앞으로도 못 쓴다.
-   나머지는 v1~v12 전부 `AppContainer`에 등록돼 있고 `fallbackToDestructiveMigration`도 없어 안전하다.
-2. `DatabaseIntegritySchemaTest.databaseVersionBumpsForIntegrityMigration`이 `MIGRATION_5_6`만
-   검사 목록에서 빠져 있다. 나머지 9개는 검사한다.
-3. 같은 테스트 클래스가 소스 파일 텍스트를 `contains()`로 검사하는 방식이다. `version = 12` 같은
-   문자열까지 박혀 있어 버전을 올릴 때마다 테스트를 함께 고쳐야 하고, 마이그레이션이 실제로 도는지는
-   검증하지 못한다. 실제 검증은 `androidTest`의 `AppDatabaseMigrationTest`뿐이라 기기 없이는 안 돈다.
+1. `app/schemas/`의 `1.json`과 `3.json`은 Git 전체 이력에도 존재하지 않는다. 저장소 최초 DB 코드는
+   이미 version 2이고 `exportSchema = false`였으며, 현재 `2.json`도 나중에 수동 추가된 파일이다.
+   따라서 원본 identity hash를 포함한 v1/v3 schema의 정확한 복구는 불가능하다. migration SQL을 역산해
+   파일을 조작하는 방식은 검증 자료를 새로 만들어 내는 것이므로 적용하지 않는다. `MIGRATION_1_2`의
+   기기 migration test 부재를 알려진 제한으로 유지하고, 보존된 v2 이후 schema만 신뢰한다.
+2. `DatabaseIntegritySchemaTest`의 `contains()` 검사는 등록 누락을 잡는 smoke test일 뿐 실제 migration을
+   실행하지 못한다. 개선안은 migration 목록을 단일 상수로 만들고 `AppContainer`가 이를 사용하게 한 뒤,
+   emulator CI에서 `AppDatabaseMigrationTest`를 필수 실행하는 것이다. 공유 DI 계약과 CI를 함께 바꾸는
+   별도 작업이므로 이번 cleanup에서는 제안만 남긴다.
 
-### 생성 경로가 없는 값
+### 보존하는 legacy 값
 
-4. `SourceType.IMPORT` — 이 값을 만드는 코드가 없다.
-5. `ReviewReason.ACCOUNT_UNMATCHED`, `ACCOUNT_AMBIGUOUS`, `BALANCE_MISMATCH` — 파서/인제스션 어디서도
-   생성하지 않는다. `ReviewItemMapper`가 화면만 그리고 있어 실제로는 뜰 수 없는 카드다.
-   위 "Claude UI Notes" 1번이 `ACCOUNT_UNMATCHED` 처리를 전제하고 있어, 삭제 대상이 아니라
-   미구현 기능일 가능성이 크다.
+3. `ReviewReason.ACCOUNT_UNMATCHED`, `ACCOUNT_AMBIGUOUS`, `BALANCE_MISMATCH`는 새 생성 경로를 만들지 않는다.
+   거래-계좌 결합은 `deb33b7`과 `79afe2f`에서 의도적으로 폐기됐다. 다만 reason은 Room에 TEXT로 저장돼
+   과거 행이 존재할 수 있으므로 enum과 mapper 처리는 읽기 호환성 용도로 유지한다.
 
-### 잔재 코드
+### Claude 후속 항목
 
-6. `domain/assets/MoneyNameMatcher.kt` — `moneyNamesMatch` / `canonicalMoneyNameKey` /
-   `normalizedMoneyName` 세 함수가 서로만 호출하고 외부 참조가 0이다. 파일 통째로 죽어 있다.
-7. `MoneyModels.kt`의 `SettlementDetails`와 `recoveryOfSettlementTransactionId` —
-   `RoomMoneyRepository`가 넣었다 빼는 것 말고 읽는 곳이 없다. 주석에 "pre-reset partial settlement
-   호환용"이라 적혀 있다.
-
-### 자잘한 것
-
-8. 안 쓰는 import: `ui/model/MonthlySummaryMapper.kt`의 `java.time.LocalDate`,
-   `test/.../domain/assets/CategoryBudgetUsageTest.kt`의 `TransactionDirection`,
-   `test/.../domain/settlement/LinkSettlementRepaymentUseCaseTest.kt`의 `AssetAccount`,
-   `test/.../ui/model/MonthlySummaryMapperTest.kt`의 `TransactionDirection`.
 9. 기본 카테고리 목록이 세 군데 중복돼 있다: `ui/settings/CategoryPreferenceStore.kt`의
    `defaultEnabledExpenseCategories`, `ui/components/TransactionEditCategoryOptions.kt`의
    `transactionEditExpenseCategoryOptions`, `ui/transactions/ManualCategoryOptions.kt`의
@@ -163,7 +149,7 @@ Claude가 이미 정리해 `main`에 push 했다. 아래는 로직/DB/테스트 
    수입 쪽도 마찬가지다. 단일 출처로 합치는 게 좋다.
    **세 파일 모두 `ui/` 소유라 이 항목은 Claude가 처리한다. Codex는 건드리지 말 것.**
 10. 이 문서의 "File Ownership Map"에 `export/**` (CSV export)가 Codex 소유로 적혀 있는데
-    해당 디렉터리가 실제로 존재하지 않는다. 표를 갱신하거나 기능을 만들어야 한다.
+    해당 디렉터리가 실제로 존재하지 않는다. 표를 갱신해야 한다.
 
 ## Current Product Direction
 
