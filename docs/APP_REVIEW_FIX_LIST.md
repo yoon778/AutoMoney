@@ -181,3 +181,16 @@ Claude next:
 
 - N1 **DONE (재설계)**: 2026-07-09의 "unsupported도 snapshot 생성 후 IGNORED 진단" 방식은 개인정보 접근 문제로 폐기. 이제 미허용 앱은 본문 접근 0회(`NotificationDispatchCoordinator` gate), `packageName + lastSeenAt + count`만 metadata-only 감지 목록에 기록. 설정 > "알림 수집 앱" 카드의 "추가 감지 앱"에 표시되어 사용자가 왜 처리가 안 됐는지 볼 수 있음. 미허용 앱은 최근 금융 진단을 덮어쓰지 않음.
 - N2 **DONE (사용자 선택)**: 정적 registry 확장 대신 사용자가 감지된 앱을 직접 허용(`SELECTED_UNVERIFIED`). 허용 앱은 보수적 `GenericFinanceNotificationParser`(금액+강한 거래행위 조합, 광고 차단어)로만 후보화되고 전부 `NEEDS_REVIEW`. 2026-07-13 Galaxy SM_S931N에서 `com.android.shell` 실알림으로 차단→감지→허용 dialog→EXPENSE 검토함 진입→광고 IGNORED→OFF 즉시 진단 삭제·재차단 전 과정 검증 완료.
+
+---
+
+## Codex Cleanup Completion — 2026-07-21
+
+- 죽은 로직 제거: `SourceType.IMPORT`, `MoneyNameMatcher.kt`, 정산 임시 호환 필드
+- 미사용 import 4개 제거
+- `MIGRATION_5_6` 선언·DI 등록 smoke 검사 보강
+- schema v1/v3 원본이 Git 이력에 없어 정확한 복구 불가함을 기록
+- 실제 migration 검증은 emulator CI의 `AppDatabaseMigrationTest`로 강화하는 후속안 기록
+- 계좌 review reason 3개는 생성 경로를 복원하지 않고 과거 Room 행 호환용으로 유지
+- 존재하지 않는 `export/**` ownership 제거
+- 전체 unit test, Android test compile, debug APK build 통과

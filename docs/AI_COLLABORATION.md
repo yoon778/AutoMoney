@@ -97,6 +97,7 @@ Append a line before you start editing a shared/boundary file; remove it in the 
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- (해제됨 2026-07-21) Codex claims `ui/model/MonthlySummaryMapper.kt` — cleanup item 8 unused import removal (`f1366de`)
 - (해제됨 2026-07-21) Claude claims `app/build.gradle.kts` — 미사용 의존성 5개 제거
 - (해제됨 2026-07-13) Claude claims `ui/AppRoot.kt` — 예산 개편 T4: 탭 라벨 자산→예산
 - (해제됨 2026-07-13) Claude claims `ui/AppRoot.kt` — T6 알림 수집 앱 설정 UI: SettingsScreen에 notificationSourceSettingsService 전달
