@@ -23,6 +23,7 @@ import com.choiyoonseo.automoney.domain.parser.ParseResult
 import com.choiyoonseo.automoney.domain.parser.TransactionDraft
 import com.choiyoonseo.automoney.domain.rules.CategorizationEngine
 import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
+import com.choiyoonseo.automoney.domain.refund.RefundMatchDecision
 import com.google.common.truth.Truth.assertThat
 import java.time.Instant
 import java.time.YearMonth
@@ -60,10 +61,10 @@ class NotificationIngestionAtomicityTest {
         val cashbackResult = useCase.ingest(cashback, NotificationSourceAccess.SELECTED_UNVERIFIED)
 
         assertThat(paymentResult).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1)
         )
         assertThat(cashbackResult).isEqualTo(
-            IngestionResult.Saved(TransactionType.INCOME, ReviewReason.INCOME_UNKNOWN)
+            IngestionResult.Saved(TransactionType.INCOME, ReviewReason.INCOME_UNKNOWN, 1)
         )
         assertThat(repository.savedTransactions.map { it.amount.won })
             .containsExactly(6_000L, 6L)
@@ -207,7 +208,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1)
         )
         assertThat(repository.saveNotificationCalls).isEqualTo(1)
         assertThat(repository.savedReviewReason).isEqualTo(ReviewReason.LOW_CONFIDENCE_CATEGORY)
@@ -234,7 +235,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.ACCOUNT_AMBIGUOUS)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.ACCOUNT_AMBIGUOUS, 1)
         )
     }
 
@@ -252,7 +253,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.SELECTED_UNVERIFIED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1)
         )
         assertThat(repository.savedTransaction?.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
         assertThat(repository.savedTransaction?.merchant).isNull()
@@ -275,6 +276,48 @@ class NotificationIngestionAtomicityTest {
 
         assertThat(result).isEqualTo(IngestionResult.Ignored("blocked source"))
         assertThat(repository.saveNotificationCalls).isEqualTo(0)
+    }
+
+    @Test
+    fun savedRefundRunsAutomaticLinkingAndClearsReviewReason() = runTest {
+        val repository = RecordingMoneyRepository()
+        val autoLinkedIds = mutableListOf<Long>()
+        val useCase = NotificationIngestionUseCase(
+            parser = StaticParser(refundDraft()),
+            genericParser = ThrowingParser,
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository,
+            refundAutoLink = { refundId ->
+                autoLinkedIds += refundId
+                RefundMatchDecision.Match(paymentId = 99)
+            }
+        )
+
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
+
+        assertThat(result).isEqualTo(IngestionResult.Saved(TransactionType.REFUND, null, 1))
+        assertThat(autoLinkedIds).containsExactly(1L)
+    }
+
+    @Test
+    fun automaticLinkFailureKeepsSavedRefundInReview() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = StaticParser(refundDraft()),
+            genericParser = ThrowingParser,
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository,
+            refundAutoLink = { error("link failed") }
+        )
+
+        val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
+
+        assertThat(result).isEqualTo(
+            IngestionResult.Saved(TransactionType.REFUND, ReviewReason.REFUND_OR_CANCEL, 1)
+        )
+        assertThat(repository.savedTransactions).hasSize(1)
     }
 }
 
@@ -397,6 +440,14 @@ private fun accountHint() = BankAccountHint(
     accountLast4 = "1234",
     direction = AccountMovementDirection.DEBIT,
     eventKind = BankEventKind.WITHDRAWAL
+)
+
+private fun refundDraft() = reviewDraft().copy(
+    direction = TransactionDirection.NEUTRAL,
+    type = TransactionType.REFUND,
+    amount = MoneyAmount(6),
+    status = TransactionStatus.NEEDS_REVIEW,
+    reviewReason = ReviewReason.REFUND_OR_CANCEL
 )
 
 private fun TransactionDraft.toLegacyTransaction() = MoneyTransaction(

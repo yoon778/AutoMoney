@@ -329,7 +329,7 @@ git commit -m "feat: persist refund payment links"
 - Consumes: Tasks 1–2 matcher와 repository
 - Produces: `LinkRefundUseCase.autoLink(refundId)`, `candidates(refundId)`, `linkConfirmed(refundId, paymentId)`, `IngestionResult.Saved.transactionId`
 
-- [ ] **Step 1: 실패 테스트 작성**
+- [x] **Step 1: 실패 테스트 작성**
 
 ```kotlin
 @Test fun autoLinkResolvesOnlySingleCandidate() = runTest {
@@ -345,13 +345,13 @@ git commit -m "feat: persist refund payment links"
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*LinkRefundUseCaseTest' --tests '*NotificationIngestionAtomicityTest'`
 
 Expected: FAIL — use case와 saved ID 미정의
 
-- [ ] **Step 3: 구현**
+- [x] **Step 3: 구현**
 
 ```kotlin
 class LinkRefundUseCase(
@@ -388,7 +388,7 @@ class LinkRefundUseCase(
 
 `IngestionResult.Saved`에 `transactionId: Long`을 추가한다. 저장 결과가 환급이면 `autoLink`를 호출하고 `Match`일 때 반환 `reviewReason`을 null로 바꾼다. 연결 runtime 실패는 기존 `NEEDS_REVIEW` 거래를 보존하고 Saved 결과를 반환하며 `CancellationException`만 다시 던진다
 
-- [ ] **Step 4: DI claim 후 wiring**
+- [x] **Step 4: DI claim 후 wiring**
 
 `docs/AI_COLLABORATION.md`에 claim을 추가한 커밋 후 `AppContainer`에 다음을 연결:
 
@@ -400,7 +400,7 @@ val linkRefundUseCase = LinkRefundUseCase(repository)
 refundAutoLink = linkRefundUseCase::autoLink
 ```
 
-- [ ] **Step 5: 검증과 커밋**
+- [x] **Step 5: 검증과 커밋**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*LinkRefundUseCaseTest' --tests '*NotificationIngestionAtomicityTest' :app:assembleDebug`
 

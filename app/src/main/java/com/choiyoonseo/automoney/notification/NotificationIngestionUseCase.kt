@@ -15,13 +15,18 @@ import com.choiyoonseo.automoney.domain.parser.notificationEventIdentityHash
 import com.choiyoonseo.automoney.domain.rules.CategorizationEngine
 import com.choiyoonseo.automoney.domain.rules.DuplicateDecision
 import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
+import com.choiyoonseo.automoney.domain.refund.RefundMatchDecision
+import kotlinx.coroutines.CancellationException
 
 class NotificationIngestionUseCase(
     private val parser: NotificationParser,
     private val genericParser: NotificationParser,
     private val categorizationEngine: CategorizationEngine,
     private val duplicateDetector: DuplicateDetector,
-    private val repository: MoneyRepository
+    private val repository: MoneyRepository,
+    private val refundAutoLink: suspend (Long) -> RefundMatchDecision = {
+        RefundMatchDecision.NoMatch
+    }
 ) {
     suspend fun ingest(
         snapshot: NotificationSnapshot,
@@ -86,7 +91,26 @@ class NotificationIngestionUseCase(
                 accountHint = finalDraft.bankAccountHint,
                 reviewReason = finalDraft.reviewReason
             )
-            return IngestionResult.Saved(finalDraft.type, saved.reviewReason)
+            val effectiveReviewReason = if (finalDraft.type == TransactionType.REFUND) {
+                try {
+                    when (refundAutoLink(saved.transactionId)) {
+                        is RefundMatchDecision.Match -> null
+                        RefundMatchDecision.NoMatch,
+                        RefundMatchDecision.Ambiguous -> saved.reviewReason
+                    }
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (_: RuntimeException) {
+                    saved.reviewReason
+                }
+            } else {
+                saved.reviewReason
+            }
+            return IngestionResult.Saved(
+                transactionType = finalDraft.type,
+                reviewReason = effectiveReviewReason,
+                transactionId = saved.transactionId
+            )
         } catch (e: DuplicateNotificationException) {
             return IngestionResult.Duplicate(finalDraft.type)
         }
@@ -116,7 +140,8 @@ private fun TransactionDraft.forceUnverifiedReview(): TransactionDraft = copy(
 sealed interface IngestionResult {
     data class Saved(
         val transactionType: TransactionType,
-        val reviewReason: ReviewReason?
+        val reviewReason: ReviewReason?,
+        val transactionId: Long = 0
     ) : IngestionResult
 
     data class Duplicate(

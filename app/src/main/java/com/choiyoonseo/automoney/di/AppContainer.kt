@@ -17,6 +17,7 @@ import com.choiyoonseo.automoney.domain.parser.TossNotificationParser
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
+import com.choiyoonseo.automoney.domain.refund.LinkRefundUseCase
 import com.choiyoonseo.automoney.domain.rules.CategorizationEngine
 import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
@@ -99,6 +100,8 @@ class AppContainer(context: Context) {
 
     val linkSettlementRepaymentUseCase = LinkSettlementRepaymentUseCase(repository)
 
+    val linkRefundUseCase = LinkRefundUseCase(repository)
+
     private val bankAccountHintExtractor = BankAccountHintExtractor()
 
     val notificationIngestionUseCase = NotificationIngestionUseCase(
@@ -112,7 +115,8 @@ class AppContainer(context: Context) {
         genericParser = GenericFinanceNotificationParser(),
         categorizationEngine = CategorizationEngine(),
         duplicateDetector = DuplicateDetector(),
-        repository = repository
+        repository = repository,
+        refundAutoLink = linkRefundUseCase::autoLink
     )
 
     val runSampleNotificationScenarioUseCase = RunSampleNotificationScenarioUseCase(
