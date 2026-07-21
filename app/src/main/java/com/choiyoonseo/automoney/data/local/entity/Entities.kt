@@ -22,13 +22,22 @@ import java.time.Instant
 
 @Entity(
     tableName = "transactions",
+    foreignKeys = [
+        ForeignKey(
+            entity = TransactionEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["refundParentTransactionId"],
+            onDelete = ForeignKey.SET_NULL
+        )
+    ],
     indices = [
         Index(value = ["sourceNotificationHash"], unique = true),
         Index(value = ["monthKey", "occurredAt"]),
         Index(value = ["occurredAt"]),
         Index(value = ["linkedAssetAccountId"]),
         Index(value = ["customCategoryId"]),
-        Index(value = ["settlementParentId"])
+        Index(value = ["settlementParentId"]),
+        Index(value = ["refundParentTransactionId"])
     ]
 )
 data class TransactionEntity(
@@ -57,7 +66,8 @@ data class TransactionEntity(
     val settlementParentId: Long? = null,
     val settlementTrackingHidden: Boolean = false,
     val budgetPlanId: Long? = null,
-    val fixedExpensePlanId: Long? = null
+    val fixedExpensePlanId: Long? = null,
+    val refundParentTransactionId: Long? = null
 )
 
 @Entity(

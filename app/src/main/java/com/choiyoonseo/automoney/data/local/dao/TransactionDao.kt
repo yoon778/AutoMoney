@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
 import com.choiyoonseo.automoney.data.local.entity.TransactionEntity
+import com.choiyoonseo.automoney.domain.model.TransactionStatus
+import java.time.Instant
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -22,7 +24,16 @@ interface TransactionDao {
     @Query("UPDATE transactions SET customCategoryName = :name WHERE customCategoryId = :categoryId")
     suspend fun updateCustomCategoryName(categoryId: Long, name: String)
 
-    @Query("SELECT * FROM transactions WHERE monthKey = :monthKey ORDER BY occurredAt DESC")
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE monthKey = :monthKey
+           OR refundParentTransactionId IN (
+               SELECT id FROM transactions WHERE monthKey = :monthKey
+           )
+        ORDER BY occurredAt DESC
+        """
+    )
     fun observeTransactionsForMonth(monthKey: String): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions ORDER BY occurredAt DESC")
@@ -33,4 +44,36 @@ interface TransactionDao {
 
     @Query("SELECT COUNT(*) FROM transactions WHERE sourceNotificationHash = :sourceNotificationHash")
     suspend fun countBySourceNotificationHash(sourceNotificationHash: String): Int
+
+    @Query("SELECT * FROM transactions WHERE id = :id LIMIT 1")
+    suspend fun byId(id: Long): TransactionEntity?
+
+    @Query(
+        """
+        SELECT * FROM transactions
+        WHERE sourceApp = :sourceApp AND occurredAt BETWEEN :from AND :to
+        ORDER BY occurredAt DESC
+        """
+    )
+    suspend fun refundMatchWindow(
+        sourceApp: String,
+        from: Instant,
+        to: Instant
+    ): List<TransactionEntity>
+
+    @Query(
+        """
+        UPDATE transactions
+        SET refundParentTransactionId = :parentId, status = :status
+        WHERE id = :refundId
+        """
+    )
+    suspend fun updateRefundLink(
+        refundId: Long,
+        parentId: Long?,
+        status: TransactionStatus
+    )
+
+    @Query("SELECT * FROM transactions WHERE refundParentTransactionId = :parentId")
+    suspend fun refundsForParent(parentId: Long): List<TransactionEntity>
 }

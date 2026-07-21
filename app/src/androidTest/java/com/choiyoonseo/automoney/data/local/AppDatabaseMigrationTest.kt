@@ -201,6 +201,36 @@ class AppDatabaseMigrationTest {
         assertNull(db.singleString("SELECT fixedExpensePlanId FROM transactions WHERE id = 1"))
     }
 
+    @Test
+    fun migration12To13AddsRefundParentSelfReference() {
+        helper.createDatabase(SEVENTH_TEST_DB, 12).apply {
+            insertTransaction(
+                id = 1,
+                sourceNotificationHash = "legacy-refund-parent-hash",
+                hasSettlementTrackingHidden = true
+            )
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            SEVENTH_TEST_DB,
+            13,
+            true,
+            AppDatabase.MIGRATION_12_13
+        )
+
+        assertNull(db.singleString("SELECT refundParentTransactionId FROM transactions WHERE id = 1"))
+        assertEquals(1, db.refundParentForeignKeyCount())
+        assertEquals(
+            1,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master " +
+                    "WHERE type = 'index' AND name = 'index_transactions_refundParentTransactionId'"
+            )
+        )
+        db.close()
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?,
@@ -284,6 +314,24 @@ class AppDatabaseMigrationTest {
     private fun SupportSQLiteDatabase.singleLong(sql: String): Long =
         query(sql).useSingle { cursor -> cursor.getLong(0) }
 
+    private fun SupportSQLiteDatabase.refundParentForeignKeyCount(): Int =
+        query("PRAGMA foreign_key_list(`transactions`)").use { cursor ->
+            val fromIndex = cursor.getColumnIndexOrThrow("from")
+            val tableIndex = cursor.getColumnIndexOrThrow("table")
+            val onDeleteIndex = cursor.getColumnIndexOrThrow("on_delete")
+            var count = 0
+            while (cursor.moveToNext()) {
+                if (
+                    cursor.getString(fromIndex) == "refundParentTransactionId" &&
+                    cursor.getString(tableIndex) == "transactions" &&
+                    cursor.getString(onDeleteIndex) == "SET NULL"
+                ) {
+                    count += 1
+                }
+            }
+            count
+        }
+
     private inline fun <T> Cursor.useSingle(block: (Cursor) -> T): T {
         use { cursor ->
             assertTrue(cursor.moveToFirst())
@@ -298,6 +346,7 @@ class AppDatabaseMigrationTest {
         const val FOURTH_TEST_DB = "migration-test-9-10"
         const val FIFTH_TEST_DB = "migration-test-10-11"
         const val SIXTH_TEST_DB = "migration-test-11-12"
+        const val SEVENTH_TEST_DB = "migration-test-12-13"
         const val WALLET_TEST_DB = "migration-test-4-5-wallets"
     }
 }

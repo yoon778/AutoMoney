@@ -182,6 +182,8 @@ git commit -m "feat: add conservative refund matcher"
 - Modify: `app/src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt`
 - Modify: `app/src/main/java/com/choiyoonseo/automoney/data/repository/MoneyRepository.kt`
 - Modify: `app/src/main/java/com/choiyoonseo/automoney/data/repository/RoomMoneyRepository.kt`
+- Modify: `app/src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt`
+- Modify: `app/src/test/java/com/choiyoonseo/automoney/data/local/DatabaseIntegritySchemaTest.kt`
 - Test: `app/src/androidTest/java/com/choiyoonseo/automoney/data/local/AppDatabaseMigrationTest.kt`
 - Test: `app/src/androidTest/java/com/choiyoonseo/automoney/data/repository/RoomMoneyRepositoryReviewItemTest.kt`
 - Create: `app/schemas/com.choiyoonseo.automoney.data.local.AppDatabase/13.json`
@@ -190,7 +192,7 @@ git commit -m "feat: add conservative refund matcher"
 - Consumes: Task 1의 `refundParentTransactionId`
 - Produces: `findTransaction`, `refundMatchWindow`, `linkRefundAndResolve`, 삭제 시 자동 재검토
 
-- [ ] **Step 1: migration과 repository 실패 테스트 작성**
+- [x] **Step 1: migration과 repository 실패 테스트 작성**
 
 ```kotlin
 @Test fun migration12To13AddsRefundParentSelfReference() {
@@ -216,13 +218,13 @@ git commit -m "feat: add conservative refund matcher"
 }
 ```
 
-- [ ] **Step 2: 실패 확인**
+- [x] **Step 2: 실패 확인**
 
 Run: `./gradlew :app:compileDebugAndroidTestKotlin`
 
 Expected: FAIL — migration과 repository API 미정의
 
-- [ ] **Step 3: entity·DAO·repository 구현**
+- [x] **Step 3: entity·DAO·repository 구현**
 
 `TransactionEntity`에 self FK와 index를 추가하고 mapper 양방향에 필드를 전달:
 
@@ -280,7 +282,7 @@ suspend fun linkRefundAndResolve(refundId: Long, paymentId: Long, userConfirmed:
 
 Room 구현에서 `linkRefundAndResolve`는 양쪽 존재, 타입, 시간, source, 잔여액을 transaction 안에서 다시 검증한다. 자동 연결 status는 `AUTO_CONFIRMED`, 사용자 연결은 `USER_EDITED`로 저장하고 open review를 해제한다. 월별 observe는 다음 달에 들어온 환급도 원결제 월 집계가 갱신되도록 부모가 해당 월인 환급을 함께 내보낸다. `deleteTransaction`은 `refundsForParent`를 먼저 읽고 삭제 후 각 환급을 `NEEDS_REVIEW`로 바꾸고 `REFUND_OR_CANCEL` review row를 삽입한다
 
-- [ ] **Step 4: migration 구현과 schema 생성**
+- [x] **Step 4: migration 구현과 schema 생성**
 
 `@Database(version = 13)`으로 올리고 nullable FK column은 SQLite `ALTER TABLE ADD COLUMN`으로 안전하게 추가한다:
 
@@ -299,13 +301,15 @@ Run: `./gradlew :app:kspDebugKotlin`
 
 Expected: PASS와 `13.json` 생성
 
-- [ ] **Step 5: 검증**
+- [x] **Step 5: 검증**
 
 Run: `./gradlew :app:compileDebugAndroidTestKotlin :app:assembleDebug`
 
 Expected: BUILD SUCCESSFUL
 
-- [ ] **Step 6: 커밋**
+검증 결과: unit 295개와 assemble 통과. `adb devices -l`에 연결 기기가 없어 instrumented test는 실행하지 못하고 컴파일만 확인
+
+- [x] **Step 6: 커밋**
 
 ```bash
 git add app/src/main/java/com/choiyoonseo/automoney/data/local/entity/Entities.kt app/src/main/java/com/choiyoonseo/automoney/data/local/dao/TransactionDao.kt app/src/main/java/com/choiyoonseo/automoney/data/local/dao/ReviewItemDao.kt app/src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt app/src/main/java/com/choiyoonseo/automoney/data/repository/MoneyRepository.kt app/src/main/java/com/choiyoonseo/automoney/data/repository/RoomMoneyRepository.kt app/src/androidTest/java/com/choiyoonseo/automoney/data/local/AppDatabaseMigrationTest.kt app/src/androidTest/java/com/choiyoonseo/automoney/data/repository/RoomMoneyRepositoryReviewItemTest.kt app/schemas/com.choiyoonseo.automoney.data.local.AppDatabase/13.json

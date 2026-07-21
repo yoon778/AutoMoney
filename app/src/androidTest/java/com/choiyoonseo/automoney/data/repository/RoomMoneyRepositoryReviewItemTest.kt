@@ -221,6 +221,29 @@ class RoomMoneyRepositoryReviewItemTest {
         assertTrue(repository.observeTransactionsForMonth(YearMonth.of(2026, 7)).first().isEmpty())
     }
 
+    @Test
+    fun deletingPaymentUnlinksRefundAndCreatesReview() = runBlocking {
+        val paymentId = repository.saveTransaction(autoExpense(paymentMethod = "Kbank"))
+        val refundId = repository.saveTransaction(refund(parentId = null))
+        repository.createReviewItem(refundId, ReviewReason.REFUND_OR_CANCEL)
+
+        repository.linkRefundAndResolve(refundId, paymentId, userConfirmed = true)
+
+        val julyRows = repository.observeTransactionsForMonth(YearMonth.of(2026, 7)).first()
+        assertEquals(setOf(paymentId, refundId), julyRows.map { it.id }.toSet())
+        assertEquals(paymentId, repository.findTransaction(refundId)?.refundParentTransactionId)
+        assertTrue(repository.observeOpenReviewItems().first().isEmpty())
+
+        repository.deleteTransaction(paymentId)
+
+        val refund = repository.findTransaction(refundId)
+        assertEquals(null, refund?.refundParentTransactionId)
+        assertEquals(TransactionStatus.NEEDS_REVIEW, refund?.status)
+        val review = repository.observeOpenReviewItems().first().single()
+        assertEquals(refundId, review.transaction.id)
+        assertEquals(ReviewReason.REFUND_OR_CANCEL, review.reason)
+    }
+
     private suspend fun saveBankAccount(
         name: String = "Checking",
         balanceWon: Long
@@ -306,5 +329,24 @@ class RoomMoneyRepositoryReviewItemTest {
         status = status,
         confidence = 0.9,
         monthKey = YearMonth.of(2026, 7)
+    )
+
+    private fun refund(parentId: Long?) = MoneyTransaction(
+        occurredAt = Instant.parse("2026-08-01T01:00:00Z"),
+        amount = MoneyAmount(6),
+        direction = TransactionDirection.NEUTRAL,
+        type = TransactionType.REFUND,
+        category = null,
+        paymentMethod = "Kbank",
+        merchant = "Store",
+        counterparty = null,
+        memo = "Cashback",
+        sourceApp = "test.finance",
+        sourceType = SourceType.NOTIFICATION,
+        sourceNotificationHash = "refund-hash",
+        status = TransactionStatus.NEEDS_REVIEW,
+        confidence = 0.9,
+        monthKey = YearMonth.of(2026, 8),
+        refundParentTransactionId = parentId
     )
 }

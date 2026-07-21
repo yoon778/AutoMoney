@@ -16,6 +16,9 @@ import com.choiyoonseo.automoney.domain.model.OpenReviewItem
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.Rule
 import com.choiyoonseo.automoney.domain.model.SourceType
+import com.choiyoonseo.automoney.domain.model.TransactionStatus
+import com.choiyoonseo.automoney.domain.model.TransactionType
+import com.choiyoonseo.automoney.domain.refund.RefundLinkMatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import java.time.Instant
@@ -24,6 +27,8 @@ import java.time.YearMonth
 class RoomMoneyRepository(
     private val db: AppDatabase
 ) : MoneyRepository {
+    private val refundLinkMatcher = RefundLinkMatcher()
+
     override suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction> {
         return db.transactionDao().recentNotificationTransactions(limit).map { it.toDomain() }
     }
@@ -102,7 +107,69 @@ class RoomMoneyRepository(
 
     override suspend fun deleteTransaction(transactionId: Long) {
         db.withTransaction {
+            val linkedRefunds = db.transactionDao().refundsForParent(transactionId)
             db.transactionDao().deleteById(transactionId)
+            linkedRefunds.forEach { refund ->
+                db.transactionDao().updateRefundLink(
+                    refundId = refund.id,
+                    parentId = null,
+                    status = TransactionStatus.NEEDS_REVIEW
+                )
+                insertReviewItem(refund.id, ReviewReason.REFUND_OR_CANCEL)
+            }
+        }
+    }
+
+    override suspend fun findTransaction(id: Long): MoneyTransaction? =
+        db.transactionDao().byId(id)?.toDomain()
+
+    override suspend fun refundMatchWindow(
+        sourceApp: String,
+        from: Instant,
+        to: Instant
+    ): List<MoneyTransaction> =
+        db.transactionDao().refundMatchWindow(sourceApp, from, to).map { it.toDomain() }
+
+    override suspend fun linkRefundAndResolve(
+        refundId: Long,
+        paymentId: Long,
+        userConfirmed: Boolean
+    ) {
+        require(refundId > 0 && paymentId > 0 && refundId != paymentId)
+        db.withTransaction {
+            val refund = requireNotNull(db.transactionDao().byId(refundId)) {
+                "Refund transaction not found: $refundId"
+            }.toDomain()
+            val payment = requireNotNull(db.transactionDao().byId(paymentId)) {
+                "Payment transaction not found: $paymentId"
+            }.toDomain()
+            require(refund.type == TransactionType.REFUND) { "Refund transaction required" }
+            val sourceApp = requireNotNull(refund.sourceApp) { "Refund source app required" }
+            val window = db.transactionDao().refundMatchWindow(
+                sourceApp = sourceApp,
+                from = refund.occurredAt.minusSeconds(REFUND_MATCH_WINDOW_SECONDS),
+                to = refund.occurredAt
+            ).map { it.toDomain() }
+            val linkedRefunds = db.transactionDao().refundsForParent(paymentId)
+                .filter { it.id != refundId }
+                .map { it.toDomain() }
+            val eligibleIds = refundLinkMatcher.eligibleCandidates(
+                refund = refund,
+                candidates = window.filter { it.type != TransactionType.REFUND },
+                linkedRefunds = linkedRefunds
+            ).mapTo(mutableSetOf(), MoneyTransaction::id)
+            require(payment.id in eligibleIds) { "Payment is not eligible for this refund" }
+
+            db.transactionDao().updateRefundLink(
+                refundId = refundId,
+                parentId = paymentId,
+                status = if (userConfirmed) {
+                    TransactionStatus.USER_EDITED
+                } else {
+                    TransactionStatus.AUTO_CONFIRMED
+                }
+            )
+            db.reviewItemDao().resolveByTransactionId(refundId, Instant.now())
         }
     }
 
@@ -114,14 +181,23 @@ class RoomMoneyRepository(
         db.transactionDao().insert(transaction.toEntity())
 
     private suspend fun insertReviewItem(transactionId: Long, reason: ReviewReason) {
-        db.reviewItemDao().insert(
-            ReviewItemEntity(
+        val createdAt = Instant.now()
+        if (
+            db.reviewItemDao().reopenByTransactionId(
                 transactionId = transactionId,
                 reason = reason,
-                createdAt = Instant.now(),
-                resolvedAt = null
+                createdAt = createdAt
+            ) == 0
+        ) {
+            db.reviewItemDao().insert(
+                ReviewItemEntity(
+                    transactionId = transactionId,
+                    reason = reason,
+                    createdAt = createdAt,
+                    resolvedAt = null
+                )
             )
-        )
+        }
     }
 
     private suspend fun duplicateNotificationExceptionOrOriginal(
@@ -210,7 +286,8 @@ private fun MoneyTransaction.toEntity(): TransactionEntity {
         settlementParentId = settlementParentId,
         settlementTrackingHidden = settlementTrackingHidden,
         budgetPlanId = budgetPlanId,
-        fixedExpensePlanId = fixedExpensePlanId
+        fixedExpensePlanId = fixedExpensePlanId,
+        refundParentTransactionId = refundParentTransactionId
     )
 }
 
@@ -241,7 +318,8 @@ private fun TransactionEntity.toDomain(): MoneyTransaction {
         settlementParentId = settlementParentId,
         settlementTrackingHidden = settlementTrackingHidden,
         budgetPlanId = budgetPlanId,
-        fixedExpensePlanId = fixedExpensePlanId
+        fixedExpensePlanId = fixedExpensePlanId,
+        refundParentTransactionId = refundParentTransactionId
     )
 }
 
@@ -275,3 +353,5 @@ private fun Rule.toEntity(): RuleEntity {
         enabled = enabled
     )
 }
+
+private const val REFUND_MATCH_WINDOW_SECONDS = 30L * 24 * 60 * 60

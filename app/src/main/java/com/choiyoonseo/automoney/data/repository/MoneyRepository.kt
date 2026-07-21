@@ -9,6 +9,7 @@ import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.Rule
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
+import java.time.Instant
 import java.time.YearMonth
 
 data class NotificationSaveResult(
@@ -47,6 +48,19 @@ interface MoneyRepository {
     }
     suspend fun updateTransaction(transaction: MoneyTransaction)
     suspend fun deleteTransaction(transactionId: Long)
+    suspend fun findTransaction(id: Long): MoneyTransaction? = null
+    suspend fun refundMatchWindow(
+        sourceApp: String,
+        from: Instant,
+        to: Instant
+    ): List<MoneyTransaction> = emptyList()
+    suspend fun linkRefundAndResolve(
+        refundId: Long,
+        paymentId: Long,
+        userConfirmed: Boolean
+    ) {
+        throw UnsupportedOperationException("Refund linking is not supported")
+    }
     suspend fun createReviewItem(transactionId: Long, reason: ReviewReason)
     suspend fun resolveReviewItem(reviewItemId: Long)
     suspend fun resolveReviewItemWithTransaction(reviewItemId: Long, transaction: MoneyTransaction) {
