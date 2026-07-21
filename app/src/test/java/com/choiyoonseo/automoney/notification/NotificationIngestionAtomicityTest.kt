@@ -12,9 +12,11 @@ import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.OpenReviewItem
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.model.Rule
+import com.choiyoonseo.automoney.domain.model.SourceType
 import com.choiyoonseo.automoney.domain.model.TransactionDirection
 import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
+import com.choiyoonseo.automoney.domain.parser.GenericFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.NotificationParser
 import com.choiyoonseo.automoney.domain.parser.NotificationSnapshot
 import com.choiyoonseo.automoney.domain.parser.ParseResult
@@ -30,6 +32,129 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 class NotificationIngestionAtomicityTest {
+    @Test
+    fun sameAndroidNotificationCanContainDistinctPaymentAndCashbackEvents() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = ThrowingParser,
+            genericParser = GenericFinanceNotificationParser(),
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+        val postedAt = Instant.parse("2026-07-21T01:00:00Z")
+        val payment = NotificationSnapshot(
+            packageName = "com.kbankwith.smartbank",
+            title = "케이뱅크",
+            text = "스타벅스 6,000원 결제 완료",
+            bigText = null,
+            postedAt = postedAt,
+            notificationKey = "shared-kbank-key"
+        )
+        val cashback = payment.copy(
+            text = "캐시백 6원 입금",
+            bigText = "스타벅스 6,000원 결제 완료"
+        )
+
+        val paymentResult = useCase.ingest(payment, NotificationSourceAccess.SELECTED_UNVERIFIED)
+        val cashbackResult = useCase.ingest(cashback, NotificationSourceAccess.SELECTED_UNVERIFIED)
+
+        assertThat(paymentResult).isEqualTo(
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+        )
+        assertThat(cashbackResult).isEqualTo(
+            IngestionResult.Saved(TransactionType.INCOME, ReviewReason.INCOME_UNKNOWN)
+        )
+        assertThat(repository.savedTransactions.map { it.amount.won })
+            .containsExactly(6_000L, 6L)
+            .inOrder()
+        assertThat(repository.savedTransactions.mapNotNull { it.sourceNotificationHash }.distinct())
+            .hasSize(2)
+    }
+
+    @Test
+    fun wordingUpdateForSameFinancialEventRemainsDuplicate() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = ThrowingParser,
+            genericParser = GenericFinanceNotificationParser(),
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+        val first = NotificationSnapshot(
+            packageName = "com.kbankwith.smartbank",
+            title = "케이뱅크",
+            text = "스타벅스 6,000원 결제",
+            bigText = null,
+            postedAt = Instant.parse("2026-07-21T01:00:00Z"),
+            notificationKey = "shared-kbank-key"
+        )
+        val wordingUpdate = first.copy(text = "스타벅스 6,000원 결제 / 캐시백 6원 적립")
+
+        assertThat(useCase.ingest(first, NotificationSourceAccess.SELECTED_UNVERIFIED))
+            .isInstanceOf(IngestionResult.Saved::class.java)
+        assertThat(useCase.ingest(wordingUpdate, NotificationSourceAccess.SELECTED_UNVERIFIED))
+            .isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
+        assertThat(repository.savedTransactions).hasSize(1)
+    }
+
+    @Test
+    fun sameAmountAndTypeAtDifferentMerchantsRemainDistinctEvents() = runTest {
+        val repository = RecordingMoneyRepository()
+        val useCase = NotificationIngestionUseCase(
+            parser = ThrowingParser,
+            genericParser = GenericFinanceNotificationParser(),
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+        val first = NotificationSnapshot(
+            packageName = "com.kbankwith.smartbank",
+            title = "케이뱅크",
+            text = "스타벅스 6,000원 결제",
+            bigText = null,
+            postedAt = Instant.parse("2026-07-21T01:00:00Z"),
+            notificationKey = "shared-kbank-key"
+        )
+        val second = first.copy(text = "편의점 6,000원 결제")
+
+        assertThat(useCase.ingest(first, NotificationSourceAccess.SELECTED_UNVERIFIED))
+            .isInstanceOf(IngestionResult.Saved::class.java)
+        assertThat(useCase.ingest(second, NotificationSourceAccess.SELECTED_UNVERIFIED))
+            .isInstanceOf(IngestionResult.Saved::class.java)
+        assertThat(repository.savedTransactions.mapNotNull { it.sourceNotificationHash }.distinct())
+            .hasSize(2)
+    }
+
+    @Test
+    fun legacyNotificationHashStillBlocksSameFinancialEventAfterUpgrade() = runTest {
+        val repository = RecordingMoneyRepository()
+        val parser = GenericFinanceNotificationParser()
+        val useCase = NotificationIngestionUseCase(
+            parser = ThrowingParser,
+            genericParser = parser,
+            categorizationEngine = CategorizationEngine(),
+            duplicateDetector = DuplicateDetector(),
+            repository = repository
+        )
+        val notification = NotificationSnapshot(
+            packageName = "com.kbankwith.smartbank",
+            title = "케이뱅크",
+            text = "스타벅스 6,000원 결제",
+            bigText = null,
+            postedAt = Instant.parse("2026-07-21T01:00:00Z"),
+            notificationKey = "legacy-kbank-key"
+        )
+        val legacyDraft = (parser.parse(notification) as ParseResult.Parsed).draft
+        repository.savedTransactions += legacyDraft.toLegacyTransaction()
+
+        val result = useCase.ingest(notification, NotificationSourceAccess.SELECTED_UNVERIFIED)
+
+        assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
+        assertThat(repository.savedTransactions).hasSize(1)
+    }
+
     @Test
     fun reviewTransactionsUseAtomicNotificationSave() = runTest {
         val repository = RecordingMoneyRepository()
@@ -176,8 +301,10 @@ private class RecordingMoneyRepository(
     var savedAccountHint: BankAccountHint? = null
     var savedReviewReason: ReviewReason? = null
     var savedTransaction: MoneyTransaction? = null
+    val savedTransactions = mutableListOf<MoneyTransaction>()
 
-    override suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction> = emptyList()
+    override suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction> =
+        savedTransactions.takeLast(limit)
     override fun observeTransactionsForMonth(month: YearMonth): Flow<List<MoneyTransaction>> = flowOf(emptyList())
     override fun observeOpenReviewCount(): Flow<Int> = flowOf(0)
     override fun observeOpenReviewItems(): Flow<List<OpenReviewItem>> = flowOf(emptyList())
@@ -211,6 +338,10 @@ private class RecordingMoneyRepository(
         if (throwDuplicateOnSave) {
             throw DuplicateNotificationException(transaction.sourceNotificationHash)
         }
+        if (savedTransactions.any { it.sourceNotificationHash == transaction.sourceNotificationHash }) {
+            throw DuplicateNotificationException(transaction.sourceNotificationHash)
+        }
+        savedTransactions += transaction
         return notificationResult ?: NotificationSaveResult(1, reviewReason)
     }
 
@@ -266,4 +397,22 @@ private fun accountHint() = BankAccountHint(
     accountLast4 = "1234",
     direction = AccountMovementDirection.DEBIT,
     eventKind = BankEventKind.WITHDRAWAL
+)
+
+private fun TransactionDraft.toLegacyTransaction() = MoneyTransaction(
+    occurredAt = occurredAt,
+    amount = amount,
+    direction = direction,
+    type = type,
+    category = category,
+    paymentMethod = paymentMethod,
+    merchant = merchant,
+    counterparty = counterparty,
+    memo = memo,
+    sourceApp = sourceApp,
+    sourceType = SourceType.NOTIFICATION,
+    sourceNotificationHash = sourceNotificationHash,
+    status = status,
+    confidence = confidence,
+    monthKey = monthKey
 )

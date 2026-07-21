@@ -9,10 +9,19 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.launch
 
 class MoneyNotificationListenerService : NotificationListenerService() {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private lateinit var ingestionQueue: NotificationIngestionQueue
+
+    override fun onCreate() {
+        super.onCreate()
+        ingestionQueue = NotificationIngestionQueue(
+            scope = scope,
+            process = ::process,
+            onFailure = ::recordFailure
+        )
+    }
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         val app = applicationContext as AutoMoneyApplication
@@ -43,33 +52,38 @@ class MoneyNotificationListenerService : NotificationListenerService() {
         )
         prepared ?: return
 
-        scope.launch {
-            try {
-                val result = app.container.notificationIngestionUseCase.ingest(
-                    prepared.snapshot,
-                    prepared.sourceAccess
-                )
-                app.container.notificationDiagnosticsStore.save(
-                    LastNotificationDiagnostic.fromIngestionResult(
-                        snapshot = prepared.snapshot,
-                        result = result,
-                        sourceAccess = prepared.sourceAccess
-                    )
-                )
-                app.container.notificationIngestionFeedbackNotifier.notify(result)
-            } catch (e: RuntimeException) {
-                app.container.notificationDiagnosticsStore.save(
-                    LastNotificationDiagnostic.fromError(
-                        snapshot = prepared.snapshot,
-                        throwable = e,
-                        sourceAccess = prepared.sourceAccess
-                    )
-                )
-            }
-        }
+        ingestionQueue.submit(prepared)
+    }
+
+    private suspend fun process(prepared: PreparedNotification) {
+        val app = applicationContext as AutoMoneyApplication
+        val result = app.container.notificationIngestionUseCase.ingest(
+            prepared.snapshot,
+            prepared.sourceAccess
+        )
+        app.container.notificationDiagnosticsStore.save(
+            LastNotificationDiagnostic.fromIngestionResult(
+                snapshot = prepared.snapshot,
+                result = result,
+                sourceAccess = prepared.sourceAccess
+            )
+        )
+        app.container.notificationIngestionFeedbackNotifier.notify(result)
+    }
+
+    private fun recordFailure(prepared: PreparedNotification, throwable: RuntimeException) {
+        val app = applicationContext as AutoMoneyApplication
+        app.container.notificationDiagnosticsStore.save(
+            LastNotificationDiagnostic.fromError(
+                snapshot = prepared.snapshot,
+                throwable = throwable,
+                sourceAccess = prepared.sourceAccess
+            )
+        )
     }
 
     override fun onDestroy() {
+        ingestionQueue.close()
         scope.cancel()
         super.onDestroy()
     }

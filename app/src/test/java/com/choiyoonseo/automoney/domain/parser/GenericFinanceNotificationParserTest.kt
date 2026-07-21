@@ -66,6 +66,26 @@ class GenericFinanceNotificationParserTest {
     }
 
     @Test
+    fun selectsAmountFromFirstActionLineWhenExpandedNotificationHasCashbackAmount() {
+        val result = parser.parse(
+            snapshot(text = "스타벅스 6,000원 결제 완료\n캐시백 안내 6원")
+        ) as ParseResult.Parsed
+
+        assertThat(result.draft.amount.won).isEqualTo(6000)
+        assertThat(result.draft.type).isEqualTo(TransactionType.EXPENSE)
+    }
+
+    @Test
+    fun selectsPaymentAmountNearestActionWhenCashbackIsOnSameLine() {
+        val result = parser.parse(
+            snapshot(text = "스타벅스 6,000원 결제 / 캐시백 6원 적립")
+        ) as ParseResult.Parsed
+
+        assertThat(result.draft.amount.won).isEqualTo(6000)
+        assertThat(result.draft.type).isEqualTo(TransactionType.EXPENSE)
+    }
+
+    @Test
     fun requiresAmountAndActionOnSameLine() {
         val result = parser.parse(snapshot(title = "송금 이벤트", text = "최대 10,000원"))
 

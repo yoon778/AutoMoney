@@ -11,6 +11,7 @@ import com.choiyoonseo.automoney.domain.parser.NotificationSnapshot
 import com.choiyoonseo.automoney.domain.parser.NotificationParser
 import com.choiyoonseo.automoney.domain.parser.ParseResult
 import com.choiyoonseo.automoney.domain.parser.TransactionDraft
+import com.choiyoonseo.automoney.domain.parser.notificationEventIdentityHash
 import com.choiyoonseo.automoney.domain.rules.CategorizationEngine
 import com.choiyoonseo.automoney.domain.rules.DuplicateDecision
 import com.choiyoonseo.automoney.domain.rules.DuplicateDetector
@@ -40,17 +41,30 @@ class NotificationIngestionUseCase(
             return IngestionResult.Ignored(reason)
         }
 
+        val eventIdentified = parsed.draft.copy(
+            sourceNotificationHash = notificationEventIdentityHash(snapshot, parsed.draft)
+        )
         val sourceGuarded = if (sourceAccess == NotificationSourceAccess.SELECTED_UNVERIFIED) {
-            parsed.draft.forceUnverifiedReview()
+            eventIdentified.forceUnverifiedReview()
         } else {
-            parsed.draft
+            eventIdentified
         }
         val withRules = categorizationEngine
             .applyRules(sourceGuarded, repository.enabledRules())
             .routeLowConfidenceToReview()
+        val existingTransactions = repository.recentNotificationTransactions(limit = 50)
+        val isLegacyDuplicate = existingTransactions.any { transaction ->
+            transaction.sourceNotificationHash == parsed.draft.sourceNotificationHash &&
+                transaction.amount == eventIdentified.amount &&
+                transaction.type == eventIdentified.type &&
+                transaction.direction == eventIdentified.direction
+        }
+        if (isLegacyDuplicate) {
+            return IngestionResult.Duplicate(eventIdentified.type)
+        }
         val duplicateDecision = duplicateDetector.detect(
             candidate = withRules,
-            existing = repository.recentNotificationTransactions(limit = 50)
+            existing = existingTransactions
         )
 
         if (duplicateDecision == DuplicateDecision.DUPLICATE) {

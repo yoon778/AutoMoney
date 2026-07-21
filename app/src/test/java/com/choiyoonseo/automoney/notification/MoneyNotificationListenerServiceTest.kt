@@ -15,13 +15,13 @@ class MoneyNotificationListenerServiceTest {
     }
 
     @Test
-    fun listenerGatesContentBeforeStartingIngestionCoroutine() {
+    fun listenerGatesContentBeforeQueueingIngestion() {
         val service = File("src/main/java/com/choiyoonseo/automoney/notification/MoneyNotificationListenerService.kt")
             .readText()
 
         assertThat(service).doesNotContain("LastNotificationDiagnostic.fromUnsupportedPackage")
         assertThat(service).contains("notificationDispatchCoordinator.prepare")
         assertThat(service.indexOf("readContent = {")).isLessThan(service.indexOf("sbn.notification"))
-        assertThat(service.indexOf("prepared ?: return")).isLessThan(service.indexOf("scope.launch"))
+        assertThat(service.indexOf("prepared ?: return")).isLessThan(service.indexOf("ingestionQueue.submit"))
     }
 }
