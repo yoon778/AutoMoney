@@ -42,6 +42,7 @@ class MainActivity : ComponentActivity() {
                     runSampleNotificationScenarioUseCase = appContainer.runSampleNotificationScenarioUseCase,
                     resolveReviewUseCase = appContainer.resolveReviewUseCase,
                     linkSettlementRepaymentUseCase = appContainer.linkSettlementRepaymentUseCase,
+                    linkRefundUseCase = appContainer.linkRefundUseCase,
                     userCategoryRepository = appContainer.userCategoryRepository,
                     notificationSourceSettingsService = appContainer.notificationSourceSettingsService
                 )

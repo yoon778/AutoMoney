@@ -43,7 +43,8 @@ import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
-import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
+import com.choiyoonseo.automoney.domain.report.PlannedUseContribution
+import com.choiyoonseo.automoney.domain.report.plannedUseContributions
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
@@ -357,10 +358,11 @@ fun HomeScreen(
     }
 }
 
+// 연결된 환급을 뺀 순사용액으로 합산한다. 환급이 다른 날에 들어와도 원결제 쪽에서 차감된다.
 private fun List<MoneyTransaction>.expenseWonOn(date: LocalDate): Long =
-    filter { transaction ->
-        transaction.countsAsActualExpense() && transaction.localDate() == date
-    }.sumOf { it.effectiveExpenseWon() }
+    plannedUseContributions(this)
+        .filter { it.transaction.countsAsActualExpense() && it.transaction.localDate() == date }
+        .sumOf(PlannedUseContribution::amountWon)
 
 private fun List<MoneyTransaction>.expenseTransactionsOn(date: LocalDate): List<MoneyTransaction> =
     filter { transaction ->
@@ -368,11 +370,13 @@ private fun List<MoneyTransaction>.expenseTransactionsOn(date: LocalDate): List<
     }
 
 private fun List<MoneyTransaction>.expenseWonSince(start: LocalDate, end: LocalDate): Long =
-    filter { transaction ->
-        val date = transaction.localDate()
-        transaction.countsAsActualExpense() &&
-            !date.isBefore(start) && !date.isAfter(end)
-    }.sumOf { it.effectiveExpenseWon() }
+    plannedUseContributions(this)
+        .filter {
+            val date = it.transaction.localDate()
+            it.transaction.countsAsActualExpense() &&
+                !date.isBefore(start) && !date.isAfter(end)
+        }
+        .sumOf(PlannedUseContribution::amountWon)
 
 private fun List<MoneyTransaction>.expenseTransactionsSince(start: LocalDate, end: LocalDate): List<MoneyTransaction> =
     filter { transaction ->

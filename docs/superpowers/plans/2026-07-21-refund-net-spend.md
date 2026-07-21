@@ -512,11 +512,11 @@ git commit -m "feat: calculate reports from net spending"
 - Consumes: `plannedUseContributions`, `LinkRefundUseCase.candidates`, `linkConfirmed`
 - Produces: 환급 검토 카드의 원결제 선택과 모든 화면의 같은 순액 표시
 
-- [ ] **Step 1: shared file claim**
+- [x] **Step 1: shared file claim**
 
 `ui/AppRoot.kt`, `MainActivity.kt` claim을 `docs/AI_COLLABORATION.md`에 추가하고 main에 push
 
-- [ ] **Step 2: 원결제 후보 UI 연결**
+- [x] **Step 2: 원결제 후보 UI 연결**
 
 환급 카드에서 최근 30일 후보를 금액·상호·시각으로 표시한다. 한 항목 선택 후 다음 callback만 호출:
 
@@ -529,7 +529,9 @@ scope.launch {
 }
 ```
 
-- [ ] **Step 3: 화면별 직접 합산 제거**
+- [x] **Step 3: 화면별 직접 합산 제거**
+
+2026-07-21 실제 적용 범위: `MonthlyReportScreen`의 합계는 Task 4에서 이미 `transactionsToMonthlySummary`·`transactionsToSpendCalendar`가 순액으로 내주므로 직접 합산이 남아 있지 않았다. 남은 총액 합산은 `HomeScreen`의 `expenseWonOn`·`expenseWonSince`와 `AssetsScreen`이 `buildAssetOverview`에 넘기는 `spentThisMonthWon` 세 곳이었고 모두 `plannedUseContributions` 기반으로 교체했다
 
 `HomeScreen`과 `MonthlyReportScreen`의 `filter { countsAsActualExpense() }.sumOf { effectiveExpenseWon() }`를 다음 형태로 교체:
 
@@ -541,13 +543,15 @@ plannedUseContributions(transactions)
 
 `AssetsScreen`은 `buildAssetOverview`와 `buildCategoryBudgetUsages`의 이미 순액화된 결과만 표시한다
 
-- [ ] **Step 4: 전체 검증과 커밋**
+- [x] **Step 4: 전체 검증과 커밋**
 
 Run: `./gradlew :app:testDebugUnitTest :app:assembleDebug`
 
 Expected: BUILD SUCCESSFUL
 
 수동 점검: `6,000원 결제 + 6원 환급`에서 홈·예산·보고서 모두 `5,994원`
+
+2026-07-21 검증: unit test와 assembleDebug BUILD SUCCESSFUL. `adb devices`에 연결 기기가 없어 실기기 수동 점검은 못 하고, 세 화면이 모두 `plannedUseContributions` 단일 경로를 쓰는 것으로 확인
 
 ```bash
 git add app/src/main/java/com/choiyoonseo/automoney/ui/home/HomeScreen.kt app/src/main/java/com/choiyoonseo/automoney/ui/report/MonthlyReportScreen.kt app/src/main/java/com/choiyoonseo/automoney/ui/review/ReviewScreen.kt app/src/main/java/com/choiyoonseo/automoney/ui/assets/AssetsScreen.kt app/src/main/java/com/choiyoonseo/automoney/ui/AppRoot.kt app/src/main/java/com/choiyoonseo/automoney/MainActivity.kt docs/AI_COLLABORATION.md

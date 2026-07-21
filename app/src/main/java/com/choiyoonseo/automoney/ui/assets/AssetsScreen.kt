@@ -64,7 +64,8 @@ import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.assets.calculateUnbudgetedExpenseWon
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
-import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
+import com.choiyoonseo.automoney.domain.report.PlannedUseContribution
+import com.choiyoonseo.automoney.domain.report.plannedUseContributions
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import java.time.YearMonth
 import com.choiyoonseo.automoney.domain.assets.AssetOverview
@@ -116,9 +117,10 @@ fun AssetsScreen(
             emptyList(),
             fixedExpenses,
             monthlyPlans,
-            spentThisMonthWon = monthTransactions
-                .filter { it.countsAsActualExpense() }
-                .sumOf { it.effectiveExpenseWon() }
+            // 연결된 환급을 뺀 순사용액. 예산 카드·홈·보고서가 같은 금액을 보게 한다.
+            spentThisMonthWon = plannedUseContributions(monthTransactions)
+                .filter { it.transaction.countsAsActualExpense() }
+                .sumOf(PlannedUseContribution::amountWon)
         )
     }
     val budgetUsages = remember(monthlyPlans, monthTransactions) {

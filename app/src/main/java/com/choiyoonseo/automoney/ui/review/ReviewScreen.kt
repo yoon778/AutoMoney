@@ -29,6 +29,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,6 +58,7 @@ import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCas
 import com.choiyoonseo.automoney.domain.settlement.findSettlementMatch
 import com.choiyoonseo.automoney.domain.review.ReviewResolution
 import com.choiyoonseo.automoney.domain.review.WalletTopupReviewService
+import com.choiyoonseo.automoney.domain.refund.LinkRefundUseCase
 import com.choiyoonseo.automoney.domain.review.WalletTopupUsageResult
 import com.choiyoonseo.automoney.domain.review.resolveReview
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
@@ -85,6 +87,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun ReviewScreen(
@@ -95,6 +98,7 @@ fun ReviewScreen(
     assetRepository: AssetRepository? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
     linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
+    linkRefundUseCase: LinkRefundUseCase? = null,
     userCategoryRepository: UserCategoryRepository? = null
 ) {
     val scope = rememberCoroutineScope()
@@ -127,6 +131,7 @@ fun ReviewScreen(
     var activeReviewMemoAction by remember { mutableStateOf<ReviewMemoAction?>(null) }
     var activeEditReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeSettlementCard by remember { mutableStateOf<ReviewCardUi?>(null) }
+    var activeRefundCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -221,6 +226,30 @@ fun ReviewScreen(
                 }
             } catch (e: IllegalArgumentException) {
                 errorMessage = e.message ?: "연결 중 문제가 생겼어요."
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
+    fun handleLinkRefund(card: ReviewCardUi, paymentId: Long) {
+        val refundId = card.sourceTransaction?.id
+        scope.launch {
+            isSaving = true
+            errorMessage = null
+            try {
+                if (linkRefundUseCase != null && refundId != null) {
+                    linkRefundUseCase.linkConfirmed(refundId = refundId, paymentId = paymentId)
+                    resultMessage = "원결제에 연결했어요. 그만큼 사용액에서 빠져요."
+                } else {
+                    sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
+                    resultMessage = "원결제에 연결했어요."
+                }
+                activeRefundCard = null
+            } catch (e: IllegalArgumentException) {
+                errorMessage = e.message ?: "연결 중 문제가 생겼어요."
+            } catch (e: RuntimeException) {
+                errorMessage = "연결 중 문제가 생겼어요."
             } finally {
                 isSaving = false
             }
@@ -378,6 +407,9 @@ fun ReviewScreen(
                         activeWalletCard = card
                     } else if (match != null) {
                         handleLinkRepayment(card, match.settlementTransactionId)
+                    } else if (card.kind == ReviewCardKind.REFUND && linkRefundUseCase != null) {
+                        activeRefundCard = card
+                        errorMessage = null
                     } else if (card.kind == ReviewCardKind.TRANSFER) {
                         activeSettlementCard = card
                         errorMessage = null
@@ -462,6 +494,24 @@ fun ReviewScreen(
             },
             onSave = { memo ->
             handleReviewMemoAction(action, memo)
+            }
+        )
+    }
+
+    activeRefundCard?.let { card ->
+        RefundLinkDialog(
+            card = card,
+            linkRefundUseCase = linkRefundUseCase,
+            isSaving = isSaving,
+            errorMessage = errorMessage,
+            onDismiss = {
+                activeRefundCard = null
+                errorMessage = null
+            },
+            onSelect = { paymentId -> handleLinkRefund(card, paymentId) },
+            onSkip = {
+                activeRefundCard = null
+                activeReviewMemoAction = card.toPrimaryMemoAction()
             }
         )
     }
@@ -645,6 +695,112 @@ private fun SettlementDialog(
         (errorMessage)?.let { Text(it, color = colors.negative, style = MaterialTheme.typography.bodySmall) }
     }
 }
+
+// 환급을 원결제에 붙여 순사용액으로 만든다. 후보는 금액·상호·시각만 보여준다.
+@Composable
+private fun RefundLinkDialog(
+    card: ReviewCardUi,
+    linkRefundUseCase: LinkRefundUseCase?,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onDismiss: () -> Unit,
+    onSelect: (paymentId: Long) -> Unit,
+    onSkip: () -> Unit
+) {
+    val colors = MoneyTheme.colors
+    val refundId = card.sourceTransaction?.id
+    var candidates by remember(card.id) { mutableStateOf<List<MoneyTransaction>?>(null) }
+
+    LaunchedEffect(card.id, linkRefundUseCase, refundId) {
+        candidates = if (linkRefundUseCase == null || refundId == null) {
+            emptyList()
+        } else {
+            try {
+                linkRefundUseCase.candidates(refundId)
+            } catch (_: RuntimeException) {
+                emptyList()
+            }
+        }
+    }
+
+    MoneyDialog(
+        title = "어떤 결제의 환급인가요?",
+        subtitle = "${card.title} ${formatWon(card.amountWon)}",
+        onDismiss = onDismiss,
+        buttons = {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.weight(1f)) {
+                    Text("취소")
+                }
+                OutlinedButton(onClick = onSkip, enabled = !isSaving, modifier = Modifier.weight(1f)) {
+                    Text("연결 없이 처리")
+                }
+            }
+        }
+    ) {
+        when (val loaded = candidates) {
+            null -> Text("원결제를 찾는 중이에요.", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+            else -> if (loaded.isEmpty()) {
+                Text(
+                    "최근 30일 안에서 연결할 결제를 찾지 못했어요.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.muted
+                )
+            } else {
+                loaded.forEach { payment ->
+                    RefundCandidateRow(
+                        payment = payment,
+                        enabled = !isSaving,
+                        onClick = { onSelect(payment.id) }
+                    )
+                }
+            }
+        }
+        errorMessage?.let { Text(it, color = colors.negative, style = MaterialTheme.typography.bodySmall) }
+    }
+}
+
+@Composable
+private fun RefundCandidateRow(
+    payment: MoneyTransaction,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    val colors = MoneyTheme.colors
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = colors.canvas,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier
+                .clickable(enabled = enabled, onClick = onClick)
+                .padding(12.dp)
+        ) {
+            Text(
+                formatWon(payment.amount.won),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = colors.ink
+            )
+            Text(
+                listOfNotNull(
+                    payment.merchant?.takeIf { it.isNotBlank() },
+                    payment.occurredAt.toRefundCandidateTime()
+                ).joinToString(" · "),
+                style = MaterialTheme.typography.labelMedium,
+                color = colors.muted,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+private fun Instant.toRefundCandidateTime(): String =
+    atZone(AppDateZoneId).format(refundCandidateTimeFormatter)
+
+private val refundCandidateTimeFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("M월 d일 HH:mm")
 
 @Composable
 private fun StepperButton(label: String, enabled: Boolean, onClick: () -> Unit) {

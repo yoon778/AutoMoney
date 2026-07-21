@@ -32,6 +32,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
+import com.choiyoonseo.automoney.domain.refund.LinkRefundUseCase
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
@@ -78,6 +79,7 @@ fun AppRoot(
     runSampleNotificationScenarioUseCase: RunSampleNotificationScenarioUseCase? = null,
     resolveReviewUseCase: ResolveReviewUseCase? = null,
     linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
+    linkRefundUseCase: LinkRefundUseCase? = null,
     userCategoryRepository: UserCategoryRepository? = null,
     notificationSourceSettingsService: NotificationSourceSettingsService? = null
 ) {
@@ -181,6 +183,7 @@ fun AppRoot(
                 assetRepository = assetRepository,
                 resolveReviewUseCase = resolveReviewUseCase,
                 linkSettlementRepaymentUseCase = linkSettlementRepaymentUseCase,
+                linkRefundUseCase = linkRefundUseCase,
                 userCategoryRepository = userCategoryRepository
             )
             AppTab.ASSETS -> AssetsScreen(
