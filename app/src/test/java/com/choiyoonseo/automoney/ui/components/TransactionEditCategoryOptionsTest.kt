@@ -6,9 +6,12 @@ import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
 class TransactionEditCategoryOptionsTest {
+    private val expenseLabels = transactionEditExpenseCategoryOptions.map { it.label }
+    private val incomeLabels = transactionEditIncomeCategoryOptions.map { it.label }
+
     @Test
-    fun transactionEditExpenseCategoryOptionsExposeExpenseCategoriesOnly() {
-        assertThat(transactionEditCategoryOptionsFor(TransactionType.EXPENSE).map { it.category })
+    fun fallbackExpenseOptionsExposeExpenseCategoriesOnly() {
+        assertThat(transactionEditExpenseCategoryOptions.map { it.category })
             .containsExactly(
                 Category.FOOD,
                 Category.CAFE_SNACK,
@@ -21,8 +24,8 @@ class TransactionEditCategoryOptionsTest {
     }
 
     @Test
-    fun transactionEditIncomeCategoryOptionsExposeIncomeCategoriesOnly() {
-        assertThat(transactionEditCategoryOptionsFor(TransactionType.INCOME).map { it.category })
+    fun fallbackIncomeOptionsExposeIncomeCategoriesOnly() {
+        assertThat(transactionEditIncomeCategoryOptions.map { it.category })
             .containsExactly(
                 Category.SALARY,
                 Category.ALLOWANCE,
@@ -34,9 +37,9 @@ class TransactionEditCategoryOptionsTest {
     }
 
     @Test
-    fun transactionEditNeutralCategoryOptionsAreEmpty() {
-        assertThat(transactionEditCategoryOptionsFor(TransactionType.TRANSFER)).isEmpty()
-        assertThat(transactionEditCategoryOptionsFor(TransactionType.EXCLUDED)).isEmpty()
+    fun neutralTypesHaveNoCategoryLabels() {
+        assertThat(categoryLabelsFor(TransactionType.TRANSFER, expenseLabels, incomeLabels)).isEmpty()
+        assertThat(categoryLabelsFor(TransactionType.EXCLUDED, expenseLabels, incomeLabels)).isEmpty()
     }
 
     @Test
@@ -46,10 +49,25 @@ class TransactionEditCategoryOptionsTest {
     }
 
     @Test
-    fun defaultCategoryLabelForEditKeepsValidCurrentCategory() {
-        assertThat(defaultCategoryLabelForEdit(TransactionType.INCOME, Category.SALARY))
-            .isEqualTo("월급")
-        assertThat(defaultCategoryLabelForEdit(TransactionType.INCOME, Category.FOOD))
-            .isEqualTo("월급")
+    fun defaultCategoryLabelKeepsValidCurrentCategory() {
+        assertThat(
+            defaultCategoryLabelFor(TransactionType.INCOME, Category.SALARY, null, expenseLabels, incomeLabels)
+        ).isEqualTo("월급")
+        assertThat(
+            defaultCategoryLabelFor(TransactionType.INCOME, Category.FOOD, null, expenseLabels, incomeLabels)
+        ).isEqualTo("월급")
+    }
+
+    @Test
+    fun defaultCategoryLabelPrefersCustomCategoryName() {
+        assertThat(
+            defaultCategoryLabelFor(
+                TransactionType.EXPENSE,
+                Category.OTHER,
+                customCategoryName = "반려동물",
+                expenseLabels = expenseLabels + "반려동물",
+                incomeLabels = incomeLabels
+            )
+        ).isEqualTo("반려동물")
     }
 }
