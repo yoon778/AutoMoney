@@ -18,6 +18,11 @@ class FinancialAppRegistryTest {
             "nh.smart.banking",
             "com.ibk.android.ionebank",
             "com.kakaobank.channel",
+            "com.kbankwith.smartbank",
+            "com.scbank.ma30",
+            "kr.co.dgb.dgbm",
+            "kr.co.busanbank.mbp",
+            "kr.co.bnkbank.push.customer",
             "viva.republica.toss"
         )
 
@@ -45,7 +50,12 @@ class FinancialAppRegistryTest {
             "com.wooribank.smart.npib" to BankProvider.WOORI,
             "nh.smart.banking" to BankProvider.NH,
             "com.ibk.android.ionebank" to BankProvider.IBK,
-            "com.kakaobank.channel" to BankProvider.KAKAO_BANK
+            "com.kakaobank.channel" to BankProvider.KAKAO_BANK,
+            "com.kbankwith.smartbank" to BankProvider.K_BANK,
+            "com.scbank.ma30" to BankProvider.SC,
+            "kr.co.dgb.dgbm" to BankProvider.IM_BANK,
+            "kr.co.busanbank.mbp" to BankProvider.BNK_BUSAN,
+            "kr.co.bnkbank.push.customer" to BankProvider.BNK_BUSAN
         )
 
         expectedProviders.forEach { (packageName, provider) ->
@@ -60,6 +70,7 @@ class FinancialAppRegistryTest {
 
         assertNull(info?.bankProvider)
         assertTrue(info?.aggregatesMultipleBanks == true)
+        assertEquals(FinancialAppKind.AGGREGATOR, info?.kind)
         assertNull(FinancialAppRegistry.providerCandidateForPackage("viva.republica.toss"))
     }
 
@@ -78,7 +89,8 @@ class FinancialAppRegistryTest {
                 badgeText = "T",
                 bankProvider = null,
                 aggregatesMultipleBanks = true,
-                defaultContentAccess = true
+                defaultContentAccess = true,
+                kind = FinancialAppKind.AGGREGATOR
             ),
             FinancialAppRegistry.infoForPackage("viva.republica.toss")
         )
@@ -96,12 +108,32 @@ class FinancialAppRegistryTest {
     }
 
     @Test
+    fun supportsMajorSecuritiesPackages() {
+        val packages = listOf(
+            "com.kiwoom.heromts",
+            "com.miraeasset.trade",
+            "com.samsungpop.android.mpop",
+            "com.shinhaninvest.nsmts",
+            "com.kbsec.mts.iplustarngm2",
+            "com.wooriwm.txsmart",
+            "com.truefriend.neosmartarenewal",
+            "com.hanasec.stock"
+        )
+
+        packages.forEach { packageName ->
+            val info = FinancialAppRegistry.infoForPackage(packageName)
+            assertEquals(FinancialAppKind.SECURITIES, info?.kind)
+            assertNull(info?.bankProvider)
+        }
+    }
+
+    @Test
     fun exposesImmutableSnapshotOfAllRegisteredApps() {
         val first = FinancialAppRegistry.allAppInfos()
         val second = FinancialAppRegistry.allAppInfos()
 
-        assertEquals(10, first.size)
-        assertEquals(10, first.map { it.packageName }.distinct().size)
+        assertEquals(23, first.size)
+        assertEquals(23, first.map { it.packageName }.distinct().size)
         assertTrue(first.all { it.defaultContentAccess })
         assertNotSame(first, second)
     }

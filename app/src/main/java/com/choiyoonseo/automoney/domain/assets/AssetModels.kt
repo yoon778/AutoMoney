@@ -3,6 +3,7 @@ package com.choiyoonseo.automoney.domain.assets
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import com.choiyoonseo.automoney.domain.report.countsAsPlannedUse
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 
 enum class AssetAccountKind(val label: String) {
@@ -93,7 +94,7 @@ fun buildCategoryBudgetUsages(
     return budgets
     .map { plan ->
         val spentWon = transactions
-            .filter { it.countsAsActualExpense() && plan.matchesBudget(it, budgets) }
+            .filter { it.countsAsPlannedUse() && plan.matchesBudget(it, budgets) }
             .sumOf { it.effectiveExpenseWon() }
         CategoryBudgetUsage(
             plan = plan,

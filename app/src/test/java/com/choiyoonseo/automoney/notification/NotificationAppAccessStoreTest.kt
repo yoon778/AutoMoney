@@ -26,7 +26,7 @@ class NotificationAppAccessStoreTest {
 
     @Test
     fun unknownPackageCanBeEnabledAndDisabled() {
-        val packageName = "com.kbankwith.smartbank"
+        val packageName = "com.future.bank"
 
         assertThat(store.setAllowed(packageName, true))
             .isEqualTo(NotificationAccessUpdateResult.UPDATED)

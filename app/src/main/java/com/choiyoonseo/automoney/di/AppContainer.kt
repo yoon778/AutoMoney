@@ -12,6 +12,7 @@ import com.choiyoonseo.automoney.domain.parser.BankAccountHintExtractor
 import com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.GenericFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.NotificationParserRouter
+import com.choiyoonseo.automoney.domain.parser.SecuritiesNotificationParser
 import com.choiyoonseo.automoney.domain.parser.TossNotificationParser
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveAccountTransferUseCase
@@ -103,6 +104,7 @@ class AppContainer(context: Context) {
         parser = NotificationParserRouter(
             listOf(
                 TossNotificationParser(bankAccountHintExtractor),
+                SecuritiesNotificationParser(),
                 CommonFinanceNotificationParser(bankAccountHintExtractor)
             )
         ),

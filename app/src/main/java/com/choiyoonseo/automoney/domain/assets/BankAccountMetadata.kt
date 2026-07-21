@@ -8,7 +8,11 @@ enum class BankProvider(val displayName: String, val badgeText: String) {
     NH("NH농협은행", "NH"),
     IBK("IBK기업은행", "IBK"),
     KAKAO_BANK("카카오뱅크", "카카오"),
-    TOSS_BANK("토스뱅크", "토스")
+    TOSS_BANK("토스뱅크", "토스"),
+    K_BANK("케이뱅크", "K"),
+    SC("SC제일은행", "SC"),
+    IM_BANK("iM뱅크", "iM"),
+    BNK_BUSAN("BNK부산은행", "BNK")
 }
 
 enum class BalanceImpact {

@@ -27,7 +27,7 @@ class CategoryBudgetUsageTest {
             transactions = listOf(
                 transaction(120_000, Category.FOOD),
                 transaction(30_000, Category.HOBBY),
-                transaction(50_000, Category.FOOD, TransactionType.SAVING),
+                transaction(50_000, Category.SAVING, TransactionType.SAVING),
                 transaction(10_000, null)
             )
         )
@@ -76,6 +76,30 @@ class CategoryBudgetUsageTest {
         )
 
         assertThat(usages.single().spentWon).isEqualTo(80_000)
+    }
+
+    @Test
+    fun investmentCashUsageCountsAgainstStockPlanButNotUnbudgetedExpense() {
+        val stockPlan = MonthlyPlanItem(
+            label = "이번 달 투자",
+            amountWon = 500_000,
+            type = MonthlyPlanItemType.BUDGET,
+            category = Category.STOCK
+        )
+        val investment = transaction(
+            amountWon = 300_000,
+            category = Category.STOCK,
+            type = TransactionType.INVESTMENT,
+            sourceType = SourceType.NOTIFICATION,
+            status = TransactionStatus.AUTO_CONFIRMED
+        )
+
+        val usage = buildCategoryBudgetUsages(listOf(stockPlan), listOf(investment)).single()
+
+        assertThat(usage.spentWon).isEqualTo(300_000)
+        assertThat(usage.remainingWon).isEqualTo(200_000)
+        assertThat(calculateUnbudgetedExpenseWon(listOf(stockPlan), listOf(investment)))
+            .isEqualTo(0)
     }
 
     @Test

@@ -118,6 +118,89 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun parsesKbankPaymentBeforeSeparateCashbackNotification() {
+        val payment = parser.parse(
+            snapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                text = "스타벅스 6,000원 결제 완료"
+            )
+        )
+        val cashback = parser.parse(
+            snapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                text = "캐시백 6원 환급"
+            )
+        )
+
+        val paymentDraft = (payment as ParseResult.Parsed).draft
+        val cashbackDraft = (cashback as ParseResult.Parsed).draft
+        assertThat(paymentDraft.amount.won).isEqualTo(6_000)
+        assertThat(paymentDraft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(paymentDraft.status).isEqualTo(TransactionStatus.AUTO_CONFIRMED)
+        assertThat(cashbackDraft.amount.won).isEqualTo(6)
+        assertThat(cashbackDraft.type).isEqualTo(TransactionType.REFUND)
+    }
+
+    @Test
+    fun kbankCombinedPaymentAndCashbackNeverTurnsPaymentIntoRefund() {
+        val result = parser.parse(
+            snapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                text = "스타벅스 6,000원 결제 완료\n캐시백 6원 환급"
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(6_000)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+    }
+
+    @Test
+    fun kbankSameLinePaymentAndCashbackKeepsPaymentAmount() {
+        val result = parser.parse(
+            snapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                text = "스타벅스 6,000원 결제 / 캐시백 6원 환급"
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(6_000)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+    }
+
+    @Test
+    fun availableAmountLineDoesNotOverrideAccountWithdrawal() {
+        val result = parser.parse(
+            snapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                text = "계좌 123-***-4567\n10,000원 출금\n사용가능금액 90,000원"
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(10_000)
+        assertThat(draft.bankAccountHint?.eventKind).isEqualTo(BankEventKind.WITHDRAWAL)
+    }
+
+    @Test
+    fun kbankUpdatedPrimaryCashbackIgnoresOldExpandedPayment() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                title = "케이뱅크",
+                text = "캐시백 6원 환급",
+                bigText = "스타벅스 6,000원 결제 완료\n캐시백 6원 환급",
+                postedAt = Instant.parse("2026-07-03T01:00:00Z")
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(6)
+        assertThat(draft.type).isEqualTo(TransactionType.REFUND)
+    }
+
+    @Test
     fun syntheticDedicatedPackageFixturesProduceTheirMappedHints() {
         dedicatedBankFixtures.forEach { fixture ->
             val result = parser.parse(
@@ -243,7 +326,12 @@ class CommonFinanceNotificationParserTest {
             DedicatedBankFixture(FinancialAppRegistry.WOORI_BANKING_PACKAGE, BankProvider.WOORI),
             DedicatedBankFixture(FinancialAppRegistry.NH_BANKING_PACKAGE, BankProvider.NH),
             DedicatedBankFixture(FinancialAppRegistry.IBK_BANKING_PACKAGE, BankProvider.IBK),
-            DedicatedBankFixture(FinancialAppRegistry.KAKAO_BANKING_PACKAGE, BankProvider.KAKAO_BANK)
+            DedicatedBankFixture(FinancialAppRegistry.KAKAO_BANKING_PACKAGE, BankProvider.KAKAO_BANK),
+            DedicatedBankFixture(FinancialAppRegistry.K_BANKING_PACKAGE, BankProvider.K_BANK),
+            DedicatedBankFixture(FinancialAppRegistry.SC_BANKING_PACKAGE, BankProvider.SC),
+            DedicatedBankFixture(FinancialAppRegistry.IM_BANKING_PACKAGE, BankProvider.IM_BANK),
+            DedicatedBankFixture(FinancialAppRegistry.BNK_BUSAN_BANKING_PACKAGE, BankProvider.BNK_BUSAN),
+            DedicatedBankFixture(FinancialAppRegistry.BNK_BUSAN_PUSH_PACKAGE, BankProvider.BNK_BUSAN)
         )
 
         private const val WON = "\uc6d0"

@@ -13,6 +13,14 @@ class NotificationSourceAccessTest {
     }
 
     @Test
+    fun kbankAndSecuritiesPackagesAreTrustedByDefault() {
+        assertThat(policy.accessFor("com.kbankwith.smartbank"))
+            .isEqualTo(NotificationSourceAccess.TRUSTED)
+        assertThat(policy.accessFor("com.kiwoom.heromts"))
+            .isEqualTo(NotificationSourceAccess.TRUSTED)
+    }
+
+    @Test
     fun futureRegisteredPackageRequiresSelectionAndRemainsUnverified() {
         val futureInfo = FinancialAppInfo(
             packageName = "com.future.bank",
@@ -49,7 +57,7 @@ class NotificationSourceAccessTest {
 
     @Test
     fun unknownPackageIsBlockedUntilExplicitlyEnabled() {
-        val packageName = "com.kbankwith.smartbank"
+        val packageName = "com.future.bank"
 
         assertThat(policy.accessFor(packageName)).isEqualTo(NotificationSourceAccess.BLOCKED)
         assertThat(

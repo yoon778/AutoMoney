@@ -33,7 +33,13 @@ class CommonFinanceNotificationParser(
 
         val provider = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)
             ?: return ParseResult.Ignored("unsupported package")
-        val hasNonMovementKeyword = containsAny(text, NON_MOVEMENT_HINT_KEYWORDS)
+        val nonMovementEventText = selectNonMovementEventLine(snapshot)
+        val hasNonMovementCandidate = text.lineSequence().any(::isNonMovementEventLine)
+        if (nonMovementEventText == null && hasNonMovementCandidate) {
+            return ParseResult.Ignored("ambiguous finance notification")
+        }
+        val eventText = nonMovementEventText ?: text
+        val hasNonMovementKeyword = nonMovementEventText != null
         val movement = if (hasNonMovementKeyword) {
             null
         } else {
@@ -51,15 +57,16 @@ class CommonFinanceNotificationParser(
             return ParseResult.Ignored("ambiguous bank movement")
         }
 
-        val amountMatch = extractAmountMatch(text) ?: return ParseResult.Ignored("amount not found")
+        val amountMatch = extractAmountMatch(eventText) ?: return ParseResult.Ignored("amount not found")
         val amount = amountMatch.amount
         val hash = snapshot.sourceNotificationHash
-        val merchant = extractMerchant(text, amountMatch)
-        val memoSource = text.lineSequence().firstOrNull { it.contains(amountMatch.matchedText) } ?: text
+        val merchant = extractMerchant(eventText, amountMatch)
+        val memoSource = eventText.lineSequence()
+            .firstOrNull { it.contains(amountMatch.matchedText) } ?: eventText
         val maskedMemo = SensitiveTextMasker.mask(memoSource.trim())
 
         return when {
-            containsAny(text, REFUND_KEYWORDS) -> parsed(
+            nonMovementEventText != null && containsAny(eventText, REFUND_KEYWORDS) -> parsed(
                 snapshot = snapshot,
                 amount = amount,
                 direction = TransactionDirection.NEUTRAL,
@@ -72,7 +79,7 @@ class CommonFinanceNotificationParser(
                 hash = hash
             )
 
-            containsAny(text, TOPUP_KEYWORDS) -> parsed(
+            nonMovementEventText != null && containsAny(eventText, TOPUP_KEYWORDS) -> parsed(
                 snapshot = snapshot,
                 amount = amount,
                 direction = TransactionDirection.NEUTRAL,
@@ -87,7 +94,7 @@ class CommonFinanceNotificationParser(
 
             movement != null -> parsedMovement(snapshot, movement, hash)
 
-            containsAny(text, DEPOSIT_KEYWORDS) -> parsed(
+            containsAny(eventText, DEPOSIT_KEYWORDS) -> parsed(
                 snapshot = snapshot,
                 amount = amount,
                 direction = TransactionDirection.INCOME,
@@ -100,7 +107,7 @@ class CommonFinanceNotificationParser(
                 hash = hash
             )
 
-            containsAny(text, TRANSFER_KEYWORDS) || hasAccountHint(text) -> parsed(
+            containsAny(eventText, TRANSFER_KEYWORDS) || hasAccountHint(eventText) -> parsed(
                 snapshot = snapshot,
                 amount = amount,
                 direction = TransactionDirection.NEUTRAL,
@@ -113,7 +120,8 @@ class CommonFinanceNotificationParser(
                 hash = hash
             )
 
-            containsAny(text, PAYMENT_KEYWORDS) && merchant.isNotBlank() -> parsed(
+            nonMovementEventText != null &&
+                containsAny(eventText, PAYMENT_KEYWORDS) && merchant.isNotBlank() -> parsed(
                 snapshot = snapshot,
                 amount = amount,
                 direction = TransactionDirection.EXPENSE,
@@ -222,6 +230,54 @@ class CommonFinanceNotificationParser(
         )
     }
 
+    private fun selectNonMovementEventLine(snapshot: NotificationSnapshot): String? {
+        listOf(snapshot.text, snapshot.title, snapshot.bigText).forEach { content ->
+            val candidates = content.orEmpty()
+                .lineSequence()
+                .map(String::trim)
+                .filter(::isNonMovementEventLine)
+                .toList()
+            if (candidates.isEmpty()) return@forEach
+            if (candidates.size == 1) {
+                val candidate = candidates.single()
+                val hasMultipleSemantics = listOf(
+                    REFUND_KEYWORDS,
+                    TOPUP_KEYWORDS,
+                    PAYMENT_KEYWORDS
+                ).count { containsAny(candidate, it) } > 1
+                if (hasMultipleSemantics && AMOUNT_REGEX.findAll(candidate).count() > 1) {
+                    val paymentClause = candidate.split(CLAUSE_SEPARATOR_REGEX)
+                        .map(String::trim)
+                        .singleOrNull { clause ->
+                            containsAny(clause, PAYMENT_KEYWORDS) &&
+                                !containsAny(clause, REFUND_KEYWORDS) &&
+                                AMOUNT_REGEX.findAll(clause).count() == 1
+                        }
+                    if (paymentClause != null) return paymentClause
+                    val withoutSecondaryDetail = SECONDARY_EVENT_DETAIL_REGEX
+                        .replace(candidate, "")
+                        .trim()
+                    return withoutSecondaryDetail.takeIf { line ->
+                        containsAny(line, PAYMENT_KEYWORDS) &&
+                            AMOUNT_REGEX.findAll(line).count() == 1
+                    }
+                }
+                return candidate
+            }
+            return candidates.singleOrNull { candidate ->
+                containsAny(candidate, PAYMENT_KEYWORDS) &&
+                    !containsAny(candidate, REFUND_KEYWORDS) &&
+                    !containsAny(candidate, TOPUP_KEYWORDS)
+            }
+        }
+        return null
+    }
+
+    private fun isNonMovementEventLine(line: String): Boolean =
+        containsAny(line, NON_MOVEMENT_HINT_KEYWORDS) &&
+            AMOUNT_REGEX.containsMatchIn(line) &&
+            !containsAny(line, NON_EVENT_AMOUNT_KEYWORDS)
+
     private fun extractMerchant(text: String, amountMatch: AmountMatch): String {
         val line = text.lineSequence().firstOrNull { it.contains(amountMatch.matchedText) } ?: text
         val beforeAmount = cleanNameCandidate(line.substringBefore(amountMatch.matchedText))
@@ -266,12 +322,16 @@ class CommonFinanceNotificationParser(
         private val TRANSFER_KEYWORDS = listOf("\uc774\uccb4", "\uc1a1\uae08", "\ucd9c\uae08")
         private val DEPOSIT_KEYWORDS = listOf("\uc785\uae08")
         private val TOPUP_KEYWORDS = listOf("\ucda9\uc804", "\ud3ec\uc778\ud2b8", "\ud398\uc774\uba38\ub2c8")
-        private val REFUND_KEYWORDS = listOf("\ucde8\uc18c", "\ud658\ubd88")
+        private val REFUND_KEYWORDS = listOf("\ucde8\uc18c", "\ud658\ubd88", "\ud658\uae09")
         private val ACCOUNT_KEYWORDS = listOf("\uacc4\uc88c", "\uacc4\uc88c\ubc88\ud638")
         private val PROMOTION_KEYWORDS = listOf("\ucfe0\ud3f0", "\ud61c\ud0dd", "\uc774\ubca4\ud2b8", "\uad11\uace0")
         private val NAME_NOISE_WORDS = PAYMENT_KEYWORDS + TRANSFER_KEYWORDS + DEPOSIT_KEYWORDS +
             TOPUP_KEYWORDS + REFUND_KEYWORDS + ACCOUNT_KEYWORDS
         private val NON_MOVEMENT_HINT_KEYWORDS = PAYMENT_KEYWORDS + TOPUP_KEYWORDS + REFUND_KEYWORDS
+        private val NON_EVENT_AMOUNT_KEYWORDS = listOf("사용가능", "이용가능", "한도")
+        private val CLAUSE_SEPARATOR_REGEX = Regex("[/·]")
+        private val SECONDARY_EVENT_DETAIL_REGEX =
+            Regex("""(?:[/·,]\s*)?(?:캐시백|환급|적립).*$""")
     }
 
     private data class AmountMatch(

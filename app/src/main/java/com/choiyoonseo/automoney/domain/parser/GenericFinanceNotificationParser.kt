@@ -141,7 +141,7 @@ class GenericFinanceNotificationParser : NotificationParser {
         val PAYMENT_KEYWORDS = listOf("결제", "승인", "사용")
         val DEPOSIT_KEYWORDS = listOf("입금", "받음", "받았")
         val TRANSFER_KEYWORDS = listOf("이체", "송금", "출금", "ATM")
-        val REFUND_KEYWORDS = listOf("취소", "환불")
+        val REFUND_KEYWORDS = listOf("취소", "환불", "환급")
         val TOPUP_KEYWORDS = listOf("충전")
         val SECONDARY_AMOUNT_KEYWORDS = listOf("캐시백", "환급", "적립")
         val BLOCK_KEYWORDS = listOf(
