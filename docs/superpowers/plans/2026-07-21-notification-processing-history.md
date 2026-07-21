@@ -326,7 +326,7 @@ git commit -m "feat: record notification processing outcomes"
 - Consumes: `SaveManualTransactionUseCase.createTransaction`, `MoneyRepository.saveManualTransactionFromHistory`
 - Produces: `save(historyId, type, amountWon, categoryText, memo, occurredAt): Long`
 
-- [ ] **Step 1: 실패 테스트**
+- [x] **Step 1: 실패 테스트**
 
 ```kotlin
 @Test fun savesManualTransactionThenLinksHistory() = runTest {
@@ -344,7 +344,7 @@ git commit -m "feat: record notification processing outcomes"
 }
 ```
 
-- [ ] **Step 2: 구현**
+- [x] **Step 2: 구현**
 
 ```kotlin
 class SaveMissedNotificationTransactionUseCase(
@@ -381,7 +381,7 @@ suspend fun saveManualTransactionFromHistory(
 ): Long
 ```
 
-- [ ] **Step 3: 검증·커밋**
+- [x] **Step 3: 검증·커밋**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*SaveMissedNotificationTransactionUseCaseTest' :app:assembleDebug`
 

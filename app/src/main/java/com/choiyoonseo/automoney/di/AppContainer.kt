@@ -9,6 +9,7 @@ import com.choiyoonseo.automoney.data.repository.RoomMoneyRepository
 import com.choiyoonseo.automoney.data.repository.RoomNotificationHistoryRepository
 import com.choiyoonseo.automoney.data.repository.RoomUserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
+import com.choiyoonseo.automoney.domain.manual.SaveMissedNotificationTransactionUseCase
 import com.choiyoonseo.automoney.domain.parser.BankAccountHintExtractor
 import com.choiyoonseo.automoney.domain.parser.CommonFinanceNotificationParser
 import com.choiyoonseo.automoney.domain.parser.GenericFinanceNotificationParser
@@ -106,6 +107,11 @@ class AppContainer(context: Context) {
     val recordWalletTopupUsageUseCase = RecordWalletTopupUsageUseCase(repository)
 
     val saveManualTransactionUseCase = SaveManualTransactionUseCase(repository, userCategoryRepository)
+
+    val saveMissedNotificationTransactionUseCase = SaveMissedNotificationTransactionUseCase(
+        saveManual = saveManualTransactionUseCase,
+        repository = repository
+    )
 
     val editTransactionUseCase = EditTransactionUseCase(repository, userCategoryRepository)
 

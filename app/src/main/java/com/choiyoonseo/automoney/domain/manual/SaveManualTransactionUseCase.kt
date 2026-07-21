@@ -37,7 +37,31 @@ class SaveManualTransactionUseCase(
         paymentMethod: String? = null,
         budgetPlanId: Long? = null,
         fixedExpensePlanId: Long? = null
-    ): Long {
+    ): Long = repository.saveTransaction(
+        createTransaction(
+            type = type,
+            amountWon = amountWon,
+            categoryText = categoryText,
+            memo = memo,
+            occurredAt = occurredAt,
+            account = account,
+            paymentMethod = paymentMethod,
+            budgetPlanId = budgetPlanId,
+            fixedExpensePlanId = fixedExpensePlanId
+        )
+    )
+
+    suspend fun createTransaction(
+        type: ManualEntryType,
+        amountWon: Long,
+        categoryText: String,
+        memo: String,
+        occurredAt: Instant = Instant.now(),
+        account: AssetAccount? = null,
+        paymentMethod: String? = null,
+        budgetPlanId: Long? = null,
+        fixedExpensePlanId: Long? = null
+    ): MoneyTransaction {
         require(amountWon > 0) { "금액은 0원보다 커야 해요." }
 
         val cleanMemo = memo.trim()
@@ -135,6 +159,6 @@ class SaveManualTransactionUseCase(
             )
         }
 
-        return repository.saveTransaction(transaction)
+        return transaction
     }
 }

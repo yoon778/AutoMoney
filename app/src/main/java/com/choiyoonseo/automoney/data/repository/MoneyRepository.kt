@@ -48,6 +48,12 @@ interface MoneyRepository {
     }
     suspend fun updateTransaction(transaction: MoneyTransaction)
     suspend fun deleteTransaction(transactionId: Long)
+    suspend fun saveManualTransactionFromHistory(
+        historyId: Long,
+        transaction: MoneyTransaction
+    ): Long {
+        throw UnsupportedOperationException("Notification history linking is not supported")
+    }
     suspend fun findTransaction(id: Long): MoneyTransaction? = null
     suspend fun refundMatchWindow(
         sourceApp: String,

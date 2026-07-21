@@ -120,6 +120,20 @@ class RoomMoneyRepository(
         }
     }
 
+    override suspend fun saveManualTransactionFromHistory(
+        historyId: Long,
+        transaction: MoneyTransaction
+    ): Long {
+        require(historyId > 0)
+        return db.withTransaction {
+            val transactionId = saveTransactionInternal(transaction.withoutAccountLink())
+            check(
+                db.notificationHistoryDao().markResolvedManually(historyId, transactionId) == 1
+            ) { "Notification history is not recordable: $historyId" }
+            transactionId
+        }
+    }
+
     override suspend fun findTransaction(id: Long): MoneyTransaction? =
         db.transactionDao().byId(id)?.toDomain()
 
