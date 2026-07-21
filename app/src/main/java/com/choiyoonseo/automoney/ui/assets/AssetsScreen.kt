@@ -64,7 +64,6 @@ import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.assets.CategoryBudgetUsage
 import com.choiyoonseo.automoney.domain.assets.buildCategoryBudgetUsages
 import com.choiyoonseo.automoney.domain.assets.calculateUnbudgetedExpenseWon
-import com.choiyoonseo.automoney.ui.settings.expenseCategoryPool
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
@@ -127,6 +126,8 @@ fun AssetsScreen(
     val budgetUsages = remember(monthlyPlans, monthTransactions) {
         buildCategoryBudgetUsages(monthlyPlans, monthTransactions)
     }
+    val livingBudgetUsages = remember(budgetUsages) { budgetUsages.filterNot { it.isInvestmentPlan() } }
+    val investmentUsages = remember(budgetUsages) { budgetUsages.filter { it.isInvestmentPlan() } }
     val unbudgetedExpenseWon = remember(monthlyPlans, monthTransactions) {
         calculateUnbudgetedExpenseWon(monthlyPlans, monthTransactions)
     }
@@ -161,7 +162,7 @@ fun AssetsScreen(
             accent = MoneyBlue,
             icon = Icons.Filled.AccountBalance
         ) {
-            budgetUsages.forEach { usage ->
+            livingBudgetUsages.forEach { usage ->
                 val over = usage.remainingWon < 0
                 AssetRow(
                     title = usage.plan.label,
@@ -175,7 +176,7 @@ fun AssetsScreen(
                     accent = if (over) MoneyCoral else categoryAccentForName(usage.plan.label)
                 )
             }
-            if (budgetUsages.isEmpty()) {
+            if (livingBudgetUsages.isEmpty()) {
                 Text("아래 월계획에서 예산을 만들면 여기에 남은 금액이 표시돼요.")
             }
             if (unbudgetedExpenseWon > 0) {
@@ -198,6 +199,10 @@ fun AssetsScreen(
                     }
                 }
             }
+        }
+
+        if (investmentUsages.isNotEmpty()) {
+            InvestmentPlanCard(investmentUsages)
         }
 
         IncomeAllocationCard(overview)
@@ -270,6 +275,31 @@ fun AssetsScreen(
                         }
                     }
                 }
+            )
+        }
+    }
+}
+
+@Composable
+private fun InvestmentPlanCard(usages: List<CategoryBudgetUsage>) {
+    FinanceSectionCard(
+        title = "이번 달 투자 계획",
+        subtitle = "생활비 지출과 따로 계산해요",
+        accent = MoneyMint,
+        icon = Icons.Filled.BarChart
+    ) {
+        usages.forEach { usage ->
+            val over = usage.remainingWon < 0
+            AssetRow(
+                title = usage.plan.label,
+                subtitle = if (over) {
+                    "${formatWon(usage.spentWon)} 사용 · ${formatWon(-usage.remainingWon)} 초과"
+                } else {
+                    "${formatWon(usage.spentWon)} 사용 · ${formatWon(usage.remainingWon)} 남음"
+                },
+                amountWon = usage.plan.amountWon,
+                ratio = usage.usedRatio,
+                accent = if (over) MoneyCoral else MoneyMint
             )
         }
     }
@@ -503,7 +533,7 @@ private fun MonthlyPlanPanel(
 }
 
 private fun budgetCategoryName(item: MonthlyPlanItem): String? =
-    item.customCategoryName ?: item.category?.displayName
+    item.customCategoryName ?: item.category?.let(::planCategoryLabel)
 
 @Composable
 private fun MonthlyPlanInputCard(
@@ -534,12 +564,12 @@ private fun MonthlyPlanInputCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                expenseCategoryPool.forEach { category ->
+                planCategoryPool.forEach { category ->
                     val selected = builtInCategory == category && userCategory == null
                     if (selected) {
-                        FilledTonalButton(onClick = {}) { Text(category.displayName) }
+                        FilledTonalButton(onClick = {}) { Text(planCategoryLabel(category)) }
                     } else {
-                        OutlinedButton(onClick = { builtInCategory = category; userCategory = null }) { Text(category.displayName) }
+                        OutlinedButton(onClick = { builtInCategory = category; userCategory = null }) { Text(planCategoryLabel(category)) }
                     }
                 }
                 userExpenseCategories.forEach { custom ->
