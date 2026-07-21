@@ -405,7 +405,7 @@ git commit -m "feat: record missed notifications manually"
 - Consumes: history Flow, clear, missed save use case
 - Produces: `NotificationHistoryRowUi`, 설정 내 목록·직접 기록 action
 
-- [ ] **Step 1: Codex 계약 mapper 작성**
+- [x] **Step 1: Codex 계약 mapper 작성**
 
 ```kotlin
 data class NotificationHistoryRowUi(
@@ -430,7 +430,7 @@ fun NotificationHistoryRecord.toUi(): NotificationHistoryRowUi =
 
 mapper test에서 status 6개 label과 manual action 조건을 고정
 
-- [ ] **Step 2: contract commit·push 후 Claude handoff**
+- [x] **Step 2: contract commit·push 후 Claude handoff**
 
 Run: `./gradlew :app:testDebugUnitTest --tests '*NotificationHistoryUiTest' :app:assembleDebug`
 
