@@ -71,12 +71,6 @@ enum class Category(val displayName: String) {
     OTHER("기타")
 }
 
-data class SettlementDetails(
-    val peopleCount: Int,
-    val myShareWon: Long,
-    val receivableHidden: Boolean = false
-)
-
 data class MoneyTransaction(
     val id: Long = 0,
     val occurredAt: Instant,
@@ -102,9 +96,6 @@ data class MoneyTransaction(
     val settlementMyShareWon: Long? = null,
     val settlementParentId: Long? = null,
     val settlementTrackingHidden: Boolean = false,
-    // Compatibility for the pre-reset partial settlement work; storage normalizes these to the fields above
-    val settlementDetails: SettlementDetails? = null,
-    val recoveryOfSettlementTransactionId: Long? = null,
     val budgetPlanId: Long? = null,
     val fixedExpensePlanId: Long? = null
 )

@@ -205,10 +205,10 @@ private fun MoneyTransaction.toEntity(): TransactionEntity {
         balanceImpact = balanceImpact,
         customCategoryId = customCategoryId,
         customCategoryName = customCategoryName,
-        settlementPartyCount = settlementPartyCount ?: settlementDetails?.peopleCount,
-        settlementMyShareWon = settlementMyShareWon ?: settlementDetails?.myShareWon,
-        settlementParentId = settlementParentId ?: recoveryOfSettlementTransactionId,
-        settlementTrackingHidden = settlementTrackingHidden || settlementDetails?.receivableHidden == true,
+        settlementPartyCount = settlementPartyCount,
+        settlementMyShareWon = settlementMyShareWon,
+        settlementParentId = settlementParentId,
+        settlementTrackingHidden = settlementTrackingHidden,
         budgetPlanId = budgetPlanId,
         fixedExpensePlanId = fixedExpensePlanId
     )
@@ -241,17 +241,7 @@ private fun TransactionEntity.toDomain(): MoneyTransaction {
         settlementParentId = settlementParentId,
         settlementTrackingHidden = settlementTrackingHidden,
         budgetPlanId = budgetPlanId,
-        fixedExpensePlanId = fixedExpensePlanId,
-        settlementDetails = settlementPartyCount?.let { count ->
-            settlementMyShareWon?.let { share ->
-                com.choiyoonseo.automoney.domain.model.SettlementDetails(
-                    peopleCount = count,
-                    myShareWon = share,
-                    receivableHidden = settlementTrackingHidden
-                )
-            }
-        },
-        recoveryOfSettlementTransactionId = settlementParentId
+        fixedExpensePlanId = fixedExpensePlanId
     )
 }
 
