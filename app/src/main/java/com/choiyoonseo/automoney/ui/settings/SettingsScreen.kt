@@ -71,7 +71,8 @@ fun SettingsScreen(
     lastNotificationDiagnostic: LastNotificationDiagnostic? = null,
     onRunSampleNotificationScenario: (() -> Unit)? = null,
     userCategoryRepository: UserCategoryRepository? = null,
-    notificationSourceSettingsService: NotificationSourceSettingsService? = null
+    notificationSourceSettingsService: NotificationSourceSettingsService? = null,
+    onOpenNotificationHistory: (() -> Unit)? = null
 ) {
     Column(
         modifier = Modifier
@@ -152,6 +153,11 @@ fun SettingsScreen(
                     Text("Type $it")
                 }
                 lastNotificationDiagnostic.message?.let { Text(it) }
+            }
+            onOpenNotificationHistory?.let { openHistory ->
+                Button(onClick = openHistory, modifier = Modifier.fillMaxWidth()) {
+                    Text("알림 처리 내역")
+                }
             }
         }
     }

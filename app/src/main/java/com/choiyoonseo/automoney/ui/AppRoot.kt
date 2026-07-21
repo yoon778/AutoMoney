@@ -30,8 +30,10 @@ import com.choiyoonseo.automoney.data.repository.AssetRepository
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
+import com.choiyoonseo.automoney.data.repository.NotificationHistoryRepository
 import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.manual.SaveManualTransactionUseCase
+import com.choiyoonseo.automoney.domain.manual.SaveMissedNotificationTransactionUseCase
 import com.choiyoonseo.automoney.domain.refund.LinkRefundUseCase
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
@@ -50,6 +52,7 @@ import com.choiyoonseo.automoney.ui.onboarding.NotificationOnboardingStore
 import com.choiyoonseo.automoney.ui.onboarding.shouldShowNotificationOnboarding
 import com.choiyoonseo.automoney.ui.report.MonthlyReportScreen
 import com.choiyoonseo.automoney.ui.review.ReviewScreen
+import com.choiyoonseo.automoney.ui.settings.NotificationHistoryScreen
 import com.choiyoonseo.automoney.ui.settings.SettingsScreen
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.transactions.TransactionsScreen
@@ -81,7 +84,9 @@ fun AppRoot(
     linkSettlementRepaymentUseCase: LinkSettlementRepaymentUseCase? = null,
     linkRefundUseCase: LinkRefundUseCase? = null,
     userCategoryRepository: UserCategoryRepository? = null,
-    notificationSourceSettingsService: NotificationSourceSettingsService? = null
+    notificationSourceSettingsService: NotificationSourceSettingsService? = null,
+    notificationHistoryRepository: NotificationHistoryRepository? = null,
+    saveMissedNotificationTransactionUseCase: SaveMissedNotificationTransactionUseCase? = null
 ) {
     val colors = MoneyTheme.colors
     var selectedTab by remember { mutableStateOf(AppTab.HOME) }
@@ -97,6 +102,7 @@ fun AppRoot(
         mutableStateOf(notificationAccessChecker.isNotificationAccessEnabled())
     }
     var sampleScenarioIndex by remember { mutableStateOf(0) }
+    var showNotificationHistory by remember { mutableStateOf(false) }
     var lastNotificationDiagnostic by remember {
         mutableStateOf<LastNotificationDiagnostic?>(notificationDiagnosticsStore?.load())
     }
@@ -121,7 +127,10 @@ fun AppRoot(
                 AppTab.entries.forEach { tab ->
                     NavigationBarItem(
                         selected = selectedTab == tab,
-                        onClick = { selectedTab = tab },
+                        onClick = {
+                            selectedTab = tab
+                            showNotificationHistory = false
+                        },
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = colors.primary,
                             selectedTextColor = colors.primary,
@@ -196,27 +205,41 @@ fun AppRoot(
                 padding = padding,
                 moneyRepository = moneyRepository
             )
-            AppTab.SETTINGS -> SettingsScreen(
-                padding = padding,
-                onOpenNotificationSettings = openNotificationSettings,
-                notificationAccessEnabled = notificationAccessEnabled,
-                lastNotificationDiagnostic = lastNotificationDiagnostic,
-                userCategoryRepository = userCategoryRepository,
-                notificationSourceSettingsService = notificationSourceSettingsService,
-                onRunSampleNotificationScenario = if (BuildConfig.DEBUG && runSampleNotificationScenarioUseCase != null) {
-                    {
-                        scope.launch {
-                            // 탭할 때마다 다음 시나리오 순환 (토스 결제 → KB 계좌 출금/입금/이체 등)
-                            val scenario = sampleNotificationScenarios[sampleScenarioIndex % sampleNotificationScenarios.size]
-                            sampleScenarioIndex += 1
-                            runSampleNotificationScenarioUseCase.run(scenario)
-                            lastNotificationDiagnostic = notificationDiagnosticsStore?.load()
+            AppTab.SETTINGS -> if (showNotificationHistory) {
+                NotificationHistoryScreen(
+                    padding = padding,
+                    onBack = { showNotificationHistory = false },
+                    notificationHistoryRepository = notificationHistoryRepository,
+                    saveMissedNotificationTransactionUseCase = saveMissedNotificationTransactionUseCase
+                )
+            } else {
+                SettingsScreen(
+                    padding = padding,
+                    onOpenNotificationSettings = openNotificationSettings,
+                    notificationAccessEnabled = notificationAccessEnabled,
+                    lastNotificationDiagnostic = lastNotificationDiagnostic,
+                    userCategoryRepository = userCategoryRepository,
+                    notificationSourceSettingsService = notificationSourceSettingsService,
+                    onOpenNotificationHistory = if (notificationHistoryRepository != null) {
+                        { showNotificationHistory = true }
+                    } else {
+                        null
+                    },
+                    onRunSampleNotificationScenario = if (BuildConfig.DEBUG && runSampleNotificationScenarioUseCase != null) {
+                        {
+                            scope.launch {
+                                // 탭할 때마다 다음 시나리오 순환 (토스 결제 → KB 계좌 출금/입금/이체 등)
+                                val scenario = sampleNotificationScenarios[sampleScenarioIndex % sampleNotificationScenarios.size]
+                                sampleScenarioIndex += 1
+                                runSampleNotificationScenarioUseCase.run(scenario)
+                                lastNotificationDiagnostic = notificationDiagnosticsStore?.load()
+                            }
                         }
+                    } else {
+                        null
                     }
-                } else {
-                    null
-                }
-            )
+                )
+            }
         }
     }
 }

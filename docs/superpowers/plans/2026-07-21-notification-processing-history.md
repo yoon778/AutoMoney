@@ -440,15 +440,19 @@ git commit -m "feat: expose notification history UI model"
 git push origin main
 ```
 
-- [ ] **Step 3: Claude 설정 UI**
+- [x] **Step 3: Claude 설정 UI**
 
 설정에 `알림 처리 내역` 한 행만 추가. 진입 후 최근순 목록, `전체 삭제`, `직접 기록`만 노출. 원문 preview와 진단 message는 표시하지 않음. 직접 기록은 기존 수동 입력 UI를 재사용하고 안전 금액만 initial amount로 전달
 
-- [ ] **Step 4: 최종 검증·커밋**
+- [x] **Step 4: 최종 검증·커밋**
 
 Run: `./gradlew :app:testDebugUnitTest :app:assembleDebug`
 
 Expected: BUILD SUCCESSFUL
+
+2026-07-21 구현: `ui/settings/NotificationHistoryScreen.kt`를 새로 만들고 설정 "최근 알림 결과" 카드에 진입 버튼 한 개만 추가했다. 목록은 `NotificationHistoryRowUi`의 sourceLabel·resultLabel·amountWon·receivedAt만 표시하고, 원문 preview·title/text/bigText·notification key·오류 message·계좌 정보는 표시하지 않는다. 직접 기록은 `canRecordManually`(IGNORED·ERROR)인 행에서만 열리고 기존 `ManualTransactionForm`을 재사용하며 `initialAmountWon`으로 안전 금액만 넘긴다. 저장은 `SaveMissedNotificationTransactionUseCase.save`. 필터·검색·통계는 넣지 않았다
+
+검증: unit test와 assembleDebug BUILD SUCCESSFUL. `adb devices`에 연결 기기가 없어 실기기 확인은 못 함
 
 ```bash
 git add app/src/main/java/com/choiyoonseo/automoney/ui/settings/SettingsScreen.kt app/src/main/java/com/choiyoonseo/automoney/ui/AppRoot.kt app/src/main/java/com/choiyoonseo/automoney/MainActivity.kt docs/AI_COLLABORATION.md

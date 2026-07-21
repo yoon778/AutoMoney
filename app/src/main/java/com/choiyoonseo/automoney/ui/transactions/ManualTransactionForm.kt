@@ -45,6 +45,7 @@ import java.time.LocalDate
 fun ManualTransactionForm(
     isSaving: Boolean = false,
     resetSignal: Int = 0,
+    initialAmountWon: Long? = null,
     budgetUsages: List<CategoryBudgetUsage> = emptyList(),
     fixedExpenses: List<FixedExpensePlan> = emptyList(),
     expenseCategoryLabels: List<String> = emptyList(),
@@ -64,7 +65,9 @@ fun ManualTransactionForm(
     }
     var entryType by remember(resetSignal) { mutableStateOf(defaults.entryType) }
     var selectedDate by remember(resetSignal) { mutableStateOf(defaults.selectedDate) }
-    var amount by remember(resetSignal) { mutableStateOf(defaults.amount) }
+    var amount by remember(resetSignal) {
+        mutableStateOf(initialAmountWon?.takeIf { it > 0 }?.toString() ?: defaults.amount)
+    }
     var expenseCategoryLabel by remember(resetSignal) { mutableStateOf(defaults.expenseCategory.label) }
     var incomeCategoryLabel by remember(resetSignal) { mutableStateOf(defaults.incomeCategory.label) }
     var memo by remember(resetSignal) { mutableStateOf(defaults.memo) }

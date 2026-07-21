@@ -44,7 +44,10 @@ class MainActivity : ComponentActivity() {
                     linkSettlementRepaymentUseCase = appContainer.linkSettlementRepaymentUseCase,
                     linkRefundUseCase = appContainer.linkRefundUseCase,
                     userCategoryRepository = appContainer.userCategoryRepository,
-                    notificationSourceSettingsService = appContainer.notificationSourceSettingsService
+                    notificationSourceSettingsService = appContainer.notificationSourceSettingsService,
+                    notificationHistoryRepository = appContainer.notificationHistoryRepository,
+                    saveMissedNotificationTransactionUseCase =
+                        appContainer.saveMissedNotificationTransactionUseCase
                 )
             }
         }
