@@ -135,6 +135,53 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun currentBlockedTextDoesNotFallBackToExpandedHistory() {
+        listOf(
+            "결제 실패 10,000원",
+            "결제 실패",
+            "결제 혜택10,000원",
+            "10,000원 할인혜택",
+            "쿠폰이벤트",
+            "쿠폰이 도착",
+            "카드혜택을 확인하세요",
+            "결제혜택이 도착",
+            "10,000원할인",
+            "결제에 실패했어요 10,000원",
+            "승인이 거절됐어요 10,000원",
+            "오늘 송금 예정이에요 10,000원",
+            "결제실패가 발생",
+            "잔액 90,000원"
+        ).forEach { text ->
+            val result = parser.parse(
+                snapshot(
+                    text = text,
+                    bigText = "스타벅스 6,000원 결제"
+                )
+            )
+
+            assertThat(result).isInstanceOf(ParseResult.Ignored::class.java)
+        }
+    }
+
+    @Test
+    fun promotionFragmentsInsideMerchantNamesRemainValidPayments() {
+        listOf(
+            "최대감자탕 10,000원 승인",
+            "할인마트 5,000원 승인",
+            "결제 할인마트 5,000원 승인",
+            "10,000원 할인마트에서 결제",
+            "10,000원 승인 할인마트",
+            "10,000원 승인 최대감자탕",
+            "실패없는집 10,000원 승인"
+        ).forEach { text ->
+            val result = parser.parse(snapshot(text = text)) as ParseResult.Parsed
+
+            assertThat(result.draft.type).isEqualTo(TransactionType.EXPENSE)
+            assertThat(result.draft.status).isEqualTo(TransactionStatus.AUTO_CONFIRMED)
+        }
+    }
+
+    @Test
     fun ignoresUnsupportedPackage() {
         val result = parser.parse(
             snapshot(
@@ -372,12 +419,13 @@ class CommonFinanceNotificationParserTest {
 
     private fun snapshot(
         packageName: String = "com.kbstar.kbbank",
-        text: String
+        text: String,
+        bigText: String? = null
     ) = NotificationSnapshot(
         packageName = packageName,
         title = "KB",
         text = text,
-        bigText = null,
+        bigText = bigText,
         postedAt = Instant.parse("2026-07-03T01:00:00Z")
     )
 

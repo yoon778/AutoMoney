@@ -17,6 +17,7 @@ class GenericFinanceNotificationParser : NotificationParser {
         val candidate = when {
             primaryCandidates.size == 1 -> primaryCandidates.single()
             primaryCandidates.size > 1 -> null
+            hasRejectedFinanceSignal(snapshot.text) -> null
             else -> candidatesIn(listOfNotNull(snapshot.title, snapshot.bigText).joinToString("\n"))
                 .singleOrNull()
         } ?: return ParseResult.Ignored("unambiguous amount and action not found")
@@ -57,9 +58,10 @@ class GenericFinanceNotificationParser : NotificationParser {
     private fun candidateFor(line: String): Candidate? {
         val semantics = semanticsFor(line) ?: return null
         val amountMatches = AMOUNT_REGEX.findAll(line).toList()
+        if (isBlockedFinanceEventLine(line)) return null
         val hasLabeledSecondaryAmount = amountMatches.size > 1 &&
             SECONDARY_AMOUNT_KEYWORDS.any { line.contains(it, ignoreCase = true) }
-        val blockingKeywords = BLOCK_KEYWORDS.filter { keyword ->
+        val blockingKeywords = LOCAL_BLOCK_KEYWORDS.filter { keyword ->
             keyword != "적립" || !hasLabeledSecondaryAmount
         }
         if (blockingKeywords.any { line.contains(it, ignoreCase = true) }) return null
@@ -70,6 +72,13 @@ class GenericFinanceNotificationParser : NotificationParser {
         } ?: return null
         return Candidate(amountMatch, semantics)
     }
+
+    private fun hasRejectedFinanceSignal(content: String?): Boolean =
+        content.orEmpty()
+            .lineSequence()
+            .any { line ->
+                isBlockedFinanceEventLine(line) || isBalanceDetailLine(line)
+            }
 
     private fun closestLabeledAmount(
         line: String,
@@ -144,10 +153,7 @@ class GenericFinanceNotificationParser : NotificationParser {
         val REFUND_KEYWORDS = listOf("취소", "환불", "환급")
         val TOPUP_KEYWORDS = listOf("충전")
         val SECONDARY_AMOUNT_KEYWORDS = listOf("캐시백", "환급", "적립")
-        val BLOCK_KEYWORDS = listOf(
-            "혜택", "할인", "이벤트", "쿠폰", "광고", "최대", "적립", "예정",
-            "실패", "거절", "한도", "이용가능"
-        )
+        val LOCAL_BLOCK_KEYWORDS = listOf("적립", "한도", "이용가능")
         val BALANCE_TOKEN_REGEX = Regex(
             """(?:${FINANCE_BALANCE_KEYWORDS.joinToString("|", transform = Regex::escape)})""" +
                 """\s*(?:금액|액)?\s*[:：]?\s*""" +

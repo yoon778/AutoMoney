@@ -280,4 +280,46 @@ class TossNotificationParserTest {
             ).isInstanceOf(ParseResult.Ignored::class.java)
         }
     }
+
+    @Test
+    fun currentBlockedTextDoesNotFallBackToExpandedHistory() {
+        listOf(
+            "결제 실패 10,000원",
+            "결제 실패",
+            "결제 혜택10,000원",
+            "사용가능금액 90,000원"
+        ).forEach { text ->
+            val result = parser.parse(
+                NotificationSnapshot(
+                    packageName = "viva.republica.toss",
+                    title = "토스",
+                    text = text,
+                    bigText = "스타벅스 6,000원 결제",
+                    postedAt = Instant.parse("2026-07-24T00:00:00Z")
+                )
+            )
+
+            assertThat(result).isInstanceOf(ParseResult.Ignored::class.java)
+        }
+    }
+
+    @Test
+    fun promotionFragmentsInsideMerchantNamesRemainValidPayments() {
+        listOf(
+            "최대감자탕 10,000원 결제",
+            "할인마트 5,000원 결제"
+        ).forEach { text ->
+            val result = parser.parse(
+                NotificationSnapshot(
+                    packageName = "viva.republica.toss",
+                    title = "토스",
+                    text = text,
+                    bigText = null,
+                    postedAt = Instant.parse("2026-07-24T00:00:00Z")
+                )
+            ) as ParseResult.Parsed
+
+            assertThat(result.draft.type).isEqualTo(TransactionType.EXPENSE)
+        }
+    }
 }

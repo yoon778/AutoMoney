@@ -27,6 +27,8 @@ class CommonFinanceNotificationParser(
         if (text.isBlank()) {
             return ParseResult.Ignored("empty notification")
         }
+        blockedNotificationReason(snapshot.text.orEmpty())
+            ?.let { return ParseResult.Ignored(it) }
         blockedNotificationReason(text)?.let { return ParseResult.Ignored(it) }
 
         val provider = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)
@@ -337,13 +339,16 @@ class CommonFinanceNotificationParser(
         if (hasUsableFinanceLine) return null
         return when {
             financeLines.any { line ->
-                FINANCE_PROMOTION_KEYWORDS.any { line.contains(it, ignoreCase = true) }
+                hasFinancePromotionKeyword(line)
             } || (
                 financeLines.isEmpty() &&
-                    FINANCE_PROMOTION_KEYWORDS.any { text.contains(it, ignoreCase = true) }
+                    hasFinancePromotionKeyword(text)
                 ) -> "promotional notification"
             financeLines.any(::isBlockedFinanceEventLine) -> "non-final finance notification"
-            financeLines.any(::isBalanceOnlyFinanceLine) -> "balance-only notification"
+            financeLines.any(::isBalanceOnlyFinanceLine) ||
+                text.lineSequence().any(::isBalanceDetailLine) -> "balance-only notification"
+            hasFinanceNonFinalKeyword(text) ->
+                "non-final finance notification"
             else -> null
         }
     }

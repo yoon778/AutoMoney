@@ -14,6 +14,7 @@ class GenericFinanceNotificationParserTest {
     @Test
     fun parsesConservativePositiveFixtures() {
         assertParsed("스타벅스 6,100원 결제 완료", TransactionType.EXPENSE, TransactionDirection.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
+        assertParsed("최대감자탕 10,000원 결제", TransactionType.EXPENSE, TransactionDirection.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY)
         assertParsed("10,000원 입금", TransactionType.INCOME, TransactionDirection.INCOME, ReviewReason.INCOME_UNKNOWN)
         assertParsed("10,000원 출금", TransactionType.TRANSFER, TransactionDirection.NEUTRAL, ReviewReason.TRANSFER_UNKNOWN)
         assertParsed("12,000원 결제 취소", TransactionType.REFUND, TransactionDirection.NEUTRAL, ReviewReason.REFUND_OR_CANCEL)
@@ -101,6 +102,29 @@ class GenericFinanceNotificationParserTest {
         ).forEach { text ->
             assertThat(parser.parse(snapshot(text = text)))
                 .isInstanceOf(ParseResult.Ignored::class.java)
+        }
+    }
+
+    @Test
+    fun currentBlockedTextDoesNotFallBackToExpandedHistory() {
+        listOf(
+            "10,000원 결제 실패",
+            "결제 실패",
+            "결제 혜택10,000원",
+            "사용가능금액 90,000원",
+            "10,000원 미승인"
+        ).forEach { text ->
+            val result = parser.parse(
+                NotificationSnapshot(
+                    packageName = "com.example.bank",
+                    title = "은행",
+                    text = text,
+                    bigText = "스타벅스 6,000원 결제",
+                    postedAt = Instant.parse("2026-07-13T01:00:00Z")
+                )
+            )
+
+            assertThat(result).isInstanceOf(ParseResult.Ignored::class.java)
         }
     }
 

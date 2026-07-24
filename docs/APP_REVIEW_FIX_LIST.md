@@ -194,3 +194,14 @@ Claude next:
 - 계좌 review reason 3개는 생성 경로를 복원하지 않고 과거 Room 행 호환용으로 유지
 - 존재하지 않는 `export/**` ownership 제거
 - 전체 unit test, Android test compile, debug APK build 통과
+
+## Notification Parser Hardening — 2026-07-24
+
+- 케이뱅크 `승인`을 날짜·`출금` 토큰보다 우선해 카드 지출로 분류
+- 광고·실패·거절·예정·미승인·잔액성 알림 차단 규칙 공통화
+- 현재 본문의 차단 신호가 과거 `bigText` 거래로 대체되는 fallback 차단
+- Toss 현재 이벤트 줄과 금액 우선 선택, Generic 가용잔액 문구 제거
+- 처리 이력에 원문 첫 금액 대신 실제 파싱·저장 금액 기록
+- 정상 상호 `할인마트`, `최대감자탕`, `실패없는집` 과탐 회귀 방지
+- 전체 unit test와 debug APK 빌드 통과
+- Galaxy `R3KYB05QDFP`에 `adb install -r` 성공, 설치 전후 DB 3개 파일 크기·수정시각 동일

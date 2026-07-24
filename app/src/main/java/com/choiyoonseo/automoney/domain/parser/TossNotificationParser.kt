@@ -168,14 +168,16 @@ class TossNotificationParser(
             }
             .distinct()
             .toList()
-        if (candidates.isEmpty()) {
-            return EventLineSelection(hadCandidate = false, line = null)
-        }
         val usable = candidates.filterNot { line ->
             isBlockedFinanceEventLine(line) || isBalanceOnlyEventLine(line)
         }
+        val hasRejectedFinanceSignal = content.orEmpty()
+            .lineSequence()
+            .any { line ->
+                isBlockedFinanceEventLine(line) || isBalanceDetailLine(line)
+            }
         return EventLineSelection(
-            hadCandidate = true,
+            hadCandidate = candidates.isNotEmpty() || hasRejectedFinanceSignal,
             line = usable.singleOrNull(),
         )
     }
