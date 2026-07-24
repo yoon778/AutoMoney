@@ -231,4 +231,53 @@ class TossNotificationParserTest {
 
         assertThat(result).isEqualTo(ParseResult.Ignored("unsupported toss notification"))
     }
+
+    @Test
+    fun usesCurrentEventLineAmountInsteadOfBalanceOrExpandedHistory() {
+        val payment = parser.parse(
+            NotificationSnapshot(
+                packageName = "viva.republica.toss",
+                title = "잔액 90,000원",
+                text = "스타벅스 6,000원 결제",
+                bigText = "잔액 90,000원\n스타벅스 6,000원 결제",
+                postedAt = Instant.parse("2026-07-24T00:00:00Z")
+            )
+        ) as ParseResult.Parsed
+        val cashback = parser.parse(
+            NotificationSnapshot(
+                packageName = "viva.republica.toss",
+                title = "토스",
+                text = "캐시백 6원 환급",
+                bigText = "스타벅스 6,000원 결제\n캐시백 6원 환급",
+                postedAt = Instant.parse("2026-07-24T00:01:00Z")
+            )
+        ) as ParseResult.Parsed
+
+        assertThat(payment.draft.amount.won).isEqualTo(6_000)
+        assertThat(cashback.draft.amount.won).isEqualTo(6)
+        assertThat(cashback.draft.type).isEqualTo(TransactionType.REFUND)
+    }
+
+    @Test
+    fun ignoresPromotionFailureAndAvailableBalanceNotifications() {
+        val snapshots = listOf(
+            "결제 혜택 10,000원",
+            "결제 실패 10,000원",
+            "사용가능금액 90,000원"
+        )
+
+        snapshots.forEach { text ->
+            assertThat(
+                parser.parse(
+                    NotificationSnapshot(
+                        packageName = "viva.republica.toss",
+                        title = "토스",
+                        text = text,
+                        bigText = null,
+                        postedAt = Instant.parse("2026-07-24T00:00:00Z")
+                    )
+                )
+            ).isInstanceOf(ParseResult.Ignored::class.java)
+        }
+    }
 }

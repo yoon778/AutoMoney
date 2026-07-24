@@ -22,10 +22,18 @@ class TossNotificationParser(
         }
 
         val text = snapshot.combinedText.trim()
-        val amount = extractAmount(text) ?: return ParseResult.Ignored("amount not found")
+        val eventSelection = selectEventLine(snapshot)
+        val eventText = eventSelection.line
+            ?: return ParseResult.Ignored(
+                if (eventSelection.hadCandidate) {
+                    "ambiguous or blocked toss notification"
+                } else {
+                    "amount not found"
+                }
+            )
+        val amount = extractAmount(eventText) ?: return ParseResult.Ignored("amount not found")
         val hash = snapshot.sourceNotificationHash
-        val hasNonMovementKeyword = text.contains("충전") || text.contains("취소") ||
-            text.contains("환불") || text.contains("결제")
+        val hasNonMovementKeyword = NON_MOVEMENT_KEYWORDS.any(eventText::contains)
         val movementProvider = if (hasNonMovementKeyword) {
             null
         } else {
@@ -43,8 +51,8 @@ class TossNotificationParser(
             return ParseResult.Ignored("ambiguous bank movement")
         }
 
-        if (text.contains("충전")) {
-            val walletName = extractWalletName(text)
+        if (eventText.contains("충전")) {
+            val walletName = extractWalletName(eventText)
             return ParseResult.Parsed(
                 TransactionDraft(
                     occurredAt = snapshot.postedAt,
@@ -70,7 +78,7 @@ class TossNotificationParser(
             return parsedMovement(snapshot, movement, hash)
         }
 
-        if (text.contains("송금")) {
+        if (eventText.contains("송금")) {
             return ParseResult.Parsed(
                 TransactionDraft(
                     occurredAt = snapshot.postedAt,
@@ -80,7 +88,7 @@ class TossNotificationParser(
                     category = null,
                     paymentMethod = "계좌이체",
                     merchant = null,
-                    counterparty = extractCounterparty(text),
+                    counterparty = extractCounterparty(eventText),
                     memo = "송금 목적 확인 필요",
                     sourceApp = TOSS_PACKAGE,
                     sourceNotificationHash = hash,
@@ -92,7 +100,7 @@ class TossNotificationParser(
             )
         }
 
-        if (text.contains("취소") || text.contains("환불")) {
+        if (REFUND_KEYWORDS.any(eventText::contains)) {
             return ParseResult.Parsed(
                 TransactionDraft(
                     occurredAt = snapshot.postedAt,
@@ -101,7 +109,7 @@ class TossNotificationParser(
                     type = TransactionType.REFUND,
                     category = null,
                     paymentMethod = snapshot.title,
-                    merchant = extractMerchant(text, amount),
+                    merchant = extractMerchant(eventText, amount),
                     counterparty = null,
                     memo = "환불/취소 확인 필요",
                     sourceApp = TOSS_PACKAGE,
@@ -114,8 +122,8 @@ class TossNotificationParser(
             )
         }
 
-        if (text.contains("결제")) {
-            val merchant = extractMerchant(text, amount)
+        if (eventText.contains("결제")) {
+            val merchant = extractMerchant(eventText, amount)
             val isGateway = PAYMENT_GATEWAYS.any { merchant.contains(it, ignoreCase = true) }
             return ParseResult.Parsed(
                 TransactionDraft(
@@ -140,6 +148,41 @@ class TossNotificationParser(
 
         return ParseResult.Ignored("unsupported toss notification")
     }
+
+    private fun selectEventLine(snapshot: NotificationSnapshot): EventLineSelection {
+        listOf(snapshot.text, snapshot.bigText, snapshot.title).forEach { content ->
+            val selection = selectEventLine(content)
+            if (selection.hadCandidate) return selection
+        }
+        return EventLineSelection(hadCandidate = false, line = null)
+    }
+
+    private fun selectEventLine(content: String?): EventLineSelection {
+        val candidates = content.orEmpty()
+            .lineSequence()
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .filter { line ->
+                AMOUNT_REGEX.containsMatchIn(line) &&
+                    ACTION_KEYWORDS.any(line::contains)
+            }
+            .distinct()
+            .toList()
+        if (candidates.isEmpty()) {
+            return EventLineSelection(hadCandidate = false, line = null)
+        }
+        val usable = candidates.filterNot { line ->
+            isBlockedFinanceEventLine(line) || isBalanceOnlyEventLine(line)
+        }
+        return EventLineSelection(
+            hadCandidate = true,
+            line = usable.singleOrNull(),
+        )
+    }
+
+    private fun isBalanceOnlyEventLine(line: String): Boolean =
+        isBalanceDetailLine(line) &&
+            ACTION_KEYWORDS.none(stripFinanceBalanceKeywords(line)::contains)
 
     private fun parsedMovement(
         snapshot: NotificationSnapshot,
@@ -254,9 +297,18 @@ class TossNotificationParser(
 
     companion object {
         const val TOSS_PACKAGE = "viva.republica.toss"
-        private val AMOUNT_REGEX = Regex("""([0-9,]+)원""")
+        private val AMOUNT_REGEX = Regex("""([0-9,]+)\s*원""")
+        private val REFUND_KEYWORDS = listOf("취소", "환불", "환급")
+        private val NON_MOVEMENT_KEYWORDS = listOf("충전", "결제") + REFUND_KEYWORDS
+        private val ACTION_KEYWORDS =
+            NON_MOVEMENT_KEYWORDS + listOf("송금", "이체", "입금", "출금", "받았", "보냈")
         private val PAYMENT_GATEWAYS = listOf("KCP", "NICE", "KG이니시스", "토스페이먼츠")
     }
+
+    private data class EventLineSelection(
+        val hadCandidate: Boolean,
+        val line: String?,
+    )
 
     private data class MovementSemantics(
         val type: TransactionType,
