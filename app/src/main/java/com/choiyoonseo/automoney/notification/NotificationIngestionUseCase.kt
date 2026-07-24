@@ -65,7 +65,10 @@ class NotificationIngestionUseCase(
                 transaction.direction == eventIdentified.direction
         }
         if (isLegacyDuplicate) {
-            return IngestionResult.Duplicate(eventIdentified.type)
+            return IngestionResult.Duplicate(
+                transactionType = eventIdentified.type,
+                amountWon = eventIdentified.amount.won
+            )
         }
         val duplicateDecision = duplicateDetector.detect(
             candidate = withRules,
@@ -73,7 +76,10 @@ class NotificationIngestionUseCase(
         )
 
         if (duplicateDecision == DuplicateDecision.DUPLICATE) {
-            return IngestionResult.Duplicate(withRules.type)
+            return IngestionResult.Duplicate(
+                transactionType = withRules.type,
+                amountWon = withRules.amount.won
+            )
         }
 
         val finalDraft = when (duplicateDecision) {
@@ -109,10 +115,14 @@ class NotificationIngestionUseCase(
             return IngestionResult.Saved(
                 transactionType = finalDraft.type,
                 reviewReason = effectiveReviewReason,
-                transactionId = saved.transactionId
+                transactionId = saved.transactionId,
+                amountWon = finalDraft.amount.won
             )
         } catch (e: DuplicateNotificationException) {
-            return IngestionResult.Duplicate(finalDraft.type)
+            return IngestionResult.Duplicate(
+                transactionType = finalDraft.type,
+                amountWon = finalDraft.amount.won
+            )
         }
     }
 }
@@ -141,11 +151,13 @@ sealed interface IngestionResult {
     data class Saved(
         val transactionType: TransactionType,
         val reviewReason: ReviewReason?,
-        val transactionId: Long = 0
+        val transactionId: Long = 0,
+        val amountWon: Long? = null
     ) : IngestionResult
 
     data class Duplicate(
-        val transactionType: TransactionType?
+        val transactionType: TransactionType?,
+        val amountWon: Long? = null
     ) : IngestionResult
 
     data class Ignored(

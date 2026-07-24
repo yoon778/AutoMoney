@@ -61,10 +61,10 @@ class NotificationIngestionAtomicityTest {
         val cashbackResult = useCase.ingest(cashback, NotificationSourceAccess.SELECTED_UNVERIFIED)
 
         assertThat(paymentResult).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1, 6_000)
         )
         assertThat(cashbackResult).isEqualTo(
-            IngestionResult.Saved(TransactionType.INCOME, ReviewReason.INCOME_UNKNOWN, 1)
+            IngestionResult.Saved(TransactionType.INCOME, ReviewReason.INCOME_UNKNOWN, 1, 6)
         )
         assertThat(repository.savedTransactions.map { it.amount.won })
             .containsExactly(6_000L, 6L)
@@ -96,7 +96,7 @@ class NotificationIngestionAtomicityTest {
         assertThat(useCase.ingest(first, NotificationSourceAccess.SELECTED_UNVERIFIED))
             .isInstanceOf(IngestionResult.Saved::class.java)
         assertThat(useCase.ingest(wordingUpdate, NotificationSourceAccess.SELECTED_UNVERIFIED))
-            .isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
+            .isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE, 6_000))
         assertThat(repository.savedTransactions).hasSize(1)
     }
 
@@ -152,7 +152,7 @@ class NotificationIngestionAtomicityTest {
 
         val result = useCase.ingest(notification, NotificationSourceAccess.SELECTED_UNVERIFIED)
 
-        assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
+        assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE, 6_000))
         assertThat(repository.savedTransactions).hasSize(1)
     }
 
@@ -191,7 +191,7 @@ class NotificationIngestionAtomicityTest {
 
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
-        assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE))
+        assertThat(result).isEqualTo(IngestionResult.Duplicate(TransactionType.EXPENSE, 10_000))
     }
 
     @Test
@@ -208,7 +208,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1, 10_000)
         )
         assertThat(repository.saveNotificationCalls).isEqualTo(1)
         assertThat(repository.savedReviewReason).isEqualTo(ReviewReason.LOW_CONFIDENCE_CATEGORY)
@@ -235,7 +235,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.ACCOUNT_AMBIGUOUS, 1)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.ACCOUNT_AMBIGUOUS, 1, 10_000)
         )
     }
 
@@ -253,7 +253,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.SELECTED_UNVERIFIED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1)
+            IngestionResult.Saved(TransactionType.EXPENSE, ReviewReason.LOW_CONFIDENCE_CATEGORY, 1, 10_000)
         )
         assertThat(repository.savedTransaction?.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
         assertThat(repository.savedTransaction?.merchant).isNull()
@@ -296,7 +296,7 @@ class NotificationIngestionAtomicityTest {
 
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
-        assertThat(result).isEqualTo(IngestionResult.Saved(TransactionType.REFUND, null, 1))
+        assertThat(result).isEqualTo(IngestionResult.Saved(TransactionType.REFUND, null, 1, 6))
         assertThat(autoLinkedIds).containsExactly(1L)
     }
 
@@ -315,7 +315,7 @@ class NotificationIngestionAtomicityTest {
         val result = useCase.ingest(snapshot(), NotificationSourceAccess.TRUSTED)
 
         assertThat(result).isEqualTo(
-            IngestionResult.Saved(TransactionType.REFUND, ReviewReason.REFUND_OR_CANCEL, 1)
+            IngestionResult.Saved(TransactionType.REFUND, ReviewReason.REFUND_OR_CANCEL, 1, 6)
         )
         assertThat(repository.savedTransactions).hasSize(1)
     }

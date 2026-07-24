@@ -68,6 +68,24 @@ class NotificationHistoryRecorderTest {
         assertThat(repository.saved.map { it.amountWon }).containsExactly(6_000L, 6_000L)
     }
 
+    @Test
+    fun savedHistoryUsesParsedEventAmountInsteadOfRawFirstAmount() = runTest {
+        val repository = RecordingHistoryRepository()
+        val recorder = NotificationHistoryRecorder(repository, clock = fixedClock)
+
+        recorder.recordResult(
+            prepared("잔액 90,000원\n스타벅스 6,000원 결제", "토스"),
+            IngestionResult.Saved(
+                transactionType = TransactionType.EXPENSE,
+                reviewReason = null,
+                transactionId = 7,
+                amountWon = 6_000
+            )
+        )
+
+        assertThat(repository.saved.single().amountWon).isEqualTo(6_000)
+    }
+
     private fun prepared(text: String, label: String) = PreparedNotification(
         snapshot = NotificationSnapshot(
             packageName = "com.kbankwith.smartbank",

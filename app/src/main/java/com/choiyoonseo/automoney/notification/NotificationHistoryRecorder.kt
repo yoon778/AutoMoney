@@ -77,7 +77,11 @@ class NotificationHistoryRecorder(
                 is IngestionResult.Duplicate -> transactionType
                 is IngestionResult.Ignored -> null
             },
-            amountWon = amountExtractor.extract(prepared.snapshot),
+            amountWon = when (this) {
+                is IngestionResult.Saved -> amountWon
+                is IngestionResult.Duplicate -> amountWon
+                is IngestionResult.Ignored -> null
+            } ?: amountExtractor.extract(prepared.snapshot),
             reason = reason,
             linkedTransactionId = (this as? IngestionResult.Saved)?.transactionId
         )

@@ -92,6 +92,18 @@ class GenericFinanceNotificationParserTest {
         assertThat(result).isInstanceOf(ParseResult.Ignored::class.java)
     }
 
+    @Test
+    fun ignoresAvailableBalanceOnlyNotifications() {
+        listOf(
+            "사용가능금액 90,000원",
+            "이용가능액 90,000원",
+            "출금가능액 90,000원"
+        ).forEach { text ->
+            assertThat(parser.parse(snapshot(text = text)))
+                .isInstanceOf(ParseResult.Ignored::class.java)
+        }
+    }
+
     private fun assertParsed(
         text: String,
         type: TransactionType,

@@ -148,7 +148,11 @@ class GenericFinanceNotificationParser : NotificationParser {
             "혜택", "할인", "이벤트", "쿠폰", "광고", "최대", "적립", "예정",
             "실패", "거절", "한도", "이용가능"
         )
-        val BALANCE_TOKEN_REGEX = Regex("""(?:잔액|잔고)\s*[:：]?\s*(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s*원?""")
+        val BALANCE_TOKEN_REGEX = Regex(
+            """(?:${FINANCE_BALANCE_KEYWORDS.joinToString("|", transform = Regex::escape)})""" +
+                """\s*(?:금액|액)?\s*[:：]?\s*""" +
+                """(?:[0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\s*원?"""
+        )
         const val GENERIC_CONFIDENCE = 0.5
     }
 }
