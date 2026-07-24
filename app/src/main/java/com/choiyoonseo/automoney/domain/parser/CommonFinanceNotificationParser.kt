@@ -27,9 +27,7 @@ class CommonFinanceNotificationParser(
         if (text.isBlank()) {
             return ParseResult.Ignored("empty notification")
         }
-        if (isPromotion(text)) {
-            return ParseResult.Ignored("promotional notification")
-        }
+        blockedNotificationReason(text)?.let { return ParseResult.Ignored(it) }
 
         val provider = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)
             ?: return ParseResult.Ignored("unsupported package")
@@ -113,6 +111,22 @@ class CommonFinanceNotificationParser(
                 hash = hash
             )
 
+            nonMovementEventText != null &&
+                containsAny(eventText, PAYMENT_KEYWORDS) &&
+                !hasAccountHint(eventText) &&
+                merchant.isNotBlank() -> parsed(
+                snapshot = snapshot,
+                amount = amount,
+                direction = TransactionDirection.EXPENSE,
+                type = TransactionType.EXPENSE,
+                status = TransactionStatus.AUTO_CONFIRMED,
+                confidence = 0.86,
+                reviewReason = null,
+                merchant = merchant,
+                memo = merchant,
+                hash = hash
+            )
+
             containsAny(eventText, TRANSFER_KEYWORDS) || hasAccountHint(eventText) -> parsed(
                 snapshot = snapshot,
                 amount = amount,
@@ -123,20 +137,6 @@ class CommonFinanceNotificationParser(
                 reviewReason = ReviewReason.TRANSFER_UNKNOWN,
                 counterparty = merchant,
                 memo = maskedMemo,
-                hash = hash
-            )
-
-            nonMovementEventText != null &&
-                containsAny(eventText, PAYMENT_KEYWORDS) && merchant.isNotBlank() -> parsed(
-                snapshot = snapshot,
-                amount = amount,
-                direction = TransactionDirection.EXPENSE,
-                type = TransactionType.EXPENSE,
-                status = TransactionStatus.AUTO_CONFIRMED,
-                confidence = 0.86,
-                reviewReason = null,
-                merchant = merchant,
-                memo = merchant,
                 hash = hash
             )
 
@@ -282,7 +282,8 @@ class CommonFinanceNotificationParser(
     private fun isNonMovementEventLine(line: String): Boolean =
         containsAny(line, NON_MOVEMENT_HINT_KEYWORDS) &&
             AMOUNT_REGEX.containsMatchIn(line) &&
-            !containsAny(line, NON_EVENT_AMOUNT_KEYWORDS)
+            !isBlockedFinanceEventLine(line) &&
+            !isBalanceOnlyFinanceLine(line)
 
     private fun extractMerchant(text: String, amountMatch: AmountMatch): String {
         val line = text.lineSequence().firstOrNull { it.contains(amountMatch.matchedText) } ?: text
@@ -322,11 +323,40 @@ class CommonFinanceNotificationParser(
     private fun containsAny(text: String, keywords: List<String>): Boolean =
         keywords.any { text.contains(it, ignoreCase = true) }
 
-    private fun isPromotion(text: String): Boolean =
-        containsAny(text, PROMOTION_KEYWORDS) && !containsAny(text, PAYMENT_KEYWORDS)
+    private fun blockedNotificationReason(text: String): String? {
+        val financeLines = text.lineSequence()
+            .map(String::trim)
+            .filter { line ->
+                AMOUNT_REGEX.containsMatchIn(line) &&
+                    containsAny(line, ALL_ACTION_KEYWORDS)
+            }
+            .toList()
+        val hasUsableFinanceLine = financeLines.any { line ->
+            !isBlockedFinanceEventLine(line) && !isBalanceOnlyFinanceLine(line)
+        }
+        if (hasUsableFinanceLine) return null
+        return when {
+            financeLines.any { line ->
+                FINANCE_PROMOTION_KEYWORDS.any { line.contains(it, ignoreCase = true) }
+            } || (
+                financeLines.isEmpty() &&
+                    FINANCE_PROMOTION_KEYWORDS.any { text.contains(it, ignoreCase = true) }
+                ) -> "promotional notification"
+            financeLines.any(::isBlockedFinanceEventLine) -> "non-final finance notification"
+            financeLines.any(::isBalanceOnlyFinanceLine) -> "balance-only notification"
+            else -> null
+        }
+    }
+
+    private fun isBalanceOnlyFinanceLine(line: String): Boolean =
+        isBalanceDetailLine(line) &&
+            !containsAny(stripFinanceBalanceKeywords(line), ALL_ACTION_KEYWORDS)
 
     private fun hasAccountHint(text: String): Boolean =
-        containsAny(text, ACCOUNT_KEYWORDS) || ACCOUNT_LIKE_REGEX.containsMatchIn(text)
+        containsAny(text, ACCOUNT_KEYWORDS) ||
+            ACCOUNT_LIKE_REGEX.findAll(text).any { match ->
+                !ISO_DATE_REGEX.matches(match.value)
+            }
 
     private fun guessCategory(merchant: String): Category {
         val lower = merchant.lowercase()
@@ -340,19 +370,20 @@ class CommonFinanceNotificationParser(
     companion object {
         private val AMOUNT_REGEX = Regex("""([0-9,]+)\s*\uc6d0""")
         private val ACCOUNT_LIKE_REGEX = Regex("""\d[\d-]{5,}\d""")
+        private val ISO_DATE_REGEX = Regex("""\d{4}-\d{2}-\d{2}""")
         private val PAYMENT_KEYWORDS = listOf("\uacb0\uc81c", "\uc2b9\uc778", "\uc0ac\uc6a9")
         private val TRANSFER_KEYWORDS = listOf("\uc774\uccb4", "\uc1a1\uae08", "\ucd9c\uae08")
         private val DEPOSIT_KEYWORDS = listOf("\uc785\uae08")
         private val TOPUP_KEYWORDS = listOf("\ucda9\uc804", "\ud3ec\uc778\ud2b8", "\ud398\uc774\uba38\ub2c8")
         private val REFUND_KEYWORDS = listOf("\ucde8\uc18c", "\ud658\ubd88", "\ud658\uae09")
         private val ACCOUNT_KEYWORDS = listOf("\uacc4\uc88c", "\uacc4\uc88c\ubc88\ud638")
-        private val PROMOTION_KEYWORDS = listOf("\ucfe0\ud3f0", "\ud61c\ud0dd", "\uc774\ubca4\ud2b8", "\uad11\uace0")
         private val NAME_NOISE_WORDS = PAYMENT_KEYWORDS + TRANSFER_KEYWORDS + DEPOSIT_KEYWORDS +
             TOPUP_KEYWORDS + REFUND_KEYWORDS + ACCOUNT_KEYWORDS
         private val NON_MOVEMENT_HINT_KEYWORDS = PAYMENT_KEYWORDS + TOPUP_KEYWORDS + REFUND_KEYWORDS
-        private val NON_EVENT_AMOUNT_KEYWORDS = listOf("사용가능", "이용가능", "한도")
+        private val ALL_ACTION_KEYWORDS =
+            NON_MOVEMENT_HINT_KEYWORDS + TRANSFER_KEYWORDS + DEPOSIT_KEYWORDS
         private val NON_MERCHANT_LINE_KEYWORDS =
-            listOf("카드", "출금가능", "사용가능", "이용가능", "잔액", "잔고", "한도")
+            listOf("카드") + FINANCE_BALANCE_KEYWORDS
         private val CLAUSE_SEPARATOR_REGEX = Regex("[/·]")
         private val SECONDARY_EVENT_DETAIL_REGEX =
             Regex("""(?:[/·,]\s*)?(?:캐시백|환급|적립).*$""")

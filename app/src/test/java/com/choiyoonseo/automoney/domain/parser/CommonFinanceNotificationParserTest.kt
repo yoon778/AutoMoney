@@ -106,6 +106,35 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun ignoresPromotionsFailuresAndAvailableBalanceNotifications() {
+        listOf(
+            "카드 사용 혜택 10,000원",
+            "결제 실패 10,000원",
+            "승인 거절 10,000원",
+            "결제 예정 10,000원",
+            "출금가능액 18,501원"
+        ).forEach { text ->
+            assertThat(parser.parse(snapshot(text = text)))
+                .isInstanceOf(ParseResult.Ignored::class.java)
+        }
+    }
+
+    @Test
+    fun cardApprovalWinsOverDateAndWithdrawalTokens() {
+        listOf(
+            "2026-07-24 승인 17,700원 아이디푸드",
+            "출금 승인 17,700원 아이디푸드"
+        ).forEach { text ->
+            val draft = (parser.parse(snapshot(text = text)) as ParseResult.Parsed).draft
+
+            assertThat(draft.amount.won).isEqualTo(17_700)
+            assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+            assertThat(draft.status).isEqualTo(TransactionStatus.AUTO_CONFIRMED)
+            assertThat(draft.merchant).isEqualTo("아이디푸드")
+        }
+    }
+
+    @Test
     fun ignoresUnsupportedPackage() {
         val result = parser.parse(
             snapshot(

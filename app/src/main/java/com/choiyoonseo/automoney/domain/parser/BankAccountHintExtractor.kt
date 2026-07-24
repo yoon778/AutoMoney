@@ -69,7 +69,10 @@ class BankAccountHintExtractor {
         }
 
     private fun containsMovementKeyword(value: String): Boolean =
-        containsAny(value.replace("입출금통장", ""), MOVEMENT_KEYWORDS)
+        containsAny(
+            stripFinanceBalanceKeywords(value.replace("입출금통장", "")),
+            MOVEMENT_KEYWORDS,
+        )
 
     private fun containsAny(value: String, keywords: List<String>): Boolean =
         keywords.any { keyword -> value.contains(keyword, ignoreCase = true) }
