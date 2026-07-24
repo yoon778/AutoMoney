@@ -142,6 +142,42 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun parsesKbankMultilineApprovalWithMerchantOnFollowingLine() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                title = "케이뱅크",
+                text = "승인 17,700원",
+                bigText = "아이디푸드(화서본점)\n" +
+                    "카드(7712) | 07/24 09:02\n" +
+                    "출금가능액 18,501원",
+                postedAt = Instant.parse("2026-07-24T00:02:00Z")
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(17_700)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(draft.status).isEqualTo(TransactionStatus.AUTO_CONFIRMED)
+        assertThat(draft.merchant).isEqualTo("아이디푸드(화서본점)")
+    }
+
+    @Test
+    fun doesNotUseNotificationTitleAsMerchantForSelectedPaymentClause() {
+        val result = parser.parse(
+            NotificationSnapshot(
+                packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+                title = "케이뱅크",
+                text = "승인 17,700원 / 캐시백 10원 환급",
+                bigText = null,
+                postedAt = Instant.parse("2026-07-24T00:02:00Z")
+            )
+        )
+
+        assertThat(result).isEqualTo(ParseResult.Ignored("unsupported finance notification"))
+    }
+
+    @Test
     fun kbankCombinedPaymentAndCashbackNeverTurnsPaymentIntoRefund() {
         val result = parser.parse(
             snapshot(

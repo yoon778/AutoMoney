@@ -60,7 +60,13 @@ class CommonFinanceNotificationParser(
         val amountMatch = extractAmountMatch(eventText) ?: return ParseResult.Ignored("amount not found")
         val amount = amountMatch.amount
         val hash = snapshot.sourceNotificationHash
-        val merchant = extractMerchant(eventText, amountMatch)
+        val merchant = extractMerchant(eventText, amountMatch).ifBlank {
+            if (containsAny(eventText, PAYMENT_KEYWORDS)) {
+                extractFollowingMerchant(snapshot.combinedText, eventText)
+            } else {
+                ""
+            }
+        }
         val memoSource = eventText.lineSequence()
             .firstOrNull { it.contains(amountMatch.matchedText) } ?: eventText
         val maskedMemo = SensitiveTextMasker.mask(memoSource.trim())
@@ -285,6 +291,22 @@ class CommonFinanceNotificationParser(
         return beforeAmount.ifBlank { afterAmount }
     }
 
+    private fun extractFollowingMerchant(text: String, eventText: String): String {
+        val lines = text.lineSequence().map(String::trim).toList()
+        val eventIndex = lines.indexOfFirst { it == eventText.trim() }
+        if (eventIndex < 0) return ""
+        val candidate = lines.getOrNull(eventIndex + 1).orEmpty()
+        if (
+            candidate.isBlank() ||
+            candidate.none(Char::isLetter) ||
+            AMOUNT_REGEX.containsMatchIn(candidate) ||
+            containsAny(candidate, NON_MERCHANT_LINE_KEYWORDS)
+        ) {
+            return ""
+        }
+        return cleanNameCandidate(candidate)
+    }
+
     private fun cleanNameCandidate(raw: String): String {
         var candidate = raw.replace("KB", "").trim()
         NAME_NOISE_WORDS.forEach { word ->
@@ -329,6 +351,8 @@ class CommonFinanceNotificationParser(
             TOPUP_KEYWORDS + REFUND_KEYWORDS + ACCOUNT_KEYWORDS
         private val NON_MOVEMENT_HINT_KEYWORDS = PAYMENT_KEYWORDS + TOPUP_KEYWORDS + REFUND_KEYWORDS
         private val NON_EVENT_AMOUNT_KEYWORDS = listOf("사용가능", "이용가능", "한도")
+        private val NON_MERCHANT_LINE_KEYWORDS =
+            listOf("카드", "출금가능", "사용가능", "이용가능", "잔액", "잔고", "한도")
         private val CLAUSE_SEPARATOR_REGEX = Regex("[/·]")
         private val SECONDARY_EVENT_DETAIL_REGEX =
             Regex("""(?:[/·,]\s*)?(?:캐시백|환급|적립).*$""")

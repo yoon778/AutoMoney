@@ -33,5 +33,5 @@ private val actionWords = listOf(
     "환급",
     "예수금"
 )
-private val balanceWords = listOf("잔액", "잔고")
+private val balanceWords = listOf("잔액", "잔고", "출금가능")
 private val amountPattern = Regex("([0-9]{1,3}(?:,[0-9]{3})+|[0-9]+)\\s*원")

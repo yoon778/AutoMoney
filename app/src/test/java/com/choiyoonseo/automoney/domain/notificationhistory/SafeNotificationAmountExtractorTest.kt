@@ -32,6 +32,20 @@ class SafeNotificationAmountExtractorTest {
         assertThat(extractor.extract(snapshot)).isEqualTo(6_000)
     }
 
+    @Test
+    fun ignoresKbankAvailableWithdrawalAmount() {
+        assertThat(
+            extractor.extract(
+                snapshot(
+                    "승인 17,700원\n" +
+                        "아이디푸드(화서본점)\n" +
+                        "카드(7712) | 07/24 09:02\n" +
+                        "출금가능액 18,501원"
+                )
+            )
+        ).isEqualTo(17_700)
+    }
+
     private fun snapshot(text: String) = NotificationSnapshot(
         packageName = "com.kbankwith.smartbank",
         title = null,
