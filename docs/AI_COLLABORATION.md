@@ -97,6 +97,7 @@ Append a line before you start editing a shared/boundary file; remove it in the 
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- (해제됨 2026-07-24) Claude claims `di/AppContainer.kt` — 알림 수집 앱 자동 감지(recordObserved) 배선을 no-op으로 비활성화
 - (해제됨 2026-07-21) Claude claims `ui/AppRoot.kt` — 환급 수동 연결과 알림 처리 내역 의존성 전달
 - (해제됨 2026-07-21) Claude claims `MainActivity.kt` — 위 3개 의존성을 AppRoot에 전달
 - (해제됨 2026-07-21) Codex claims `ui/model/MonthlySummaryMapper.kt` — cleanup item 8 unused import removal (`f1366de`)

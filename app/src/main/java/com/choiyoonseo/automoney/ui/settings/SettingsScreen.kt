@@ -122,9 +122,9 @@ fun SettingsScreen(
             }
         }
 
-        notificationSourceSettingsService?.let { NotificationSourceAppsCard(it) }
-
         CategoryManagementCard(userCategoryRepository)
+
+        notificationSourceSettingsService?.let { NotificationSourceAppsCard(it) }
 
         FinanceSectionCard(
             title = "최근 알림 결과",
@@ -195,9 +195,8 @@ private fun NotificationSourceAppsCard(service: NotificationSourceSettingsServic
         accent = MoneyBlue,
         icon = Icons.Filled.Notifications
     ) {
-        val (registered, detected) = options.partition { it.isRegistered }
+        val registered = options.filter { it.isRegistered }
 
-        Text("기본 지원", fontWeight = FontWeight.Medium, color = colors.inkSub)
         registered.forEach { option ->
             NotificationSourceRow(
                 option = option,
@@ -206,25 +205,6 @@ private fun NotificationSourceAppsCard(service: NotificationSourceSettingsServic
                     else applyToggle(option.packageName, allowed)
                 }
             )
-        }
-
-        Text("추가 감지 앱", fontWeight = FontWeight.Medium, color = colors.inkSub)
-        if (detected.isEmpty()) {
-            Text(
-                "새 앱 알림이 감지되면 여기에 표시돼요",
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.muted
-            )
-        } else {
-            detected.forEach { option ->
-                NotificationSourceRow(
-                    option = option,
-                    onToggle = { allowed ->
-                        if (allowed) pendingEnable = option
-                        else applyToggle(option.packageName, allowed)
-                    }
-                )
-            }
         }
 
         errorMessage?.let {

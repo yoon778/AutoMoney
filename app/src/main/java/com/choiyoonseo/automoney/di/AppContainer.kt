@@ -44,7 +44,7 @@ class AppContainer(context: Context) {
         SharedPreferencesObservedNotificationSourceStore(context.applicationContext)
     val notificationDispatchCoordinator = NotificationDispatchCoordinator(
         accessFor = notificationAppAccessStore::accessFor,
-        recordObserved = observedNotificationSourceStore::record,
+        recordObserved = { _, _ -> },
         snapshotBuilder = NotificationSnapshotBuilder(),
         resolveInstalledLabel = { packageName ->
             try {
