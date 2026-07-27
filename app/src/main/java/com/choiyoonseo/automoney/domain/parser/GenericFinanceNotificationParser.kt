@@ -17,12 +17,14 @@ class GenericFinanceNotificationParser : NotificationParser {
         val candidate = when {
             primaryCandidates.size == 1 -> primaryCandidates.single()
             primaryCandidates.size > 1 -> null
-            hasRejectedFinanceSignal(snapshot.text) -> null
+            hasBlockedFinanceSignal(snapshot.text) -> null
+            hasBalanceOnlyFinanceSignal(snapshot.text) ->
+                candidatesIn(snapshot.title).singleOrNull()
             else -> candidatesIn(listOfNotNull(snapshot.title, snapshot.bigText).joinToString("\n"))
                 .singleOrNull()
         } ?: return ParseResult.Ignored("unambiguous amount and action not found")
         val amountMatch = candidate.amountMatch
-        val semantics = candidate.semantics
+        val semantics = candidate.semantics.toDebitCardExpenseIfNeeded(snapshot.combinedText)
         val amountWon = amountMatch.groupValues[1].replace(",", "").toLongOrNull()
             ?.takeIf { it > 0 } ?: return ParseResult.Ignored("invalid amount")
 
@@ -73,12 +75,27 @@ class GenericFinanceNotificationParser : NotificationParser {
         return Candidate(amountMatch, semantics)
     }
 
-    private fun hasRejectedFinanceSignal(content: String?): Boolean =
+    private fun hasBlockedFinanceSignal(content: String?): Boolean =
         content.orEmpty()
             .lineSequence()
-            .any { line ->
-                isBlockedFinanceEventLine(line) || isBalanceDetailLine(line)
-            }
+            .any(::isBlockedFinanceEventLine)
+
+    private fun hasBalanceOnlyFinanceSignal(content: String?): Boolean =
+        content.orEmpty()
+            .lineSequence()
+            .any { line -> isBalanceOnlyFinanceLine(line, ALL_ACTION_KEYWORDS) }
+
+    private fun Semantics.toDebitCardExpenseIfNeeded(text: String): Semantics =
+        if (type == TransactionType.TRANSFER && isDebitCardWithdrawal(text)) {
+            Semantics(
+                TransactionType.EXPENSE,
+                TransactionDirection.EXPENSE,
+                ReviewReason.LOW_CONFIDENCE_CATEGORY,
+                PAYMENT_KEYWORDS
+            )
+        } else {
+            this
+        }
 
     private fun closestLabeledAmount(
         line: String,
@@ -152,6 +169,8 @@ class GenericFinanceNotificationParser : NotificationParser {
         val TRANSFER_KEYWORDS = listOf("이체", "송금", "출금", "ATM")
         val REFUND_KEYWORDS = listOf("취소", "환불", "환급")
         val TOPUP_KEYWORDS = listOf("충전")
+        val ALL_ACTION_KEYWORDS =
+            PAYMENT_KEYWORDS + DEPOSIT_KEYWORDS + TRANSFER_KEYWORDS + REFUND_KEYWORDS + TOPUP_KEYWORDS
         val SECONDARY_AMOUNT_KEYWORDS = listOf("캐시백", "환급", "적립")
         val LOCAL_BLOCK_KEYWORDS = listOf("적립", "한도", "이용가능")
         val BALANCE_TOKEN_REGEX = Regex(

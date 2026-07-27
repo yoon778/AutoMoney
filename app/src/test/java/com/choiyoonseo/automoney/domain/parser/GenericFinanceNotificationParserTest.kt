@@ -67,6 +67,37 @@ class GenericFinanceNotificationParserTest {
     }
 
     @Test
+    fun splitDebitCardWithdrawalFallsBackToTitleAsReviewExpense() {
+        val result = parser.parse(
+            snapshot(
+                title = "출금 10,000원",
+                text = "최*서님 07/27 09:53 942902-**-***922 " +
+                    "한국도로교통 체크카드출금 10,000 잔액52,980"
+            )
+        ) as ParseResult.Parsed
+
+        assertThat(result.draft.amount.won).isEqualTo(10_000)
+        assertThat(result.draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(result.draft.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(result.draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+        assertThat(result.draft.reviewReason).isEqualTo(ReviewReason.LOW_CONFIDENCE_CATEGORY)
+    }
+
+    @Test
+    fun currentPaymentTitleOverridesBalanceOnlyBody() {
+        val result = parser.parse(
+            snapshot(
+                title = "스타벅스 10,000원 결제",
+                text = "잔액52,980"
+            )
+        ) as ParseResult.Parsed
+
+        assertThat(result.draft.amount.won).isEqualTo(10_000)
+        assertThat(result.draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(result.draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+    }
+
+    @Test
     fun selectsAmountFromFirstActionLineWhenExpandedNotificationHasCashbackAmount() {
         val result = parser.parse(
             snapshot(text = "스타벅스 6,000원 결제 완료\n캐시백 안내 6원")

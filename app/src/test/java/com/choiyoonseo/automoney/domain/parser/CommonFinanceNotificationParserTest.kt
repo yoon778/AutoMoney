@@ -406,6 +406,57 @@ class CommonFinanceNotificationParserTest {
     }
 
     @Test
+    fun splitKbDebitCardWithdrawalBecomesReviewExpense() {
+        val result = parser.parse(
+            snapshot(
+                title = "출금 10,000원",
+                text = "최*서님 07/27 09:53 942902-**-***922 " +
+                    "한국도로교통 체크카드출금 10,000 잔액52,980"
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(10_000)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(draft.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+        assertThat(draft.reviewReason).isEqualTo(ReviewReason.LOW_CONFIDENCE_CATEGORY)
+    }
+
+    @Test
+    fun splitDebitCardWithdrawalUsesBodySemanticsWhenTitleSaysApproval() {
+        val result = parser.parse(
+            snapshot(
+                title = "승인 10,000원",
+                text = "최*서님 07/27 09:53 942902-**-***922 " +
+                    "한국도로교통 체크카드출금 10,000 잔액52,980"
+            )
+        )
+
+        val draft = (result as ParseResult.Parsed).draft
+        assertThat(draft.amount.won).isEqualTo(10_000)
+        assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+        assertThat(draft.status).isEqualTo(TransactionStatus.NEEDS_REVIEW)
+    }
+
+    @Test
+    fun currentPaymentTitleOverridesBalanceOnlyBodyForDedicatedBanks() {
+        dedicatedBankFixtures.forEach { fixture ->
+            val result = parser.parse(
+                snapshot(
+                    packageName = fixture.packageName,
+                    title = "스타벅스 10,000원 승인",
+                    text = "잔액52,980"
+                )
+            )
+
+            val draft = (result as ParseResult.Parsed).draft
+            assertThat(draft.amount.won).isEqualTo(10_000)
+            assertThat(draft.type).isEqualTo(TransactionType.EXPENSE)
+        }
+    }
+
+    @Test
     fun nearMatchPackageNeverProducesHint() {
         val result = parser.parse(
             snapshot(
@@ -419,11 +470,12 @@ class CommonFinanceNotificationParserTest {
 
     private fun snapshot(
         packageName: String = "com.kbstar.kbbank",
+        title: String = "KB",
         text: String,
         bigText: String? = null
     ) = NotificationSnapshot(
         packageName = packageName,
-        title = "KB",
+        title = title,
         text = text,
         bigText = bigText,
         postedAt = Instant.parse("2026-07-03T01:00:00Z")

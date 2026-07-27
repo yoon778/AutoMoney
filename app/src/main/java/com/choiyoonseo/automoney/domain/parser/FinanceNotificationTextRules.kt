@@ -33,6 +33,19 @@ internal fun stripFinanceBalanceKeywords(text: String): String =
         current.replace(keyword, "", ignoreCase = true)
     }
 
+internal fun isBalanceOnlyFinanceLine(
+    line: String,
+    actionKeywords: List<String>
+): Boolean {
+    val eventText = stripFinanceBalanceKeywords(line)
+    return isBalanceDetailLine(line) &&
+        actionKeywords.none { eventText.contains(it, ignoreCase = true) }
+}
+
+internal fun isDebitCardWithdrawal(text: String): Boolean =
+    text.contains("체크카드", ignoreCase = true) &&
+        text.contains("출금", ignoreCase = true)
+
 private val FINANCE_PROMOTION_TOKEN_REGEX = Regex(
     """(?<!\p{L})(?:${FINANCE_PROMOTION_KEYWORDS.joinToString("|", transform = Regex::escape)})(?!\p{L})""",
     RegexOption.IGNORE_CASE,

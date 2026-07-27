@@ -27,8 +27,14 @@ class CommonFinanceNotificationParser(
         if (text.isBlank()) {
             return ParseResult.Ignored("empty notification")
         }
-        blockedNotificationReason(snapshot.text.orEmpty())
-            ?.let { return ParseResult.Ignored(it) }
+        blockedNotificationReason(snapshot.text.orEmpty())?.let { reason ->
+            val currentTitleOverridesBalanceOnlyBody =
+                reason == BALANCE_ONLY_REASON &&
+                    hasUsableFinanceEventLine(snapshot.title.orEmpty())
+            if (!currentTitleOverridesBalanceOnlyBody) {
+                return ParseResult.Ignored(reason)
+            }
+        }
         blockedNotificationReason(text)?.let { return ParseResult.Ignored(it) }
 
         val provider = FinancialAppRegistry.providerCandidateForPackage(snapshot.packageName)
@@ -126,6 +132,18 @@ class CommonFinanceNotificationParser(
                 reviewReason = null,
                 merchant = merchant,
                 memo = merchant,
+                hash = hash
+            )
+
+            isDebitCardWithdrawal(text) -> parsed(
+                snapshot = snapshot,
+                amount = amount,
+                direction = TransactionDirection.EXPENSE,
+                type = TransactionType.EXPENSE,
+                status = TransactionStatus.NEEDS_REVIEW,
+                confidence = 0.75,
+                reviewReason = ReviewReason.LOW_CONFIDENCE_CATEGORY,
+                memo = maskedMemo,
                 hash = hash
             )
 
@@ -285,7 +303,7 @@ class CommonFinanceNotificationParser(
         containsAny(line, NON_MOVEMENT_HINT_KEYWORDS) &&
             AMOUNT_REGEX.containsMatchIn(line) &&
             !isBlockedFinanceEventLine(line) &&
-            !isBalanceOnlyFinanceLine(line)
+            !isBalanceOnlyFinanceLine(line, ALL_ACTION_KEYWORDS)
 
     private fun extractMerchant(text: String, amountMatch: AmountMatch): String {
         val line = text.lineSequence().firstOrNull { it.contains(amountMatch.matchedText) } ?: text
@@ -333,10 +351,7 @@ class CommonFinanceNotificationParser(
                     containsAny(line, ALL_ACTION_KEYWORDS)
             }
             .toList()
-        val hasUsableFinanceLine = financeLines.any { line ->
-            !isBlockedFinanceEventLine(line) && !isBalanceOnlyFinanceLine(line)
-        }
-        if (hasUsableFinanceLine) return null
+        if (hasUsableFinanceEventLine(text)) return null
         return when {
             financeLines.any { line ->
                 hasFinancePromotionKeyword(line)
@@ -345,17 +360,22 @@ class CommonFinanceNotificationParser(
                     hasFinancePromotionKeyword(text)
                 ) -> "promotional notification"
             financeLines.any(::isBlockedFinanceEventLine) -> "non-final finance notification"
-            financeLines.any(::isBalanceOnlyFinanceLine) ||
-                text.lineSequence().any(::isBalanceDetailLine) -> "balance-only notification"
+            text.lineSequence().any { line ->
+                isBalanceOnlyFinanceLine(line, ALL_ACTION_KEYWORDS)
+            } -> BALANCE_ONLY_REASON
             hasFinanceNonFinalKeyword(text) ->
                 "non-final finance notification"
             else -> null
         }
     }
 
-    private fun isBalanceOnlyFinanceLine(line: String): Boolean =
-        isBalanceDetailLine(line) &&
-            !containsAny(stripFinanceBalanceKeywords(line), ALL_ACTION_KEYWORDS)
+    private fun hasUsableFinanceEventLine(text: String): Boolean =
+        text.lineSequence().any { line ->
+            AMOUNT_REGEX.containsMatchIn(line) &&
+                containsAny(line, ALL_ACTION_KEYWORDS) &&
+                !isBlockedFinanceEventLine(line) &&
+                !isBalanceOnlyFinanceLine(line, ALL_ACTION_KEYWORDS)
+        }
 
     private fun hasAccountHint(text: String): Boolean =
         containsAny(text, ACCOUNT_KEYWORDS) ||
@@ -392,6 +412,7 @@ class CommonFinanceNotificationParser(
         private val CLAUSE_SEPARATOR_REGEX = Regex("[/·]")
         private val SECONDARY_EVENT_DETAIL_REGEX =
             Regex("""(?:[/·,]\s*)?(?:캐시백|환급|적립).*$""")
+        private const val BALANCE_ONLY_REASON = "balance-only notification"
     }
 
     private data class AmountMatch(
