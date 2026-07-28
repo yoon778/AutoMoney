@@ -32,6 +32,8 @@ val incomeCategoryPool: List<Category> = listOf(
     Category.OTHER
 )
 
+// 기본 노출 카테고리의 단일 출처. 거래 수정 다이얼로그·직접 입력 폼의 목록이 여기서 파생된다
+// (`TransactionEditCategoryOptions.kt`, `ManualCategoryOptions.kt`) — 항목 추가는 여기만 고친다
 val defaultEnabledExpenseCategories: List<Category> = listOf(
     Category.FOOD,
     Category.CAFE_SNACK,
