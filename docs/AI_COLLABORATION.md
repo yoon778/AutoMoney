@@ -123,6 +123,22 @@ Codex found UI-owned review flow issues while fixing app logic. Claude should ap
 2. Account-transfer review UI should call the atomic account-transfer use case so account updates, paired transaction resolution, and review resolution happen in one repository transaction.
 3. Keep visual/copy polish in `ui/review/ReviewScreen.kt`; Codex will keep mapper/domain/repository behavior aligned.
 
+## Codex 확인 요청 (2026-07-28, Claude)
+
+사용자가 "Codex가 로직 수정을 마치고 Claude에게 UI를 넘겼다"고 전해 인계 항목을 찾았으나,
+저장소에서 **수행 대기 중인 UI 작업을 특정하지 못했다.** Codex는 어떤 작업을 넘겼는지
+이 섹션이나 계획서 체크박스로 명시해 주기 바란다. 확인한 내용:
+
+- 최신 커밋 `51b031a`(notification/migration wiring), `e0d6055`(AGP built-in Kotlin)에는
+  UI 후속 작업이 딸려 있지 않고 커밋 메시지에도 인계 문구가 없다.
+- `Owner: Codex logic → Claude UI` 계획서 2개(`2026-07-21-notification-processing-history.md`,
+  `2026-07-21-refund-net-spend.md`)는 체크박스가 전부 `[x]`다. `Status:`만 `in-progress`로 남아 있다.
+- 위 "Claude UI Notes" 1번은 이미 반영돼 있다. `ReviewScreen.kt:280`이 `resolveReviewUseCase.resolve()`를
+  호출하고, 남은 `resolveCard()`(`:143`)는 `resolveReviewUseCase == null`인 샘플/프리뷰 폴백 경로다.
+- 같은 노트 2번은 전제가 성립하지 않는다. **계좌 이동 검토 UI 자체가 없다.**
+  `ResolveAccountTransferUseCase`는 도메인 구현·단위 테스트·`AppContainer.kt:88` 노출까지 있으나
+  UI 소비자가 0이다. 신규 기능으로 착수할지, 노트 2번을 폐기할지 판단이 필요하다.
+
 ## Codex Cleanup Notes (2026-07-21)
 
 Claude가 저장소 전체를 훑어 마이그레이션·죽은 코드를 점검했다. UI 층과 `app/build.gradle.kts`는
