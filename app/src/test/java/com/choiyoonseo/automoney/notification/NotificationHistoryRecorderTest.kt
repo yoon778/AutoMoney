@@ -86,7 +86,25 @@ class NotificationHistoryRecorderTest {
         assertThat(repository.saved.single().amountWon).isEqualTo(6_000)
     }
 
-    private fun prepared(text: String, label: String) = PreparedNotification(
+    @Test
+    fun blockedSourceIsRecordedWithoutAmountOrContent() = runTest {
+        val repository = RecordingHistoryRepository()
+        val recorder = NotificationHistoryRecorder(repository, clock = fixedClock)
+
+        recorder.recordResult(
+            prepared(text = null, label = "케이뱅크")
+                .copy(sourceAccess = NotificationSourceAccess.BLOCKED),
+            IngestionResult.Ignored("blocked source")
+        )
+
+        val row = repository.saved.single()
+        assertThat(row.status).isEqualTo(NotificationHistoryStatus.BLOCKED)
+        assertThat(row.reason).isEqualTo(NotificationHistoryReason.BLOCKED_SOURCE)
+        assertThat(row.amountWon).isNull()
+        assertThat(row.transactionType).isNull()
+    }
+
+    private fun prepared(text: String?, label: String) = PreparedNotification(
         snapshot = NotificationSnapshot(
             packageName = "com.kbankwith.smartbank",
             title = null,

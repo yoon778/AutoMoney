@@ -97,10 +97,10 @@ Append a line before you start editing a shared/boundary file; remove it in the 
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
-- [2026-07-28] Claude claims `domain/notificationhistory/NotificationHistoryModels.kt` — 차단 알림 이력화: BLOCKED 상태/BLOCKED_SOURCE 사유 추가 (Codex 소유 로직, 사용자 지시로 대행)
-- [2026-07-28] Claude claims `notification/NotificationDispatchCoordinator.kt` — 차단 소스를 본문 미독취로 이력에 남기도록 prepare 분기 추가
-- [2026-07-28] Claude claims `notification/NotificationHistoryRecorder.kt` — sourceAccess=BLOCKED를 BLOCKED/BLOCKED_SOURCE로 매핑
-- [2026-07-28] Claude claims `ui/model/NotificationHistoryUi.kt` — 경계구역 2번, BLOCKED 라벨 "차단된 앱" 1줄 추가
+- (해제됨 2026-07-28) Claude claims `domain/notificationhistory/NotificationHistoryModels.kt` — 차단 알림 이력화: BLOCKED 상태/BLOCKED_SOURCE 사유 추가 (Codex 소유 로직, 사용자 지시로 대행)
+- (해제됨 2026-07-28) Claude claims `notification/NotificationDispatchCoordinator.kt` — 차단 소스를 본문 미독취로 이력에 남기도록 prepare 분기 추가
+- (해제됨 2026-07-28) Claude claims `notification/NotificationHistoryRecorder.kt` — sourceAccess=BLOCKED를 BLOCKED/BLOCKED_SOURCE로 매핑
+- (해제됨 2026-07-28) Claude claims `ui/model/NotificationHistoryUi.kt` — 경계구역 2번, BLOCKED 라벨 "차단된 앱" 1줄 추가
 - (해제됨 2026-07-24) Claude claims `di/AppContainer.kt` — 알림 수집 앱 자동 감지(recordObserved) 배선을 no-op으로 비활성화
 - (해제됨 2026-07-21) Claude claims `ui/AppRoot.kt` — 환급 수동 연결과 알림 처리 내역 의존성 전달
 - (해제됨 2026-07-21) Claude claims `MainActivity.kt` — 위 3개 의존성을 AppRoot에 전달

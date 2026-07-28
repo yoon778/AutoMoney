@@ -32,6 +32,33 @@ class NotificationDispatchCoordinatorTest {
     }
 
     @Test
+    fun blockedFinancialAppIsPreparedForHistoryWithoutContent() {
+        var reads = 0
+        val coordinator = NotificationDispatchCoordinator(
+            accessFor = { NotificationSourceAccess.BLOCKED },
+            recordObserved = { _, _ -> },
+            snapshotBuilder = NotificationSnapshotBuilder(),
+            resolveInstalledLabel = { "케이뱅크" }
+        )
+
+        val prepared = coordinator.prepare(
+            packageName = FinancialAppRegistry.K_BANKING_PACKAGE,
+            postedAt = Instant.ofEpochMilli(1000),
+            readContent = {
+                reads += 1
+                error("blocked content must not be read")
+            }
+        )
+
+        assertThat(reads).isEqualTo(0)
+        assertThat(prepared?.sourceAccess).isEqualTo(NotificationSourceAccess.BLOCKED)
+        assertThat(prepared?.sourceLabel).isEqualTo("케이뱅크")
+        assertThat(prepared?.snapshot?.packageName).isEqualTo(FinancialAppRegistry.K_BANKING_PACKAGE)
+        assertThat(prepared?.snapshot?.postedAt).isEqualTo(Instant.ofEpochMilli(1000))
+        assertThat(prepared?.snapshot?.combinedText).isEmpty()
+    }
+
+    @Test
     fun allowedSourceReadsContentExactlyOnceAndCarriesAccess() {
         var reads = 0
         val coordinator = NotificationDispatchCoordinator(

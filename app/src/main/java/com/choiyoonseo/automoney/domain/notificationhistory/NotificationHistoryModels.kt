@@ -8,6 +8,7 @@ enum class NotificationHistoryStatus {
     REVIEW,
     IGNORED,
     DUPLICATE,
+    BLOCKED,
     ERROR,
     RESOLVED_MANUALLY
 }
@@ -17,6 +18,7 @@ enum class NotificationHistoryReason {
     REVIEW_REQUIRED,
     PARSER_IGNORED,
     DUPLICATE_EVENT,
+    BLOCKED_SOURCE,
     PROCESSING_ERROR,
     MANUAL_RECORD_CREATED
 }

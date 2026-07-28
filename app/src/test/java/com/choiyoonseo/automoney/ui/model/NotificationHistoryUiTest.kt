@@ -19,6 +19,7 @@ class NotificationHistoryUiTest {
             NotificationHistoryStatus.REVIEW, "검토 필요",
             NotificationHistoryStatus.IGNORED, "처리 안 됨",
             NotificationHistoryStatus.DUPLICATE, "중복 알림",
+            NotificationHistoryStatus.BLOCKED, "차단된 앱",
             NotificationHistoryStatus.ERROR, "처리 오류",
             NotificationHistoryStatus.RESOLVED_MANUALLY, "직접 기록 완료"
         )

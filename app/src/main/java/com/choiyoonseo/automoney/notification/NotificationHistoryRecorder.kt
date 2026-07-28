@@ -50,20 +50,23 @@ class NotificationHistoryRecorder(
     private fun IngestionResult.toHistoryRecord(
         prepared: PreparedNotification
     ): NotificationHistoryRecord {
-        val status = when (this) {
-            is IngestionResult.Saved -> if (reviewReason == null) {
+        val status = when {
+            prepared.sourceAccess == NotificationSourceAccess.BLOCKED ->
+                NotificationHistoryStatus.BLOCKED
+            this is IngestionResult.Saved -> if (reviewReason == null) {
                 NotificationHistoryStatus.SAVED
             } else {
                 NotificationHistoryStatus.REVIEW
             }
-            is IngestionResult.Duplicate -> NotificationHistoryStatus.DUPLICATE
-            is IngestionResult.Ignored -> NotificationHistoryStatus.IGNORED
+            this is IngestionResult.Duplicate -> NotificationHistoryStatus.DUPLICATE
+            else -> NotificationHistoryStatus.IGNORED
         }
         val reason = when (status) {
             NotificationHistoryStatus.SAVED -> NotificationHistoryReason.SAVED_AUTOMATICALLY
             NotificationHistoryStatus.REVIEW -> NotificationHistoryReason.REVIEW_REQUIRED
             NotificationHistoryStatus.DUPLICATE -> NotificationHistoryReason.DUPLICATE_EVENT
             NotificationHistoryStatus.IGNORED -> NotificationHistoryReason.PARSER_IGNORED
+            NotificationHistoryStatus.BLOCKED -> NotificationHistoryReason.BLOCKED_SOURCE
             NotificationHistoryStatus.ERROR -> NotificationHistoryReason.PROCESSING_ERROR
             NotificationHistoryStatus.RESOLVED_MANUALLY -> NotificationHistoryReason.MANUAL_RECORD_CREATED
         }
