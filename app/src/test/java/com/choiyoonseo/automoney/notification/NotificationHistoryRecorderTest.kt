@@ -22,10 +22,7 @@ class NotificationHistoryRecorderTest {
         val repository = RecordingHistoryRepository()
         val recorder = NotificationHistoryRecorder(repository, clock = fixedClock)
 
-        recorder.recordError(
-            prepared(text = "계좌 123-456 홍길동", label = "케이뱅크"),
-            IllegalStateException("secret")
-        )
+        recorder.recordError(prepared(text = "계좌 123-456 홍길동", label = "케이뱅크"))
 
         val row = repository.saved.single()
         assertThat(row.sourceLabel).isEqualTo("케이뱅크")

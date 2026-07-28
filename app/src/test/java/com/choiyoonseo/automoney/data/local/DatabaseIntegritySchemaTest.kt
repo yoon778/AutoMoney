@@ -26,38 +26,24 @@ class DatabaseIntegritySchemaTest {
     }
 
     @Test
-    fun databaseVersionBumpsForIntegrityMigration() {
-        val database = File("src/main/java/com/choiyoonseo/automoney/data/local/AppDatabase.kt")
-            .readText()
-        val appContainer = File("src/main/java/com/choiyoonseo/automoney/di/AppContainer.kt")
-            .readText()
-
-        assertThat(database).contains("version = 14")
-        assertThat(database).contains("MIGRATION_2_3")
-        assertThat(database).contains("MIGRATION_3_4")
-        assertThat(database).contains("MIGRATION_4_5")
-        assertThat(database).contains("MIGRATION_5_6")
-        assertThat(database).contains("MIGRATION_6_7")
-        assertThat(database).contains("MIGRATION_7_8")
-        assertThat(database).contains("MIGRATION_8_9")
-        assertThat(database).contains("MIGRATION_9_10")
-        assertThat(database).contains("MIGRATION_10_11")
-        assertThat(database).contains("MIGRATION_11_12")
-        assertThat(database).contains("MIGRATION_12_13")
-        assertThat(database).contains("MIGRATION_13_14")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_1_2")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_2_3")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_3_4")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_4_5")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_5_6")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_6_7")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_7_8")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_8_9")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_9_10")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_10_11")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_11_12")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_12_13")
-        assertThat(appContainer).contains("AppDatabase.MIGRATION_13_14")
+    fun registeredMigrationsAreContinuousThroughCurrentSchema() {
+        assertThat(AppDatabase.MIGRATIONS.map { it.startVersion to it.endVersion })
+            .containsExactly(
+                1 to 2,
+                2 to 3,
+                3 to 4,
+                4 to 5,
+                5 to 6,
+                6 to 7,
+                7 to 8,
+                8 to 9,
+                9 to 10,
+                10 to 11,
+                11 to 12,
+                12 to 13,
+                13 to 14
+            )
+            .inOrder()
     }
 
     @Test

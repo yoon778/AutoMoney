@@ -74,7 +74,7 @@ class MoneyNotificationListenerService : NotificationListenerService() {
 
     private suspend fun recordFailure(prepared: PreparedNotification, throwable: RuntimeException) {
         val app = applicationContext as AutoMoneyApplication
-        app.container.notificationHistoryRecorder.recordError(prepared, throwable)
+        app.container.notificationHistoryRecorder.recordError(prepared)
         try {
             app.container.notificationDiagnosticsStore.save(
                 LastNotificationDiagnostic.fromError(

@@ -18,11 +18,7 @@ class NotificationHistoryRecorder(
             repository.recordAndPrune(result.toHistoryRecord(prepared))
         }
 
-    @Suppress("UNUSED_PARAMETER")
-    suspend fun recordError(
-        prepared: PreparedNotification,
-        throwable: RuntimeException? = null
-    ): Boolean = bestEffort {
+    suspend fun recordError(prepared: PreparedNotification): Boolean = bestEffort {
         repository.recordAndPrune(
             NotificationHistoryRecord(
                 packageName = prepared.snapshot.packageName,

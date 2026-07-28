@@ -44,18 +44,9 @@ class AppContainer(context: Context) {
         SharedPreferencesObservedNotificationSourceStore(context.applicationContext)
     val notificationDispatchCoordinator = NotificationDispatchCoordinator(
         accessFor = notificationAppAccessStore::accessFor,
-        recordObserved = { _, _ -> },
+        recordObserved = observedNotificationSourceStore::record,
         snapshotBuilder = NotificationSnapshotBuilder(),
-        resolveInstalledLabel = { packageName ->
-            try {
-                val packageManager = context.applicationContext.packageManager
-                packageManager.getApplicationLabel(
-                    packageManager.getApplicationInfo(packageName, 0)
-                ).toString()
-            } catch (_: PackageManager.NameNotFoundException) {
-                null
-            }
-        }
+        resolveInstalledLabel = context.applicationContext::installedApplicationLabel
     )
     val notificationDiagnosticsStore = NotificationDiagnosticsStore(context.applicationContext)
     val notificationIngestionFeedbackNotifier =
@@ -63,16 +54,7 @@ class AppContainer(context: Context) {
     val notificationSourceSettingsService = NotificationSourceSettingsService(
         accessStore = notificationAppAccessStore,
         observedStore = observedNotificationSourceStore,
-        resolveInstalledLabel = { packageName ->
-            try {
-                val packageManager = context.applicationContext.packageManager
-                packageManager.getApplicationLabel(
-                    packageManager.getApplicationInfo(packageName, 0)
-                ).toString()
-            } catch (_: PackageManager.NameNotFoundException) {
-                null
-            }
-        },
+        resolveInstalledLabel = context.applicationContext::installedApplicationLabel,
         clearDiagnosticIfPackage = notificationDiagnosticsStore::clearIfPackage
     )
     val walletTopupNoticeStore = SharedPreferencesWalletTopupNoticeStore(context.applicationContext)
@@ -82,21 +64,7 @@ class AppContainer(context: Context) {
         context.applicationContext,
         AppDatabase::class.java,
         "auto_money.db"
-    ).addMigrations(
-        AppDatabase.MIGRATION_1_2,
-        AppDatabase.MIGRATION_2_3,
-        AppDatabase.MIGRATION_3_4,
-        AppDatabase.MIGRATION_4_5,
-        AppDatabase.MIGRATION_5_6,
-        AppDatabase.MIGRATION_6_7,
-        AppDatabase.MIGRATION_7_8,
-        AppDatabase.MIGRATION_8_9,
-        AppDatabase.MIGRATION_9_10,
-        AppDatabase.MIGRATION_10_11,
-        AppDatabase.MIGRATION_11_12,
-        AppDatabase.MIGRATION_12_13,
-        AppDatabase.MIGRATION_13_14
-    ).build()
+    ).addMigrations(*AppDatabase.MIGRATIONS.toTypedArray()).build()
 
     val repository = RoomMoneyRepository(database)
     val assetRepository = RoomAssetRepository(database)
@@ -145,3 +113,11 @@ class AppContainer(context: Context) {
         notificationDiagnosticsStore = notificationDiagnosticsStore
     )
 }
+
+private fun Context.installedApplicationLabel(packageName: String): String? =
+    try {
+        packageManager.getApplicationLabel(packageManager.getApplicationInfo(packageName, 0))
+            .toString()
+    } catch (_: PackageManager.NameNotFoundException) {
+        null
+    }
