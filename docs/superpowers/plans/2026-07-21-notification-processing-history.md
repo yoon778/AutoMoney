@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-Status: in-progress
+Status: complete
 Owner: Codex logic → Claude UI
 
 **Goal:** 최근 금융 알림의 처리 결과를 민감 원문 없이 설명하고 누락 거래를 직접 기록한다
