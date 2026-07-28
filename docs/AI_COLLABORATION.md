@@ -97,6 +97,7 @@ Append a line before you start editing a shared/boundary file; remove it in the 
 Format: `- [YYYY-MM-DD] <agent> claims <path> — <reason>`
 
 <!-- active claims below -->
+- [2026-07-28] Claude claims `di/AppContainer.kt` — 미등록 감지 앱 목록 복원: `recordObserved` no-op 배선을 `observedNotificationSourceStore::record`로 되돌림 (없으면 목록이 영구히 비어 기능이 성립하지 않음)
 - (해제됨 2026-07-28) Claude claims `domain/notificationhistory/NotificationHistoryModels.kt` — 차단 알림 이력화: BLOCKED 상태/BLOCKED_SOURCE 사유 추가 (Codex 소유 로직, 사용자 지시로 대행)
 - (해제됨 2026-07-28) Claude claims `notification/NotificationDispatchCoordinator.kt` — 차단 소스를 본문 미독취로 이력에 남기도록 prepare 분기 추가
 - (해제됨 2026-07-28) Claude claims `notification/NotificationHistoryRecorder.kt` — sourceAccess=BLOCKED를 BLOCKED/BLOCKED_SOURCE로 매핑
