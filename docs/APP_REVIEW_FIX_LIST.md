@@ -51,7 +51,7 @@ Ownership legend: **[UI]** = Claude, **[LOGIC]** = Codex, **[SHARED]** = contrac
 |---|------|--------|-------|
 | D1 | List performance | Screens render transaction lists with `Column` + `forEach` inside `verticalScroll`. Fine now; will degrade with hundreds of rows. Consider `LazyColumn` when C1 touches these screens. | [UI] |
 | D2 | Split `ReviewScreen.kt` (831 lines) | Extract the dialogs (wallet usage, memo, transfer) into their own files for maintainability. | [UI] |
-| D3 | Build-config deprecation warnings | Gradle warns about `android.builtInKotlin=false`, `android.newDsl=false`, and the legacy `applicationVariants` API (AGP 10 removal). Not urgent; app-level build config. | [LOGIC] |
+| D3 | ~~Build-config deprecation warnings~~ | **DONE 2026-07-28:** AGP 9 built-in Kotlin·신규 DSL 활성화, `kotlin-android` 제거, KSP2 `2.3.10` 전환. 남은 Gradle 10 경고는 AGP 9.2.1 내부 `VariantDependenciesBuilder`에서 발생. | done |
 
 ---
 

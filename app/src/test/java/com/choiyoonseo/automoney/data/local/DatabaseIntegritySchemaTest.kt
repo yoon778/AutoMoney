@@ -54,7 +54,8 @@ class DatabaseIntegritySchemaTest {
 
         assertThat(database).contains("exportSchema = true")
         assertThat(buildFile).contains("arg(\"room.schemaLocation\", \"\$projectDir/schemas\")")
-        assertThat(buildFile).contains("getByName(\"androidTest\").assets.srcDir(\"\$projectDir/schemas\")")
+        assertThat(buildFile)
+            .contains("getByName(\"androidTest\").assets.directories += \"\$projectDir/schemas\"")
     }
 
     @Test
