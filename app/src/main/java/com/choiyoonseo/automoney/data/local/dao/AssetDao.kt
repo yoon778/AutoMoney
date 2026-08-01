@@ -26,8 +26,8 @@ interface AssetDao {
     @Query("DELETE FROM fixed_expenses WHERE id = :id")
     suspend fun deleteFixedExpense(id: Long)
 
-    @Query("SELECT * FROM monthly_plan_items ORDER BY type ASC, amountWon DESC")
-    fun observeMonthlyPlanItems(): Flow<List<MonthlyPlanItemEntity>>
+    @Query("SELECT * FROM monthly_plan_items WHERE monthKey = :monthKey ORDER BY type ASC, amountWon DESC")
+    fun observeMonthlyPlanItems(monthKey: String): Flow<List<MonthlyPlanItemEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMonthlyPlanItem(entity: MonthlyPlanItemEntity): Long

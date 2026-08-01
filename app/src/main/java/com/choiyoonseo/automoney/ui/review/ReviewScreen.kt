@@ -113,8 +113,8 @@ fun ReviewScreen(
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val budgetMonth = remember { YearMonth.now(AppDateZoneId) }
-    val monthlyPlans by remember(assetRepository) {
-        assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
+    val monthlyPlans by remember(assetRepository, budgetMonth) {
+        assetRepository?.observeMonthlyPlanItems(budgetMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val budgetUsages = remember(monthlyPlans, allTransactions, budgetMonth) {
         buildCategoryBudgetUsages(

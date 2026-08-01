@@ -31,7 +31,7 @@ import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
         UserCategoryEntity::class,
         NotificationHistoryEntity::class
     ],
-    version = 14,
+    version = 15,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -336,6 +336,43 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_14_15 = object : Migration(14, 15) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS monthly_plan_items_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        label TEXT NOT NULL,
+                        amountWon INTEGER NOT NULL,
+                        type TEXT NOT NULL,
+                        category TEXT,
+                        customCategoryId INTEGER,
+                        customCategoryName TEXT,
+                        monthKey TEXT NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO monthly_plan_items_new (
+                        id, label, amountWon, type, category,
+                        customCategoryId, customCategoryName, monthKey
+                    )
+                    SELECT id, label, amountWon, type, category,
+                           customCategoryId, customCategoryName,
+                           strftime('%Y-%m', 'now', 'localtime')
+                    FROM monthly_plan_items
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE monthly_plan_items")
+                db.execSQL("ALTER TABLE monthly_plan_items_new RENAME TO monthly_plan_items")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_monthly_plan_items_monthKey " +
+                        "ON monthly_plan_items(monthKey)"
+                )
+            }
+        }
+
         val MIGRATIONS: List<Migration> = listOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -349,7 +386,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_10_11,
             MIGRATION_11_12,
             MIGRATION_12_13,
-            MIGRATION_13_14
+            MIGRATION_13_14,
+            MIGRATION_14_15
         )
     }
 }

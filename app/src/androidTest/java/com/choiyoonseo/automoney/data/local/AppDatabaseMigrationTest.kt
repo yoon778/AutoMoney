@@ -11,6 +11,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.YearMonth
 
 @RunWith(AndroidJUnit4::class)
 class AppDatabaseMigrationTest {
@@ -260,6 +261,34 @@ class AppDatabaseMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration14To15AssignsLegacyPlansToCurrentMonth() {
+        helper.createDatabase(NINTH_TEST_DB, 14).apply {
+            insertMonthlyPlanItem(id = 1)
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            NINTH_TEST_DB,
+            15,
+            true,
+            AppDatabase.MIGRATION_14_15
+        )
+
+        assertEquals(
+            YearMonth.now().toString(),
+            db.singleString("SELECT monthKey FROM monthly_plan_items WHERE id = 1")
+        )
+        assertEquals(
+            1,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' " +
+                    "AND name = 'index_monthly_plan_items_monthKey'"
+            )
+        )
+        db.close()
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?,
@@ -377,6 +406,7 @@ class AppDatabaseMigrationTest {
         const val SIXTH_TEST_DB = "migration-test-11-12"
         const val SEVENTH_TEST_DB = "migration-test-12-13"
         const val EIGHTH_TEST_DB = "migration-test-13-14"
+        const val NINTH_TEST_DB = "migration-test-14-15"
         const val WALLET_TEST_DB = "migration-test-4-5-wallets"
     }
 }

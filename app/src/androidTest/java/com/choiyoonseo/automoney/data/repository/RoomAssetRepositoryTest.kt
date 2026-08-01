@@ -20,8 +20,11 @@ import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
+import java.time.YearMonth
 
 class RoomAssetRepositoryTest {
+    private val july = YearMonth.of(2026, 7)
+    private val august = YearMonth.of(2026, 8)
     private lateinit var database: AppDatabase
     private lateinit var repository: RoomAssetRepository
 
@@ -59,10 +62,38 @@ class RoomAssetRepositoryTest {
     }
 
     @Test
+    fun fixedExpenseUpdateReplacesSameDatabaseRow() = runBlocking {
+        val id = repository.saveFixedExpense(
+            FixedExpensePlan(
+                name = "통신비",
+                amountWon = 70_000,
+                withdrawalDay = 15,
+                accountName = "국민은행"
+            )
+        )
+
+        repository.saveFixedExpense(
+            FixedExpensePlan(
+                id = id,
+                name = "휴대폰 요금",
+                amountWon = 80_000,
+                withdrawalDay = 20,
+                accountName = "국민은행"
+            )
+        )
+
+        val stored = repository.observeFixedExpenses().first().single()
+        assertEquals(id, stored.id)
+        assertEquals("휴대폰 요금", stored.name)
+        assertEquals(80_000, stored.amountWon)
+        assertEquals(20, stored.withdrawalDay)
+    }
+
+    @Test
     fun savingMonthlyPlanItemReemitsObservedItems() = runBlocking {
         val initialEmission = CompletableDeferred<Unit>()
         val emissions = async {
-            repository.observeMonthlyPlanItems()
+            repository.observeMonthlyPlanItems(july)
                 .onEach { initialEmission.complete(Unit) }
                 .take(2)
                 .toList()
@@ -70,7 +101,8 @@ class RoomAssetRepositoryTest {
         initialEmission.await()
 
         repository.saveMonthlyPlanItem(
-            MonthlyPlanItem(label = "식비", amountWon = 300_000, type = MonthlyPlanItemType.BUDGET)
+            MonthlyPlanItem(label = "식비", amountWon = 300_000, type = MonthlyPlanItemType.BUDGET),
+            july
         )
 
         assertEquals(0, emissions.await().first().size)
@@ -87,13 +119,38 @@ class RoomAssetRepositoryTest {
                 category = Category.OTHER,
                 customCategoryId = 7,
                 customCategoryName = "데이트비용"
-            )
+            ),
+            july
         )
 
-        val stored = repository.observeMonthlyPlanItems().first().single()
+        val stored = repository.observeMonthlyPlanItems(july).first().single()
 
         assertEquals(Category.OTHER, stored.category)
-        assertEquals(7, stored.customCategoryId)
+        assertEquals(7L, stored.customCategoryId)
         assertEquals("데이트비용", stored.customCategoryName)
+    }
+
+    @Test
+    fun monthlyPlansAreIsolatedByYearMonthAndUpdatesKeepTheirMonth() = runBlocking {
+        repository.saveMonthlyPlanItem(
+            MonthlyPlanItem(label = "7월 식비", amountWon = 300_000, type = MonthlyPlanItemType.BUDGET),
+            july
+        )
+        val augustId = repository.saveMonthlyPlanItem(
+            MonthlyPlanItem(label = "8월 식비", amountWon = 400_000, type = MonthlyPlanItemType.BUDGET),
+            august
+        )
+        repository.saveMonthlyPlanItem(
+            MonthlyPlanItem(
+                id = augustId,
+                label = "8월 수정 식비",
+                amountWon = 450_000,
+                type = MonthlyPlanItemType.BUDGET
+            ),
+            august
+        )
+
+        assertEquals("7월 식비", repository.observeMonthlyPlanItems(july).first().single().label)
+        assertEquals("8월 수정 식비", repository.observeMonthlyPlanItems(august).first().single().label)
     }
 }

@@ -150,7 +150,10 @@ data class FixedExpenseEntity(
     val active: Boolean
 )
 
-@Entity(tableName = "monthly_plan_items")
+@Entity(
+    tableName = "monthly_plan_items",
+    indices = [Index(value = ["monthKey"])]
+)
 data class MonthlyPlanItemEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val label: String,
@@ -158,7 +161,8 @@ data class MonthlyPlanItemEntity(
     val type: MonthlyPlanItemType,
     val category: Category? = null,
     val customCategoryId: Long? = null,
-    val customCategoryName: String? = null
+    val customCategoryName: String? = null,
+    val monthKey: String
 )
 
 @Entity(

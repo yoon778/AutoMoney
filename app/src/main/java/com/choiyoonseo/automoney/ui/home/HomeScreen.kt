@@ -124,8 +124,8 @@ fun HomeScreen(
     }
     var activeDetail by remember { mutableStateOf<HomeDetailDialogState?>(null) }
     val scope = rememberCoroutineScope()
-    val monthlyPlans by remember(assetRepository) {
-        assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
+    val monthlyPlans by remember(assetRepository, month) {
+        assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val budgetUsages = remember(monthlyPlans, transactions) {
         buildCategoryBudgetUsages(monthlyPlans, transactions)

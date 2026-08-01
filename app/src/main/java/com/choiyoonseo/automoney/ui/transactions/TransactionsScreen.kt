@@ -110,8 +110,8 @@ fun TransactionsScreen(
     val currentMonthTransactions by remember(moneyRepository, currentMonth) {
         moneyRepository?.observeTransactionsForMonth(currentMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val monthlyPlans by remember(assetRepository) {
-        assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
+    val monthlyPlans by remember(assetRepository, currentMonth) {
+        assetRepository?.observeMonthlyPlanItems(currentMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val budgetUsages = remember(monthlyPlans, currentMonthTransactions) {
         buildCategoryBudgetUsages(monthlyPlans, currentMonthTransactions)

@@ -10,6 +10,7 @@ import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
 import com.choiyoonseo.automoney.domain.assets.validatedForSave
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import java.time.YearMonth
 
 class RoomAssetRepository(
     private val db: AppDatabase
@@ -20,8 +21,8 @@ class RoomAssetRepository(
     override fun observeFixedExpenses(): Flow<List<FixedExpensePlan>> =
         db.assetDao().observeFixedExpenses().map { plans -> plans.map { it.toDomain() } }
 
-    override fun observeMonthlyPlanItems(): Flow<List<MonthlyPlanItem>> =
-        db.assetDao().observeMonthlyPlanItems().map { items -> items.map { it.toDomain() } }
+    override fun observeMonthlyPlanItems(month: YearMonth): Flow<List<MonthlyPlanItem>> =
+        db.assetDao().observeMonthlyPlanItems(month.toString()).map { items -> items.map { it.toDomain() } }
 
     override suspend fun saveAccount(account: AssetAccount): Long =
         db.assetDao().insertAccount(account.toEntity())
@@ -29,8 +30,8 @@ class RoomAssetRepository(
     override suspend fun saveFixedExpense(plan: FixedExpensePlan): Long =
         db.assetDao().insertFixedExpense(plan.validatedForSave().toEntity())
 
-    override suspend fun saveMonthlyPlanItem(item: MonthlyPlanItem): Long =
-        db.assetDao().insertMonthlyPlanItem(item.toEntity())
+    override suspend fun saveMonthlyPlanItem(item: MonthlyPlanItem, month: YearMonth): Long =
+        db.assetDao().insertMonthlyPlanItem(item.toEntity(month))
 
     override suspend fun deleteFixedExpense(id: Long) =
         db.assetDao().deleteFixedExpense(id)
@@ -94,7 +95,7 @@ private fun MonthlyPlanItemEntity.toDomain(): MonthlyPlanItem =
         customCategoryName = customCategoryName
     )
 
-private fun MonthlyPlanItem.toEntity(): MonthlyPlanItemEntity =
+private fun MonthlyPlanItem.toEntity(month: YearMonth): MonthlyPlanItemEntity =
     MonthlyPlanItemEntity(
         id = id,
         label = label,
@@ -102,5 +103,6 @@ private fun MonthlyPlanItem.toEntity(): MonthlyPlanItemEntity =
         type = type,
         category = category,
         customCategoryId = customCategoryId,
-        customCategoryName = customCategoryName
+        customCategoryName = customCategoryName,
+        monthKey = month.toString()
     )

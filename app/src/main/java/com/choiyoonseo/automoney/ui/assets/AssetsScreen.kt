@@ -43,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -84,6 +85,7 @@ import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
+import com.choiyoonseo.automoney.ui.components.monthPagerLabel
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.model.formatWon
 import kotlinx.coroutines.flow.flowOf
@@ -105,10 +107,10 @@ fun AssetsScreen(
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(sampleFixedExpenses)
     }.collectAsState(initial = emptyList())
-    val monthlyPlans by remember(assetRepository) {
-        assetRepository?.observeMonthlyPlanItems() ?: flowOf(sampleMonthlyPlanItems)
+    var month by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
+    val monthlyPlans by remember(assetRepository, month) {
+        assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(sampleMonthlyPlanItems)
     }.collectAsState(initial = emptyList())
-    val month = remember { YearMonth.now(AppDateZoneId) }
     val monthTransactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -154,10 +156,36 @@ fun AssetsScreen(
             subtitle = "카테고리별 예산에서 얼마나 썼는지 봐요"
         )
 
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = { month = month.minusMonths(1) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("이전 달")
+            }
+            Text(
+                monthPagerLabel(month),
+                modifier = Modifier.weight(1.2f),
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                fontWeight = FontWeight.Bold,
+                color = MoneyTheme.colors.ink
+            )
+            OutlinedButton(
+                onClick = { month = month.plusMonths(1) },
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("다음 달")
+            }
+        }
+
         message?.let { AssistChip(onClick = {}, label = { Text(it) }) }
 
         FinanceSectionCard(
-            title = "이번 달 예산",
+            title = "${month.monthValue}월 예산",
             subtitle = "남은 금액 기준 · 초과는 빨간색",
             accent = MoneyBlue,
             icon = Icons.Filled.AccountBalance
@@ -248,34 +276,36 @@ fun AssetsScreen(
                 }
             )
 
-            AssetSection.PLAN -> MonthlyPlanPanel(
-                items = monthlyPlans,
-                usages = budgetUsages,
-                userExpenseCategories = userExpenseCategories.filter { it.kind == UserCategoryKind.EXPENSE },
-                plannedRemainingWon = overview.plannedRemainingWon.takeIf { overview.totalIncomeWon > 0 },
-                onSave = { item ->
-                    val repository = assetRepository
-                    if (repository == null) {
-                        message = "미리보기에서는 저장하지 않아요."
-                    } else {
-                        scope.launch {
-                            repository.saveMonthlyPlanItem(item)
-                            message = "${item.label} 계획을 저장했어요."
+            AssetSection.PLAN -> key(month) {
+                MonthlyPlanPanel(
+                    items = monthlyPlans,
+                    usages = budgetUsages,
+                    userExpenseCategories = userExpenseCategories.filter { it.kind == UserCategoryKind.EXPENSE },
+                    plannedRemainingWon = overview.plannedRemainingWon.takeIf { overview.totalIncomeWon > 0 },
+                    onSave = { item ->
+                        val repository = assetRepository
+                        if (repository == null) {
+                            message = "미리보기에서는 저장하지 않아요."
+                        } else {
+                            scope.launch {
+                                repository.saveMonthlyPlanItem(item, month)
+                                message = "${month.monthValue}월 ${item.label} 계획을 저장했어요."
+                            }
+                        }
+                    },
+                    onDelete = { item ->
+                        val repository = assetRepository
+                        if (repository == null) {
+                            message = "미리보기에서는 삭제하지 않아요."
+                        } else {
+                            scope.launch {
+                                repository.deleteMonthlyPlanItem(item.id)
+                                message = "${item.label} 계획을 삭제했어요."
+                            }
                         }
                     }
-                },
-                onDelete = { item ->
-                    val repository = assetRepository
-                    if (repository == null) {
-                        message = "미리보기에서는 삭제하지 않아요."
-                    } else {
-                        scope.launch {
-                            repository.deleteMonthlyPlanItem(item.id)
-                            message = "${item.label} 계획을 삭제했어요."
-                        }
-                    }
-                }
-            )
+                )
+            }
         }
     }
 }
@@ -381,6 +411,29 @@ private fun FixedExpensePanel(
     onDelete: (FixedExpensePlan) -> Unit
 ) {
     var pendingDelete by remember { mutableStateOf<FixedExpensePlan?>(null) }
+    var editingPlan by remember { mutableStateOf<FixedExpensePlan?>(null) }
+    editingPlan?.let { plan ->
+        MoneyDialog(
+            title = "고정지출 수정",
+            subtitle = "금액·출금일·출금 수단을 바꿀 수 있어요.",
+            onDismiss = { editingPlan = null },
+            buttons = {}
+        ) {
+            FixedExpenseInputCard(
+                editingPlan = plan,
+                onSave = { updated ->
+                    onSave(updated)
+                    editingPlan = null
+                },
+                onCancel = { editingPlan = null },
+                onDelete = { target ->
+                    pendingDelete = target
+                    editingPlan = null
+                },
+                showCard = false
+            )
+        }
+    }
     pendingDelete?.let { plan ->
         DeleteConfirmDialog(
             name = plan.name,
@@ -404,29 +457,61 @@ private fun FixedExpensePanel(
                     subtitle = "매월 ${plan.withdrawalDay}일 · ${plan.accountName}",
                     amountWon = plan.amountWon,
                     accent = categoryAccentForName(plan.name),
-                    actionLabel = "삭제",
-                    onAction = { pendingDelete = plan },
-                    actionIcon = Icons.Filled.Delete
+                    actionLabel = "수정",
+                    onAction = { editingPlan = plan },
+                    actionIcon = Icons.Filled.Edit
                 )
             }
             if (plans.isEmpty()) {
                 Text("아직 등록된 고정지출이 없어요.")
             }
         }
-        FixedExpenseInputCard(onSave = onSave)
+        FixedExpenseInputCard(
+            editingPlan = null,
+            onSave = onSave,
+            onCancel = {},
+            onDelete = {},
+            showCard = true
+        )
     }
+}
+
+internal fun fixedExpensePlanForSave(
+    existing: FixedExpensePlan?,
+    name: String,
+    amountWon: Long,
+    withdrawalDay: Int,
+    accountName: String
+): FixedExpensePlan {
+    val cleanAccountName = accountName.trim()
+    return FixedExpensePlan(
+        id = existing?.id ?: 0,
+        name = name.trim(),
+        amountWon = amountWon,
+        withdrawalDay = withdrawalDay,
+        accountName = cleanAccountName,
+        accountId = existing?.accountId?.takeIf { existing.accountName.trim() == cleanAccountName },
+        active = existing?.active ?: true
+    ).validatedForSave()
 }
 
 @Composable
 private fun FixedExpenseInputCard(
-    onSave: (FixedExpensePlan) -> Unit
+    editingPlan: FixedExpensePlan?,
+    onSave: (FixedExpensePlan) -> Unit,
+    onCancel: () -> Unit,
+    onDelete: (FixedExpensePlan) -> Unit,
+    showCard: Boolean
 ) {
-    var name by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var day by remember { mutableStateOf(1) }
-    var accountName by remember { mutableStateOf("") }
+    var name by remember(editingPlan) { mutableStateOf(editingPlan?.name.orEmpty()) }
+    var amount by remember(editingPlan) { mutableStateOf(editingPlan?.amountWon?.toString().orEmpty()) }
+    var day by remember(editingPlan) { mutableStateOf(editingPlan?.withdrawalDay ?: 1) }
+    var accountName by remember(editingPlan) { mutableStateOf(editingPlan?.accountName.orEmpty()) }
 
-    InputCard(title = "고정지출 추가") {
+    FormContainer(
+        title = if (editingPlan == null) "고정지출 추가" else "고정지출 수정",
+        showCard = showCard
+    ) {
         OutlinedTextField(name, { name = it }, label = { Text("이름") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(amount, { amount = it }, label = { Text("금액") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         WithdrawalDayPicker(selectedDay = day, onSelected = { day = it })
@@ -442,22 +527,35 @@ private fun FixedExpenseInputCard(
                 val cleanAmount = amount.cleanWonOrNull()
                 if (name.isNotBlank() && accountName.isNotBlank() && cleanAmount != null && day in fixedExpenseWithdrawalDayOptions) {
                     onSave(
-                        FixedExpensePlan(
+                        fixedExpensePlanForSave(
+                            existing = editingPlan,
                             name = name,
                             amountWon = cleanAmount,
                             withdrawalDay = day,
                             accountName = accountName
-                        ).validatedForSave()
+                        )
                     )
-                    name = ""
-                    amount = ""
-                    day = 1
-                    accountName = ""
+                    if (editingPlan == null) {
+                        name = ""
+                        amount = ""
+                        day = 1
+                        accountName = ""
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("저장")
+            Text(if (editingPlan == null) "저장" else "수정 저장")
+        }
+        if (editingPlan != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                    Text("취소")
+                }
+                OutlinedButton(onClick = { onDelete(editingPlan) }, modifier = Modifier.weight(1f)) {
+                    Text("삭제")
+                }
+            }
         }
     }
 }
@@ -474,6 +572,29 @@ private fun MonthlyPlanPanel(
     val usageByPlanId = remember(usages) { usages.associateBy { it.plan.id } }
     var pendingDelete by remember { mutableStateOf<MonthlyPlanItem?>(null) }
     var editingItem by remember { mutableStateOf<MonthlyPlanItem?>(null) }
+    editingItem?.let { item ->
+        MoneyDialog(
+            title = "월계획 수정",
+            subtitle = "이 달의 수입·예산 계획만 변경돼요.",
+            onDismiss = { editingItem = null },
+            buttons = {}
+        ) {
+            MonthlyPlanInputCard(
+                userExpenseCategories = userExpenseCategories,
+                editingItem = item,
+                onSave = { updated ->
+                    onSave(updated)
+                    editingItem = null
+                },
+                onCancel = { editingItem = null },
+                onDelete = { target ->
+                    pendingDelete = target
+                    editingItem = null
+                },
+                showCard = false
+            )
+        }
+    }
     pendingDelete?.let { item ->
         DeleteConfirmDialog(
             name = item.label,
@@ -531,16 +652,11 @@ private fun MonthlyPlanPanel(
         }
         MonthlyPlanInputCard(
             userExpenseCategories = userExpenseCategories,
-            editingItem = editingItem,
-            onSave = { item ->
-                onSave(item)
-                editingItem = null
-            },
-            onCancel = { editingItem = null },
-            onDelete = { item ->
-                pendingDelete = item
-                editingItem = null
-            }
+            editingItem = null,
+            onSave = onSave,
+            onCancel = {},
+            onDelete = {},
+            showCard = true
         )
     }
 }
@@ -573,7 +689,8 @@ private fun MonthlyPlanInputCard(
     editingItem: MonthlyPlanItem?,
     onSave: (MonthlyPlanItem) -> Unit,
     onCancel: () -> Unit,
-    onDelete: (MonthlyPlanItem) -> Unit
+    onDelete: (MonthlyPlanItem) -> Unit,
+    showCard: Boolean
 ) {
     var label by remember(editingItem) { mutableStateOf(editingItem?.label.orEmpty()) }
     var amount by remember(editingItem) { mutableStateOf(editingItem?.amountWon?.toString().orEmpty()) }
@@ -585,7 +702,10 @@ private fun MonthlyPlanInputCard(
         mutableStateOf(userExpenseCategories.firstOrNull { it.id == editingItem?.customCategoryId })
     }
 
-    InputCard(title = if (editingItem == null) "월계획 추가" else "월계획 수정") {
+    FormContainer(
+        title = if (editingItem == null) "월계획 추가" else "월계획 수정",
+        showCard = showCard
+    ) {
         OutlinedTextField(label, { label = it }, label = { Text("항목") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(amount, { amount = it }, label = { Text("금액") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -666,6 +786,22 @@ private fun MonthlyPlanInputCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun FormContainer(
+    title: String,
+    showCard: Boolean,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    if (showCard) {
+        InputCard(title = title, content = content)
+    } else {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            content = content
+        )
     }
 }
 
