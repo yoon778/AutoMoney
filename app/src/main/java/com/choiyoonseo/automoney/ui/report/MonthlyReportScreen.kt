@@ -8,19 +8,26 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -36,38 +43,131 @@ import com.choiyoonseo.automoney.ui.components.DetailBottomSheet
 import com.choiyoonseo.automoney.ui.components.DetailSheetState
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MetricTile
+import com.choiyoonseo.automoney.ui.components.MonthPagerInitialPage
+import com.choiyoonseo.automoney.ui.components.MonthPagerPageCount
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
-import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyFlowHeroCard
+import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.SpendingCalendarCard
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
+import com.choiyoonseo.automoney.ui.components.monthForPagerPage
+import com.choiyoonseo.automoney.ui.components.monthPagerLabel
 import com.choiyoonseo.automoney.ui.model.MetricTileUi
 import com.choiyoonseo.automoney.ui.model.TransactionRowUi
 import com.choiyoonseo.automoney.ui.model.formatWon
-import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
 import com.choiyoonseo.automoney.ui.model.sampleCategorySpends
+import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
 import com.choiyoonseo.automoney.ui.model.sampleSpendCalendar
+import com.choiyoonseo.automoney.ui.model.transactionsToMonthlySummary
 import com.choiyoonseo.automoney.ui.model.transactionsToRows
 import com.choiyoonseo.automoney.ui.model.transactionsToSpendCalendar
-import com.choiyoonseo.automoney.ui.model.transactionsToMonthlySummary
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
-import kotlinx.coroutines.flow.flowOf
 import java.time.YearMonth
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
 
 @Composable
 fun MonthlyReportScreen(
     padding: PaddingValues,
     moneyRepository: MoneyRepository? = null
 ) {
-    var month by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
-    val transactions by remember(moneyRepository, month) {
-        moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    val scope = rememberCoroutineScope()
+    val anchorMonth = remember { YearMonth.now(AppDateZoneId) }
+    val pagerState = rememberPagerState(
+        initialPage = MonthPagerInitialPage,
+        pageCount = { MonthPagerPageCount }
+    )
+    val selectedMonth = monthForPagerPage(pagerState.currentPage, anchorMonth)
     val reviewCount by remember(moneyRepository) {
         moneyRepository?.observeOpenReviewCount() ?: flowOf(sampleHomeSnapshot.reviewCount)
     }.collectAsState(initial = sampleHomeSnapshot.reviewCount)
+    var activeDetail by remember { mutableStateOf<DetailSheetState?>(null) }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(padding)
+            .background(MoneyTheme.colors.canvas)
+            .padding(start = 18.dp, top = 18.dp, end = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        ScreenTitle(
+            title = "월간 보고서",
+            subtitle = "일반 지출과 특별지출을 따로 봐요"
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = {
+                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+                }
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "이전 달")
+            }
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = monthPagerLabel(selectedMonth),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MoneyTheme.colors.ink
+                )
+                Text(
+                    "좌우로 넘겨 월 이동",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MoneyTheme.colors.muted
+                )
+            }
+            IconButton(
+                onClick = {
+                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
+                }
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "다음 달")
+            }
+        }
+
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            key = { page -> monthForPagerPage(page, anchorMonth).toString() }
+        ) { page ->
+            MonthlyReportPage(
+                month = monthForPagerPage(page, anchorMonth),
+                moneyRepository = moneyRepository,
+                reviewCount = reviewCount,
+                onOpenDetail = { activeDetail = it }
+            )
+        }
+    }
+
+    activeDetail?.let { detail ->
+        DetailBottomSheet(
+            state = detail,
+            onDismiss = { activeDetail = null }
+        )
+    }
+}
+
+@Composable
+private fun MonthlyReportPage(
+    month: YearMonth,
+    moneyRepository: MoneyRepository?,
+    reviewCount: Int,
+    onOpenDetail: (DetailSheetState) -> Unit
+) {
+    val transactions by remember(moneyRepository, month) {
+        moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
     val summary = if (moneyRepository == null) {
         null
     } else {
@@ -98,7 +198,6 @@ fun MonthlyReportScreen(
     } else {
         transactionsToRows(transactions.filter { it.countsAsSavingMovement() }, limit = 30)
     }
-    var activeDetail by remember { mutableStateOf<DetailSheetState?>(null) }
     var selectedReportDay by remember(month) { mutableStateOf<Int?>(null) }
     val dayExpenseRows = remember(transactions, selectedReportDay) {
         val day = selectedReportDay
@@ -107,7 +206,10 @@ fun MonthlyReportScreen(
         } else {
             transactionsToRows(
                 transactions
-                    .filter { it.countsAsActualExpense() && it.occurredAt.atZone(AppDateZoneId).dayOfMonth == day }
+                    .filter {
+                        it.countsAsActualExpense() &&
+                            it.occurredAt.atZone(AppDateZoneId).dayOfMonth == day
+                    }
                     .sortedByDescending { it.effectiveExpenseWon() },
                 limit = 50
             )
@@ -117,35 +219,10 @@ fun MonthlyReportScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(padding)
-            .background(MoneyTheme.colors.canvas)
             .verticalScroll(rememberScrollState())
-            .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
+            .padding(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ScreenTitle(
-            title = "월간 보고서",
-            subtitle = "일반 지출과 특별지출을 따로 봐요"
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            OutlinedButton(
-                onClick = { month = month.minusMonths(1) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("이전 달")
-            }
-            OutlinedButton(
-                onClick = { month = month.plusMonths(1) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("다음 달")
-            }
-        }
-
         MoneyFlowHeroCard(
             title = "${month.monthValue}월 남은 돈",
             primaryValue = formatWon(summary?.netWon ?: 342000),
@@ -154,18 +231,20 @@ fun MonthlyReportScreen(
             spentLabel = formatWon(summary?.totalExpenseWon ?: 898000),
             savedLabel = formatWon(summary?.savingWon ?: 0),
             onClick = {
-                activeDetail = DetailSheetState(
-                    title = "${month.monthValue}월 요약",
-                    headlineValue = formatWon(summary?.netWon ?: 0),
-                    caption = "남은 돈",
-                    summaryLines = listOf(
-                        "수입 ${formatWon(summary?.incomeWon ?: 0)}",
-                        "일반 지출 ${formatWon(summary?.expenseWon ?: 0)}",
-                        "특별지출 ${formatWon(summary?.specialExpenseWon ?: 0)}",
-                        "총지출 ${formatWon(summary?.totalExpenseWon ?: 0)}",
-                        "저축 ${formatWon(summary?.savingWon ?: 0)}"
-                    ),
-                    rows = incomeRows + expenseRows + specialExpenseRows + savingRows
+                onOpenDetail(
+                    DetailSheetState(
+                        title = "${month.monthValue}월 요약",
+                        headlineValue = formatWon(summary?.netWon ?: 0),
+                        caption = "남은 돈",
+                        summaryLines = listOf(
+                            "수입 ${formatWon(summary?.incomeWon ?: 0)}",
+                            "일반 지출 ${formatWon(summary?.expenseWon ?: 0)}",
+                            "특별지출 ${formatWon(summary?.specialExpenseWon ?: 0)}",
+                            "총지출 ${formatWon(summary?.totalExpenseWon ?: 0)}",
+                            "저축 ${formatWon(summary?.savingWon ?: 0)}"
+                        ),
+                        rows = incomeRows + expenseRows + specialExpenseRows + savingRows
+                    )
                 )
             }
         )
@@ -179,10 +258,12 @@ fun MonthlyReportScreen(
                 MoneyGreen,
                 Modifier.weight(1f),
                 onClick = {
-                    activeDetail = DetailSheetState(
-                        title = "${month.monthValue}월 수입",
-                        headlineValue = formatWon(summary?.incomeWon ?: 0),
-                        rows = incomeRows
+                    onOpenDetail(
+                        DetailSheetState(
+                            title = "${month.monthValue}월 수입",
+                            headlineValue = formatWon(summary?.incomeWon ?: 0),
+                            rows = incomeRows
+                        )
                     )
                 }
             )
@@ -199,10 +280,12 @@ fun MonthlyReportScreen(
                 MoneyCoral,
                 Modifier.weight(1f),
                 onClick = {
-                    activeDetail = DetailSheetState(
-                        title = "${month.monthValue}월 지출",
-                        headlineValue = formatWon(summary?.expenseWon ?: 0),
-                        rows = expenseRows
+                    onOpenDetail(
+                        DetailSheetState(
+                            title = "${month.monthValue}월 지출",
+                            headlineValue = formatWon(summary?.expenseWon ?: 0),
+                            rows = expenseRows
+                        )
                     )
                 }
             )
@@ -221,11 +304,13 @@ fun MonthlyReportScreen(
             MoneyCoral,
             Modifier.fillMaxWidth(),
             onClick = {
-                activeDetail = DetailSheetState(
-                    title = "${month.monthValue}월 특별지출",
-                    headlineValue = formatWon(summary?.specialExpenseWon ?: 0),
-                    caption = "예산 달성률과 생활비 통계에서 분리",
-                    rows = specialExpenseRows
+                onOpenDetail(
+                    DetailSheetState(
+                        title = "${month.monthValue}월 특별지출",
+                        headlineValue = formatWon(summary?.specialExpenseWon ?: 0),
+                        caption = "예산 달성률과 생활비 통계에서 분리",
+                        rows = specialExpenseRows
+                    )
                 )
             }
         )
@@ -263,10 +348,12 @@ fun MonthlyReportScreen(
                     category = category,
                     color = categoryAccentForName(category.name),
                     onClick = {
-                        activeDetail = DetailSheetState(
-                            title = category.name,
-                            headlineValue = formatWon(category.amountWon),
-                            rows = expenseRows.filter { it.category == category.name }
+                        onOpenDetail(
+                            DetailSheetState(
+                                title = category.name,
+                                headlineValue = formatWon(category.amountWon),
+                                rows = expenseRows.filter { it.category == category.name }
+                            )
                         )
                     }
                 )
@@ -275,13 +362,6 @@ fun MonthlyReportScreen(
                 Text("아직 이번 달 지출 기록이 없어요")
             }
         }
-    }
-
-    activeDetail?.let { detail ->
-        DetailBottomSheet(
-            state = detail,
-            onDismiss = { activeDetail = null }
-        )
     }
 }
 
@@ -303,4 +383,3 @@ private fun DayExpenseRow(row: TransactionRowUi) {
         )
     }
 }
-

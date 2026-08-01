@@ -51,9 +51,14 @@ import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyDialog
+import com.choiyoonseo.automoney.ui.components.MonthPagerInitialPage
+import com.choiyoonseo.automoney.ui.components.MonthPagerPageCount
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
 import com.choiyoonseo.automoney.ui.components.rememberMergedCategoryLabels
 import com.choiyoonseo.automoney.ui.components.TransactionRow
+import com.choiyoonseo.automoney.ui.components.monthForPagerPage
+import com.choiyoonseo.automoney.ui.components.monthPagerLabel
+import com.choiyoonseo.automoney.ui.components.pagerPageForMonth
 import com.choiyoonseo.automoney.ui.model.TransactionDateSectionUi
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
 import com.choiyoonseo.automoney.ui.model.transactionsToDateSections
@@ -62,24 +67,18 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.temporal.ChronoUnit
-
-private const val TransactionPagerPageCount = Int.MAX_VALUE
-private const val TransactionPagerInitialPage = TransactionPagerPageCount / 2
 
 internal fun transactionMonthForPage(
     page: Int,
     anchorMonth: YearMonth
-): YearMonth = anchorMonth.plusMonths((page - TransactionPagerInitialPage).toLong())
+): YearMonth = monthForPagerPage(page, anchorMonth)
 
 internal fun transactionPageForMonth(
     month: YearMonth,
     anchorMonth: YearMonth
-): Int = (TransactionPagerInitialPage.toLong() + ChronoUnit.MONTHS.between(anchorMonth, month))
-    .coerceIn(0, TransactionPagerPageCount.toLong() - 1)
-    .toInt()
+): Int = pagerPageForMonth(month, anchorMonth)
 
-internal fun transactionMonthLabel(month: YearMonth): String = "${month.year}년 ${month.monthValue}월"
+internal fun transactionMonthLabel(month: YearMonth): String = monthPagerLabel(month)
 
 internal fun transactionSectionsForMonth(
     sections: List<TransactionDateSectionUi>,
@@ -113,8 +112,8 @@ fun TransactionsScreen(
     val today = remember { LocalDate.now(AppDateZoneId) }
     val currentMonth = remember(today) { YearMonth.from(today) }
     val pagerState = rememberPagerState(
-        initialPage = TransactionPagerInitialPage,
-        pageCount = { TransactionPagerPageCount }
+        initialPage = MonthPagerInitialPage,
+        pageCount = { MonthPagerPageCount }
     )
     val selectedMonth = transactionMonthForPage(pagerState.currentPage, currentMonth)
     val transactions by remember(moneyRepository) {
