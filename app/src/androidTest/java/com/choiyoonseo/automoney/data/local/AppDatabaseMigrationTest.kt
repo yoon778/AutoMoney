@@ -289,6 +289,40 @@ class AppDatabaseMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration15To16PreservesFixedExpensesAcrossExistingMonthViews() {
+        helper.createDatabase(TENTH_TEST_DB, 15).apply {
+            insertFixedExpense(id = 7)
+            insertTransaction(
+                id = 11,
+                sourceNotificationHash = "fixed-expense-link",
+                hasSettlementTrackingHidden = true
+            )
+            execSQL("UPDATE transactions SET fixedExpensePlanId = 7 WHERE id = 11")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            TENTH_TEST_DB,
+            16,
+            true,
+            AppDatabase.MIGRATION_15_16
+        )
+
+        assertEquals("legacy expense", db.singleString("SELECT name FROM fixed_expenses WHERE id = 7"))
+        assertEquals(7, db.singleLong("SELECT seriesId FROM fixed_expenses WHERE id = 7"))
+        assertEquals("0001-01", db.singleString("SELECT effectiveFromMonth FROM fixed_expenses WHERE id = 7"))
+        assertNull(db.singleString("SELECT effectiveToMonth FROM fixed_expenses WHERE id = 7"))
+        assertEquals(7, db.singleLong("SELECT fixedExpensePlanId FROM transactions WHERE id = 11"))
+        assertEquals(
+            3,
+            db.singleLong(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'fixed_expenses'"
+            )
+        )
+        db.close()
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?,
@@ -407,6 +441,7 @@ class AppDatabaseMigrationTest {
         const val SEVENTH_TEST_DB = "migration-test-12-13"
         const val EIGHTH_TEST_DB = "migration-test-13-14"
         const val NINTH_TEST_DB = "migration-test-14-15"
+        const val TENTH_TEST_DB = "migration-test-15-16"
         const val WALLET_TEST_DB = "migration-test-4-5-wallets"
     }
 }

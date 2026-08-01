@@ -108,9 +108,6 @@ fun AssetsScreen(
     userCategoryRepository: UserCategoryRepository? = null
 ) {
     val scope = rememberCoroutineScope()
-    val fixedExpenses by remember(assetRepository) {
-        assetRepository?.observeFixedExpenses() ?: flowOf(sampleFixedExpenses)
-    }.collectAsState(initial = emptyList())
     val anchorMonth = remember { YearMonth.now(AppDateZoneId) }
     val pagerState = rememberPagerState(
         initialPage = MonthPagerInitialPage,
@@ -160,7 +157,6 @@ fun AssetsScreen(
         ) { page ->
             AssetsMonthPage(
                 month = monthForPagerPage(page, anchorMonth),
-                fixedExpenses = fixedExpenses,
                 assetRepository = assetRepository,
                 moneyRepository = moneyRepository,
                 userExpenseCategories = userExpenseCategories,
@@ -175,7 +171,6 @@ fun AssetsScreen(
 @Composable
 private fun AssetsMonthPage(
     month: YearMonth,
-    fixedExpenses: List<FixedExpensePlan>,
     assetRepository: AssetRepository?,
     moneyRepository: MoneyRepository?,
     userExpenseCategories: List<UserCategory>,
@@ -184,6 +179,9 @@ private fun AssetsMonthPage(
     onMessage: (String) -> Unit
 ) {
     val scope = rememberCoroutineScope()
+    val fixedExpenses by remember(assetRepository, month) {
+        assetRepository?.observeFixedExpenses(month) ?: flowOf(sampleFixedExpenses)
+    }.collectAsState(initial = emptyList())
     val monthlyPlans by remember(assetRepository, month) {
         assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(sampleMonthlyPlanItems)
     }.collectAsState(initial = emptyList())
@@ -283,6 +281,7 @@ private fun AssetsMonthPage(
 
         when (selectedSection) {
             AssetSection.FIXED -> FixedExpensePanel(
+                month = month,
                 plans = fixedExpenses,
                 onSave = { plan ->
                     val repository = assetRepository
@@ -290,8 +289,8 @@ private fun AssetsMonthPage(
                         onMessage("미리보기에서는 저장하지 않아요.")
                     } else {
                         scope.launch {
-                            repository.saveFixedExpense(plan)
-                            onMessage("${plan.name} 고정지출을 저장했어요.")
+                            repository.saveFixedExpense(plan, month)
+                            onMessage("${month.monthValue}월부터 ${plan.name} 고정지출을 저장했어요.")
                         }
                     }
                 },
@@ -301,8 +300,8 @@ private fun AssetsMonthPage(
                         onMessage("미리보기에서는 삭제하지 않아요.")
                     } else {
                         scope.launch {
-                            repository.deleteFixedExpense(plan.id)
-                            onMessage("${plan.name} 고정지출을 삭제했어요.")
+                            repository.deleteFixedExpense(plan.id, month)
+                            onMessage("${month.monthValue}월부터 ${plan.name} 고정지출을 종료했어요.")
                         }
                     }
                 }
@@ -438,6 +437,7 @@ private fun AllocationLegend(label: String, amountWon: Long, accent: Color) {
 
 @Composable
 private fun FixedExpensePanel(
+    month: YearMonth,
     plans: List<FixedExpensePlan>,
     onSave: (FixedExpensePlan) -> Unit,
     onDelete: (FixedExpensePlan) -> Unit
@@ -469,6 +469,9 @@ private fun FixedExpensePanel(
     pendingDelete?.let { plan ->
         DeleteConfirmDialog(
             name = plan.name,
+            title = "고정지출을 종료할까요?",
+            subtitle = "${month.monthValue}월부터 적용하지 않아요. 이전 달 기록은 유지돼요.",
+            confirmLabel = "종료",
             onConfirm = {
                 onDelete(plan)
                 pendingDelete = null
@@ -858,15 +861,18 @@ private fun InputCard(title: String, content: @Composable ColumnScope.() -> Unit
 @Composable
 private fun DeleteConfirmDialog(
     name: String,
+    title: String = "삭제할까요?",
+    subtitle: String = "'${name}' 항목을 삭제하면 되돌릴 수 없어요.",
+    confirmLabel: String = "삭제",
     onConfirm: () -> Unit,
     onDismiss: () -> Unit
 ) {
     MoneyDialog(
-        title = "삭제할까요?",
-        subtitle = "'${name}' 항목을 삭제하면 되돌릴 수 없어요.",
+        title = title,
+        subtitle = subtitle,
         onDismiss = onDismiss,
         buttons = {
-            Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) { Text("삭제") }
+            Button(onClick = onConfirm, modifier = Modifier.fillMaxWidth()) { Text(confirmLabel) }
             OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("취소") }
         }
     ) {}

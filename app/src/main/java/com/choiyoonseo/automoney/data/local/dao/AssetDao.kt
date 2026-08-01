@@ -17,14 +17,34 @@ interface AssetDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAccount(entity: AssetAccountEntity): Long
 
-    @Query("SELECT * FROM fixed_expenses ORDER BY withdrawalDay ASC, amountWon DESC")
-    fun observeFixedExpenses(): Flow<List<FixedExpenseEntity>>
+    @Query(
+        """
+        SELECT * FROM fixed_expenses
+        WHERE effectiveFromMonth <= :monthKey
+          AND (effectiveToMonth IS NULL OR effectiveToMonth >= :monthKey)
+        ORDER BY withdrawalDay ASC, amountWon DESC
+        """
+    )
+    fun observeFixedExpenses(monthKey: String): Flow<List<FixedExpenseEntity>>
+
+    @Query("SELECT * FROM fixed_expenses WHERE id = :id LIMIT 1")
+    suspend fun fixedExpenseById(id: Long): FixedExpenseEntity?
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertFixedExpense(entity: FixedExpenseEntity): Long
 
-    @Query("DELETE FROM fixed_expenses WHERE id = :id")
-    suspend fun deleteFixedExpense(id: Long)
+    @Query(
+        """
+        UPDATE fixed_expenses
+        SET effectiveToMonth = :previousMonthKey
+        WHERE seriesId = :seriesId AND effectiveFromMonth >= :monthKey
+        """
+    )
+    suspend fun endFixedExpenseVersionsFrom(
+        seriesId: Long,
+        monthKey: String,
+        previousMonthKey: String
+    )
 
     @Query("SELECT * FROM monthly_plan_items WHERE monthKey = :monthKey ORDER BY type ASC, amountWon DESC")
     fun observeMonthlyPlanItems(monthKey: String): Flow<List<MonthlyPlanItemEntity>>

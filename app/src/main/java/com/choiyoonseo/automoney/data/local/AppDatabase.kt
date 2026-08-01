@@ -31,7 +31,7 @@ import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
         UserCategoryEntity::class,
         NotificationHistoryEntity::class
     ],
-    version = 15,
+    version = 16,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -373,6 +373,75 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_15_16 = object : Migration(15, 16) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS fixed_expenses_new (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                        seriesId INTEGER NOT NULL,
+                        name TEXT NOT NULL,
+                        amountWon INTEGER NOT NULL,
+                        withdrawalDay INTEGER NOT NULL,
+                        accountName TEXT NOT NULL,
+                        accountId INTEGER,
+                        active INTEGER NOT NULL,
+                        effectiveFromMonth TEXT NOT NULL,
+                        effectiveToMonth TEXT,
+                        FOREIGN KEY(accountId) REFERENCES asset_accounts(id)
+                            ON UPDATE NO ACTION ON DELETE SET NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    INSERT INTO fixed_expenses_new (
+                        id, seriesId, name, amountWon, withdrawalDay,
+                        accountName, accountId, active, effectiveFromMonth, effectiveToMonth
+                    )
+                    SELECT id, id, name, amountWon, withdrawalDay,
+                           accountName, accountId, active,
+                           '0001-01', NULL
+                    FROM fixed_expenses
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TEMP TABLE fixed_expense_plan_links AS
+                    SELECT id AS transactionId, fixedExpensePlanId AS planId
+                    FROM transactions
+                    WHERE fixedExpensePlanId IS NOT NULL
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE fixed_expenses")
+                db.execSQL("ALTER TABLE fixed_expenses_new RENAME TO fixed_expenses")
+                db.execSQL(
+                    """
+                    UPDATE transactions
+                    SET fixedExpensePlanId = (
+                        SELECT planId
+                        FROM fixed_expense_plan_links
+                        WHERE transactionId = transactions.id
+                    )
+                    WHERE id IN (SELECT transactionId FROM fixed_expense_plan_links)
+                    """.trimIndent()
+                )
+                db.execSQL("DROP TABLE fixed_expense_plan_links")
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_fixed_expenses_accountId " +
+                        "ON fixed_expenses(accountId)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_fixed_expenses_effectiveFromMonth_effectiveToMonth " +
+                        "ON fixed_expenses(effectiveFromMonth, effectiveToMonth)"
+                )
+                db.execSQL(
+                    "CREATE INDEX IF NOT EXISTS index_fixed_expenses_seriesId_effectiveFromMonth " +
+                        "ON fixed_expenses(seriesId, effectiveFromMonth)"
+                )
+            }
+        }
+
         val MIGRATIONS: List<Migration> = listOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -387,7 +456,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_11_12,
             MIGRATION_12_13,
             MIGRATION_13_14,
-            MIGRATION_14_15
+            MIGRATION_14_15,
+            MIGRATION_15_16
         )
     }
 }

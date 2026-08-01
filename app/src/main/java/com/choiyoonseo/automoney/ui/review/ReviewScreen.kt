@@ -117,8 +117,8 @@ fun ReviewScreen(
             allTransactions.filter { it.monthKey == budgetMonth }
         )
     }
-    val fixedExpenses by remember(assetRepository) {
-        assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
+    val fixedExpenses by remember(assetRepository, budgetMonth) {
+        assetRepository?.observeFixedExpenses(budgetMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     var sampleReviewCardsState by remember { mutableStateOf(sampleReviewCards) }

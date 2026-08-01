@@ -114,8 +114,8 @@ fun TransactionsScreen(
     val budgetUsages = remember(monthlyPlans, budgetMonthTransactions) {
         buildCategoryBudgetUsages(monthlyPlans, budgetMonthTransactions)
     }
-    val fixedExpenses by remember(assetRepository) {
-        assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
+    val fixedExpenses by remember(assetRepository, budgetMonth) {
+        assetRepository?.observeFixedExpenses(budgetMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     val dateSections = if (moneyRepository == null) {

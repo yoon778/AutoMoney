@@ -138,16 +138,23 @@ data class AssetAccountEntity(
             onDelete = ForeignKey.SET_NULL
         )
     ],
-    indices = [Index(value = ["accountId"])]
+    indices = [
+        Index(value = ["accountId"]),
+        Index(value = ["effectiveFromMonth", "effectiveToMonth"]),
+        Index(value = ["seriesId", "effectiveFromMonth"])
+    ]
 )
 data class FixedExpenseEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val seriesId: Long,
     val name: String,
     val amountWon: Long,
     val withdrawalDay: Int,
     val accountName: String,
     val accountId: Long? = null,
-    val active: Boolean
+    val active: Boolean,
+    val effectiveFromMonth: String,
+    val effectiveToMonth: String? = null
 )
 
 @Entity(

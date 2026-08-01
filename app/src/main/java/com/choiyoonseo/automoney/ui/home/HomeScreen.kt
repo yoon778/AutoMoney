@@ -130,8 +130,8 @@ fun HomeScreen(
     val budgetUsages = remember(monthlyPlans, transactions) {
         buildCategoryBudgetUsages(monthlyPlans, transactions)
     }
-    val fixedExpenses by remember(assetRepository) {
-        assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
+    val fixedExpenses by remember(assetRepository, month) {
+        assetRepository?.observeFixedExpenses(month) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }

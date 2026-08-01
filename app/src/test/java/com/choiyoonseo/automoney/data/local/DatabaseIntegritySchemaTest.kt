@@ -42,7 +42,8 @@ class DatabaseIntegritySchemaTest {
                 11 to 12,
                 12 to 13,
                 13 to 14,
-                14 to 15
+                14 to 15,
+                15 to 16
             )
             .inOrder()
     }
@@ -61,7 +62,7 @@ class DatabaseIntegritySchemaTest {
 
     @Test
     fun currentRoomSchemaFileIsGenerated() {
-        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/15.json")
+        val schema = File("schemas/com.choiyoonseo.automoney.data.local.AppDatabase/16.json")
 
         assertThat(schema.exists()).isTrue()
     }
