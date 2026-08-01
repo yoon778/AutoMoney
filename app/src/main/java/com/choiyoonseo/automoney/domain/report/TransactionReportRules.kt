@@ -22,6 +22,12 @@ fun MoneyTransaction.countsAsActualExpense(): Boolean =
         (type.countsAsMonthlyExpense ||
             (type == TransactionType.SETTLEMENT && settlementMyShareWon != null))
 
+fun MoneyTransaction.countsAsSpecialExpense(): Boolean =
+    isReportableTransaction() && type == TransactionType.SPECIAL_EXPENSE
+
+fun MoneyTransaction.countsAsCashExpense(): Boolean =
+    countsAsActualExpense() || countsAsSpecialExpense()
+
 fun MoneyTransaction.effectiveExpenseWon(): Long =
     if (type == TransactionType.SETTLEMENT) settlementMyShareWon ?: 0 else amount.won
 
@@ -41,13 +47,7 @@ data class PlannedUseContribution(
 fun plannedUseContributions(
     transactions: List<MoneyTransaction>
 ): List<PlannedUseContribution> {
-    val refundedByPayment = transactions
-        .filter { it.type == TransactionType.REFUND && it.isReportableTransaction() }
-        .mapNotNull { refund ->
-            refund.refundParentTransactionId?.let { parentId -> parentId to refund.amount.won }
-        }
-        .groupBy({ it.first }, { it.second })
-        .mapValues { (_, amounts) -> amounts.sum() }
+    val refundedByPayment = refundedWonByPayment(transactions)
 
     return transactions
         .filter { it.countsAsPlannedUse() }
@@ -60,6 +60,31 @@ fun plannedUseContributions(
             )
         }
 }
+
+fun specialExpenseContributions(
+    transactions: List<MoneyTransaction>
+): List<PlannedUseContribution> {
+    val refundedByPayment = refundedWonByPayment(transactions)
+    return transactions
+        .filter { it.countsAsSpecialExpense() }
+        .map { transaction ->
+            PlannedUseContribution(
+                transaction = transaction,
+                amountWon = (
+                    transaction.amount.won - (refundedByPayment[transaction.id] ?: 0L)
+                ).coerceAtLeast(0)
+            )
+        }
+}
+
+private fun refundedWonByPayment(transactions: List<MoneyTransaction>): Map<Long, Long> =
+    transactions
+        .filter { it.type == TransactionType.REFUND && it.isReportableTransaction() }
+        .mapNotNull { refund ->
+            refund.refundParentTransactionId?.let { parentId -> parentId to refund.amount.won }
+        }
+        .groupBy({ it.first }, { it.second })
+        .mapValues { (_, amounts) -> amounts.sum() }
 
 // 고정지출 계획에 연결돼 종류가 FIXED_EXPENSE로 고정된 저축도 인식하려면 카테고리를 본다.
 private fun MoneyTransaction.isSavingCategory(): Boolean =

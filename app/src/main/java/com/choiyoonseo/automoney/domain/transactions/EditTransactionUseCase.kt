@@ -55,6 +55,7 @@ class EditTransactionUseCase(
             TransactionType.INCOME ->
                 accountId?.let { BalanceImpact.CREDIT } ?: BalanceImpact.NONE
             TransactionType.EXPENSE,
+            TransactionType.SPECIAL_EXPENSE,
             TransactionType.FIXED_EXPENSE,
             TransactionType.SAVING,
             TransactionType.INVESTMENT,
@@ -144,7 +145,10 @@ class EditTransactionUseCase(
                     )
                 }
 
-            if (updated.type != original.type || original.status == TransactionStatus.NEEDS_REVIEW) {
+            if (
+                updated.type != TransactionType.SPECIAL_EXPENSE &&
+                (updated.type != original.type || original.status == TransactionStatus.NEEDS_REVIEW)
+            ) {
                 add(updated.toTypeRule(match))
             }
         }
@@ -179,6 +183,7 @@ class EditTransactionUseCase(
     private fun TransactionType.canLearnCategoryRule(): Boolean =
         when (this) {
             TransactionType.EXPENSE,
+            TransactionType.SPECIAL_EXPENSE,
             TransactionType.FIXED_EXPENSE,
             TransactionType.WALLET_SPEND,
             TransactionType.SAVING,

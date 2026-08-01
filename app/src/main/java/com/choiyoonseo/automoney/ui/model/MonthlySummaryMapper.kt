@@ -8,11 +8,13 @@ import com.choiyoonseo.automoney.domain.model.TransactionStatus
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
+import com.choiyoonseo.automoney.domain.report.countsAsCashExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.report.isReportableTransaction
 import com.choiyoonseo.automoney.domain.report.plannedUseContributions
+import com.choiyoonseo.automoney.domain.report.specialExpenseContributions
 import java.time.YearMonth
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -22,6 +24,8 @@ data class MonthlySummaryUi(
     val monthTitle: String,
     val incomeWon: Long,
     val expenseWon: Long,
+    val specialExpenseWon: Long,
+    val totalExpenseWon: Long,
     val savingWon: Long,
     val netWon: Long,
     val savingsRatePercent: Int,
@@ -42,10 +46,14 @@ fun transactionsToMonthlySummary(
         it.transaction.monthKey == month && it.transaction.countsAsActualExpense()
     }
     val expenseWon = expenseContributions.sumOf { it.amountWon }
+    val specialExpenseWon = specialExpenseContributions(transactions)
+        .filter { it.transaction.monthKey == month }
+        .sumOf { it.amountWon }
+    val totalExpenseWon = expenseWon + specialExpenseWon
     val savingWon = monthlyTransactions
         .filter { it.countsAsSavingMovement() }
         .sumOf { it.amount.won }
-    val netWon = incomeWon - expenseWon - savingWon
+    val netWon = incomeWon - totalExpenseWon - savingWon
     val savingsRatePercent = if (incomeWon > 0) {
         ((savingWon / incomeWon.toFloat()) * 100).roundToInt()
     } else {
@@ -96,7 +104,7 @@ fun transactionsToMonthlySummary(
             )
         ),
         recentTransactions = monthlyTransactions
-            .filter { it.countsAsReportIncome() || it.countsAsActualExpense() }
+            .filter { it.countsAsReportIncome() || it.countsAsCashExpense() }
             .sortedByDescending { it.occurredAt }
             .take(3)
             .map { it.toTransactionRowUi() }
@@ -106,6 +114,8 @@ fun transactionsToMonthlySummary(
         monthTitle = "${month.monthValue}\uc6d4 \ub3c8 \ud750\ub984",
         incomeWon = incomeWon,
         expenseWon = expenseWon,
+        specialExpenseWon = specialExpenseWon,
+        totalExpenseWon = totalExpenseWon,
         savingWon = savingWon,
         netWon = netWon,
         savingsRatePercent = savingsRatePercent,
@@ -155,10 +165,15 @@ private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
         direction == TransactionDirection.EXPENSE || type.countsAsMonthlyExpense -> -amount.won
         else -> amount.won
     }
-    val categoryText = categoryDisplayName() ?: when {
+    val baseCategoryText = categoryDisplayName() ?: when {
         type == TransactionType.SETTLEMENT && settlementMyShareWon != null -> "N분의1"
         type.countsAsMonthlyExpense -> "\uae30\ud0c0"
         else -> "\uc9c0\ucd9c \uc81c\uc678"
+    }
+    val categoryText = if (type == TransactionType.SPECIAL_EXPENSE) {
+        "특별 · $baseCategoryText"
+    } else {
+        baseCategoryText
     }
 
     return TransactionRowUi(
@@ -190,6 +205,7 @@ private fun MoneyTransaction.fallbackTitle(): String =
         TransactionType.WALLET_TOPUP -> "\ucda9\uc804/\ud3ec\uc778\ud2b8"
         TransactionType.TRANSFER -> "\uc1a1\uae08/\uacc4\uc88c \uc774\ub3d9"
         TransactionType.INCOME -> "\uc785\uae08"
+        TransactionType.SPECIAL_EXPENSE -> "특별지출"
         TransactionType.REFUND -> "\ud658\ubd88/\ucde8\uc18c"
         TransactionType.EXCLUDED -> "\uc9c0\ucd9c \uc544\ub2d8"
         TransactionType.SAVING -> "\uc800\ucd95"

@@ -65,6 +65,7 @@ class RefundLinkMatcher {
 
 private val refundableTypes = setOf(
     TransactionType.EXPENSE,
+    TransactionType.SPECIAL_EXPENSE,
     TransactionType.FIXED_EXPENSE,
     TransactionType.WALLET_SPEND,
     TransactionType.SAVING,

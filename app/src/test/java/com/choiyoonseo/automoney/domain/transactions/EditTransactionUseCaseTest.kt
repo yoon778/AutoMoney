@@ -189,6 +189,30 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun updateCanMarkOneOffSpecialExpenseWithoutBudgetOrLearnedTypeRule() = runTest {
+        val repository = FakeMoneyRepository()
+
+        EditTransactionUseCase(repository).update(
+            transaction = transaction().copy(budgetPlanId = 7),
+            amountWon = 500_000,
+            categoryText = "의료/건강",
+            memo = "응급 치료",
+            transactionType = TransactionType.SPECIAL_EXPENSE,
+            budgetPlanId = 7,
+            fixedExpensePlanId = 9
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.type).isEqualTo(TransactionType.SPECIAL_EXPENSE)
+        assertThat(updated.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(updated.category).isEqualTo(Category.HEALTH)
+        assertThat(updated.budgetPlanId).isNull()
+        assertThat(updated.fixedExpensePlanId).isNull()
+        assertThat(repository.savedRules.map { it.action })
+            .doesNotContain(RuleAction.SET_TRANSACTION_TYPE)
+    }
+
+    @Test
     fun updateIncomeCanUseInvestmentReturnCategory() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)

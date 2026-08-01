@@ -12,8 +12,10 @@ class MoneyModelsTest {
     @Test
     fun expenseAffectsSpendingTotal() {
         assertThat(TransactionType.EXPENSE.countsAsMonthlyExpense).isTrue()
+        assertThat(TransactionType.SPECIAL_EXPENSE.defaultDirection)
+            .isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(TransactionType.SPECIAL_EXPENSE.countsAsMonthlyExpense).isFalse()
         assertThat(TransactionType.TRANSFER.countsAsMonthlyExpense).isFalse()
         assertThat(TransactionType.WALLET_TOPUP.countsAsMonthlyExpense).isFalse()
     }
 }
-

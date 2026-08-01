@@ -28,6 +28,7 @@ import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
+import com.choiyoonseo.automoney.domain.report.countsAsSpecialExpense
 import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.CategoryBar
@@ -87,6 +88,11 @@ fun MonthlyReportScreen(
     } else {
         transactionsToRows(transactions.filter { it.countsAsActualExpense() }, limit = 30)
     }
+    val specialExpenseRows = if (moneyRepository == null) {
+        emptyList()
+    } else {
+        transactionsToRows(transactions.filter { it.countsAsSpecialExpense() }, limit = 30)
+    }
     val savingRows = if (moneyRepository == null) {
         emptyList()
     } else {
@@ -119,7 +125,7 @@ fun MonthlyReportScreen(
     ) {
         ScreenTitle(
             title = "월간 보고서",
-            subtitle = "충전은 제외하고 실제 사용액 중심으로 봐요"
+            subtitle = "일반 지출과 특별지출을 따로 봐요"
         )
 
         Row(
@@ -143,9 +149,9 @@ fun MonthlyReportScreen(
         MoneyFlowHeroCard(
             title = "${month.monthValue}월 남은 돈",
             primaryValue = formatWon(summary?.netWon ?: 342000),
-            helper = "수입 - 지출 - 저축 기준",
+            helper = "수입 - 총지출 - 저축 기준",
             reviewCount = reviewCount,
-            spentLabel = formatWon(summary?.expenseWon ?: 898000),
+            spentLabel = formatWon(summary?.totalExpenseWon ?: 898000),
             savedLabel = formatWon(summary?.savingWon ?: 0),
             onClick = {
                 activeDetail = DetailSheetState(
@@ -154,10 +160,12 @@ fun MonthlyReportScreen(
                     caption = "남은 돈",
                     summaryLines = listOf(
                         "수입 ${formatWon(summary?.incomeWon ?: 0)}",
-                        "지출 ${formatWon(summary?.expenseWon ?: 0)}",
+                        "일반 지출 ${formatWon(summary?.expenseWon ?: 0)}",
+                        "특별지출 ${formatWon(summary?.specialExpenseWon ?: 0)}",
+                        "총지출 ${formatWon(summary?.totalExpenseWon ?: 0)}",
                         "저축 ${formatWon(summary?.savingWon ?: 0)}"
                     ),
-                    rows = incomeRows + expenseRows + savingRows
+                    rows = incomeRows + expenseRows + specialExpenseRows + savingRows
                 )
             }
         )
@@ -180,7 +188,7 @@ fun MonthlyReportScreen(
             )
             MetricTile(
                 MetricTileUi(
-                    "지출",
+                    "일반 지출",
                     formatWon(summary?.expenseWon ?: 898000),
                     if ((summary?.incomeWon ?: 1240000) > 0) {
                         (summary?.expenseWon ?: 898000) / (summary?.incomeWon ?: 1240000).toFloat()
@@ -200,8 +208,30 @@ fun MonthlyReportScreen(
             )
         }
 
+        MetricTile(
+            MetricTileUi(
+                "특별지출",
+                formatWon(summary?.specialExpenseWon ?: 0),
+                if ((summary?.incomeWon ?: 0) > 0) {
+                    (summary?.specialExpenseWon ?: 0) / (summary?.incomeWon ?: 1).toFloat()
+                } else {
+                    0f
+                }
+            ),
+            MoneyCoral,
+            Modifier.fillMaxWidth(),
+            onClick = {
+                activeDetail = DetailSheetState(
+                    title = "${month.monthValue}월 특별지출",
+                    headlineValue = formatWon(summary?.specialExpenseWon ?: 0),
+                    caption = "예산 달성률과 생활비 통계에서 분리",
+                    rows = specialExpenseRows
+                )
+            }
+        )
+
         SpendingCalendarCard(
-            title = "날짜별 사용",
+            title = "일반 지출 날짜별 사용",
             calendar = calendar,
             onDaySelected = { selectedReportDay = it }
         )
@@ -222,7 +252,7 @@ fun MonthlyReportScreen(
         }
 
         FinanceSectionCard(
-            title = "카테고리별 지출",
+            title = "일반 카테고리별 지출",
             subtitle = "많이 쓴 순서로 확인",
             accent = MoneyBlue,
             icon = Icons.Filled.BarChart

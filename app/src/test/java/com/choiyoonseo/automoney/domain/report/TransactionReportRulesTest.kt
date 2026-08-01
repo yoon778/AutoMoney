@@ -12,6 +12,28 @@ import org.junit.Test
 
 class TransactionReportRulesTest {
     @Test
+    fun specialExpenseAffectsCashFlowButNotRegularBudgetUsage() {
+        val special = transaction(1, 500_000, TransactionType.SPECIAL_EXPENSE)
+
+        assertThat(special.countsAsSpecialExpense()).isTrue()
+        assertThat(special.countsAsCashExpense()).isTrue()
+        assertThat(special.countsAsActualExpense()).isFalse()
+        assertThat(plannedUseContributions(listOf(special))).isEmpty()
+    }
+
+    @Test
+    fun linkedRefundReducesSpecialExpenseCashFlow() {
+        val contributions = specialExpenseContributions(
+            listOf(
+                transaction(1, 500_000, TransactionType.SPECIAL_EXPENSE),
+                transaction(2, 100_000, TransactionType.REFUND, refundParentId = 1)
+            )
+        )
+
+        assertThat(contributions.single().amountWon).isEqualTo(400_000)
+    }
+
+    @Test
     fun kbankPaymentMinusCashbackEquals5994() {
         val contributions = plannedUseContributions(
             listOf(

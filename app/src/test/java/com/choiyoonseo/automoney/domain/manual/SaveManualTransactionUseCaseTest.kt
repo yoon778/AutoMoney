@@ -25,6 +25,30 @@ import java.time.YearMonth
 
 class SaveManualTransactionUseCaseTest {
     @Test
+    fun saveSpecialExpensePersistsDebitWithoutBudgetLink() = runTest {
+        val repository = FakeMoneyRepository()
+        val account = AssetAccount(id = 7, name = "비상금", balanceWon = 1_000_000)
+
+        SaveManualTransactionUseCase(repository).save(
+            type = ManualEntryType.SPECIAL_EXPENSE,
+            amountWon = 500_000,
+            categoryText = "의료/건강",
+            memo = "응급 치료",
+            account = account,
+            budgetPlanId = 3,
+            fixedExpensePlanId = 4
+        )
+
+        val saved = repository.savedTransactions.single()
+        assertThat(saved.type).isEqualTo(TransactionType.SPECIAL_EXPENSE)
+        assertThat(saved.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(saved.balanceImpact).isEqualTo(BalanceImpact.DEBIT)
+        assertThat(saved.category).isEqualTo(Category.HEALTH)
+        assertThat(saved.budgetPlanId).isNull()
+        assertThat(saved.fixedExpensePlanId).isNull()
+    }
+
+    @Test
     fun saveExpensePersistsManualExpenseTransaction() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = SaveManualTransactionUseCase(repository)

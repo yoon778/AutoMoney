@@ -26,6 +26,7 @@ fun categoryLabelsFor(
 ): List<String> = when (type) {
     TransactionType.INCOME -> incomeLabels
     TransactionType.EXPENSE,
+    TransactionType.SPECIAL_EXPENSE,
     TransactionType.FIXED_EXPENSE,
     TransactionType.WALLET_SPEND -> expenseLabels
     else -> emptyList()

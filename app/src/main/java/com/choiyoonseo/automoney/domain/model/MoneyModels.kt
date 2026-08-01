@@ -23,6 +23,7 @@ enum class TransactionType(
 ) {
     INCOME(TransactionDirection.INCOME, false),
     EXPENSE(TransactionDirection.EXPENSE, true),
+    SPECIAL_EXPENSE(TransactionDirection.EXPENSE, false),
     FIXED_EXPENSE(TransactionDirection.EXPENSE, true),
     SAVING(TransactionDirection.EXPENSE, false),
     INVESTMENT(TransactionDirection.EXPENSE, false),

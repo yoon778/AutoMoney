@@ -36,6 +36,7 @@ class TransactionCategoryResolver(
 private fun TransactionType.categoryKindOrNull(): UserCategoryKind? = when (this) {
     TransactionType.INCOME -> UserCategoryKind.INCOME
     TransactionType.EXPENSE,
+    TransactionType.SPECIAL_EXPENSE,
     TransactionType.FIXED_EXPENSE,
     TransactionType.WALLET_SPEND,
     TransactionType.SAVING,

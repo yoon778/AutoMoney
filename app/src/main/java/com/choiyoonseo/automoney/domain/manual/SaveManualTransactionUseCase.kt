@@ -17,6 +17,7 @@ import java.time.ZoneId
 
 enum class ManualEntryType(val label: String) {
     EXPENSE("지출"),
+    SPECIAL_EXPENSE("특별지출"),
     INCOME("수입"),
     TRANSFER("이체")
 }
@@ -76,7 +77,8 @@ class SaveManualTransactionUseCase(
             ?: cleanPaymentMethod
         val impact = when {
             accountId == null -> BalanceImpact.NONE
-            type == ManualEntryType.EXPENSE -> BalanceImpact.DEBIT
+            type == ManualEntryType.EXPENSE || type == ManualEntryType.SPECIAL_EXPENSE ->
+                BalanceImpact.DEBIT
             type == ManualEntryType.INCOME -> BalanceImpact.CREDIT
             else -> BalanceImpact.NONE
         }
@@ -87,12 +89,14 @@ class SaveManualTransactionUseCase(
             } else {
                 TransactionType.EXPENSE
             }
+            ManualEntryType.SPECIAL_EXPENSE -> TransactionType.SPECIAL_EXPENSE
             ManualEntryType.INCOME -> TransactionType.INCOME
             ManualEntryType.TRANSFER -> TransactionType.TRANSFER
         }
         val categoryAssignment = categoryResolver.resolve(categoryText, transactionType)
         val transaction = when (type) {
-            ManualEntryType.EXPENSE -> MoneyTransaction(
+            ManualEntryType.EXPENSE,
+            ManualEntryType.SPECIAL_EXPENSE -> MoneyTransaction(
                 occurredAt = occurredAt,
                 amount = MoneyAmount(amountWon),
                 direction = TransactionDirection.EXPENSE,
@@ -112,8 +116,12 @@ class SaveManualTransactionUseCase(
                 balanceImpact = impact,
                 customCategoryId = categoryAssignment.customCategoryId,
                 customCategoryName = categoryAssignment.customCategoryName,
-                budgetPlanId = budgetPlanId.takeIf { selectedFixedExpensePlanId == null },
-                fixedExpensePlanId = selectedFixedExpensePlanId
+                budgetPlanId = budgetPlanId.takeIf {
+                    type == ManualEntryType.EXPENSE && selectedFixedExpensePlanId == null
+                },
+                fixedExpensePlanId = selectedFixedExpensePlanId.takeIf {
+                    type == ManualEntryType.EXPENSE
+                }
             )
 
             ManualEntryType.INCOME -> MoneyTransaction(

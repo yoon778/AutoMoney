@@ -14,6 +14,32 @@ import java.time.ZoneId
 
 class MonthlySummaryMapperTest {
     @Test
+    fun monthlySummarySeparatesSpecialExpenseAndStillSubtractsItFromNetMoney() {
+        val month = YearMonth.of(2026, 7)
+        val summary = transactionsToMonthlySummary(
+            month = month,
+            transactions = listOf(
+                tx("2026-07-01T01:00:00Z", 200_000, TransactionType.INCOME, Category.SALARY, month),
+                tx("2026-07-02T01:00:00Z", 10_000, TransactionType.EXPENSE, Category.FOOD, month),
+                tx("2026-07-03T01:00:00Z", 100_000, TransactionType.SPECIAL_EXPENSE, Category.HEALTH, month),
+                tx("2026-07-04T01:00:00Z", 20_000, TransactionType.SAVING, Category.SAVING, month)
+            ),
+            reviewCount = 0
+        )
+
+        assertThat(summary.expenseWon).isEqualTo(10_000)
+        assertThat(summary.specialExpenseWon).isEqualTo(100_000)
+        assertThat(summary.totalExpenseWon).isEqualTo(110_000)
+        assertThat(summary.netWon).isEqualTo(70_000)
+        assertThat(summary.categorySpends).containsExactly(CategorySpendUi("식비", 10_000, 1f))
+        assertThat(
+            transactionsToRows(
+                listOf(tx("2026-07-03T01:00:00Z", 100_000, TransactionType.SPECIAL_EXPENSE, Category.HEALTH, month))
+            ).single().category
+        ).isEqualTo("특별 · 의료/건강")
+    }
+
+    @Test
     fun monthlySummarySeparatesRemainingMoneyFromActualSaving() {
         val month = YearMonth.of(2026, 7)
         val expenseOnly = transactionsToMonthlySummary(

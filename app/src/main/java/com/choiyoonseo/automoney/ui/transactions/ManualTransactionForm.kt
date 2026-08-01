@@ -249,12 +249,14 @@ fun ManualTransactionForm(
         }
         if (entryType != ManualEntryType.TRANSFER) {
             val categoryOptions = when (entryType) {
-                ManualEntryType.EXPENSE -> expenseOptions
+                ManualEntryType.EXPENSE,
+                ManualEntryType.SPECIAL_EXPENSE -> expenseOptions
                 ManualEntryType.INCOME -> incomeOptions
                 ManualEntryType.TRANSFER -> emptyList()
             }
             val selectedCategory = when (entryType) {
-                ManualEntryType.EXPENSE -> expenseCategoryLabel
+                ManualEntryType.EXPENSE,
+                ManualEntryType.SPECIAL_EXPENSE -> expenseCategoryLabel
                 ManualEntryType.INCOME -> incomeCategoryLabel
                 ManualEntryType.TRANSFER -> defaultManualCategoryOption.label
             }
@@ -277,7 +279,8 @@ fun ManualTransactionForm(
                             text = { Text(label) },
                             onClick = {
                                 when (entryType) {
-                                    ManualEntryType.EXPENSE -> expenseCategoryLabel = label
+                                    ManualEntryType.EXPENSE,
+                                    ManualEntryType.SPECIAL_EXPENSE -> expenseCategoryLabel = label
                                     ManualEntryType.INCOME -> incomeCategoryLabel = label
                                     ManualEntryType.TRANSFER -> Unit
                                 }
@@ -305,7 +308,8 @@ fun ManualTransactionForm(
                     } else {
                         inputError = null
                         val categoryForSave = when (entryType) {
-                            ManualEntryType.EXPENSE -> expenseCategoryLabel
+                            ManualEntryType.EXPENSE,
+                            ManualEntryType.SPECIAL_EXPENSE -> expenseCategoryLabel
                             ManualEntryType.INCOME -> incomeCategoryLabel
                             ManualEntryType.TRANSFER -> "기타"
                         }
