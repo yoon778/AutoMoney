@@ -4,13 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.ui.Alignment
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -54,8 +51,6 @@ import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
-import com.choiyoonseo.automoney.domain.review.MAX_SETTLEMENT_PARTY_COUNT
-import com.choiyoonseo.automoney.domain.review.MIN_SETTLEMENT_PARTY_COUNT
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.settlement.findSettlementMatch
 import com.choiyoonseo.automoney.domain.review.ReviewResolution
@@ -132,7 +127,6 @@ fun ReviewScreen(
     var activeUnusedWalletCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeReviewMemoAction by remember { mutableStateOf<ReviewMemoAction?>(null) }
     var activeEditReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
-    var activeSettlementCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeRefundCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeDeleteReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
@@ -170,6 +164,12 @@ fun ReviewScreen(
     fun settlementMatchFor(card: ReviewCardUi) =
         card.sourceTransaction?.let { findSettlementMatch(it, openSettlements, linkedRecoveries) }
 
+    fun openEditor(card: ReviewCardUi) {
+        card.sourceTransaction?.monthKey?.let { budgetMonth = it }
+        activeEditReviewCard = card
+        editErrorMessage = null
+    }
+
     fun presentedCard(card: ReviewCardUi): ReviewCardUi {
         if (settlementMatchFor(card) != null) {
             return card.copy(
@@ -179,35 +179,6 @@ fun ReviewScreen(
             )
         }
         return card
-    }
-
-    fun handleSettlement(card: ReviewCardUi, partyCount: Int, myShareWon: Long, memo: String?) {
-        val source = card.sourceTransaction
-        scope.launch {
-            isSaving = true
-            errorMessage = null
-            try {
-                if (resolveReviewUseCase != null && card.reviewItemId != null && source != null) {
-                    resolveReviewUseCase.resolve(
-                        reviewItemId = card.reviewItemId,
-                        transaction = source,
-                        resolution = ReviewResolution.SETTLEMENT,
-                        userMemo = memo,
-                        settlementPartyCount = partyCount,
-                        settlementMyShareWon = myShareWon
-                    )
-                    resultMessage = "${card.title}을 N분의1 정산으로 저장했어요. 내 몫 ${formatWon(myShareWon)}만 지출에 반영했어요."
-                } else {
-                    sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
-                    resultMessage = "정산으로 저장했어요."
-                }
-                activeSettlementCard = null
-            } catch (e: IllegalArgumentException) {
-                errorMessage = e.message ?: "입력값을 확인해 주세요."
-            } finally {
-                isSaving = false
-            }
-        }
     }
 
     fun handleLinkRepayment(card: ReviewCardUi, settlementTransactionId: Long) {
@@ -437,8 +408,7 @@ fun ReviewScreen(
                         activeRefundCard = card
                         errorMessage = null
                     } else if (card.kind == ReviewCardKind.TRANSFER) {
-                        activeSettlementCard = card
-                        errorMessage = null
+                        openEditor(card)
                     } else if (reviewReasonFor(card) == ReviewReason.INCOME_UNKNOWN) {
                         handleReviewMemoAction(card.toPrimaryMemoAction(), null)
                     } else {
@@ -448,6 +418,9 @@ fun ReviewScreen(
                 onSecondaryAction = {
                     if (card.kind == ReviewCardKind.WALLET_TOPUP) {
                         activeUnusedWalletCard = card
+                    } else if (card.kind == ReviewCardKind.TRANSFER) {
+                        activeDeleteReviewCard = card
+                        errorMessage = null
                     } else if (reviewReasonFor(card) == ReviewReason.INCOME_UNKNOWN) {
                         activeDeleteReviewCard = card
                         errorMessage = null
@@ -456,11 +429,7 @@ fun ReviewScreen(
                     }
                 },
                 onEditAction = if (card.sourceTransaction != null && editTransactionUseCase != null) {
-                    {
-                        card.sourceTransaction?.monthKey?.let { budgetMonth = it }
-                        activeEditReviewCard = card
-                        editErrorMessage = null
-                    }
+                    { openEditor(card) }
                 } else {
                     null
                 }
@@ -583,21 +552,6 @@ fun ReviewScreen(
         )
     }
 
-    activeSettlementCard?.let { card ->
-        SettlementDialog(
-            card = card,
-            isSaving = isSaving,
-            errorMessage = errorMessage,
-            onDismiss = {
-                activeSettlementCard = null
-                errorMessage = null
-            },
-            onSave = { partyCount, myShareWon, memo ->
-                handleSettlement(card, partyCount, myShareWon, memo)
-            }
-        )
-    }
-
     activeEditReviewCard?.let { card ->
         val transaction = card.sourceTransaction
         val useCase = editTransactionUseCase
@@ -675,76 +629,6 @@ fun ReviewScreen(
                 }
             )
         }
-    }
-}
-
-@Composable
-private fun SettlementDialog(
-    card: ReviewCardUi,
-    isSaving: Boolean,
-    errorMessage: String?,
-    onDismiss: () -> Unit,
-    onSave: (partyCount: Int, myShareWon: Long, memo: String?) -> Unit
-) {
-    val colors = MoneyTheme.colors
-    val total = card.amountWon
-    var partyCount by remember(card.id) { mutableStateOf(MIN_SETTLEMENT_PARTY_COUNT) }
-    val suggestedShare = (total.toDouble() / partyCount).toLong()
-    var myShareText by remember(card.id) { mutableStateOf(suggestedShare.toString()) }
-    var edited by remember(card.id) { mutableStateOf(false) }
-    val myShareWon = myShareText.replace(",", "").trim().toLongOrNull()
-    val receivable = if (myShareWon != null) (total - myShareWon).coerceAtLeast(0) else 0
-
-    MoneyDialog(
-        title = "N분의1 정산",
-        subtitle = "${card.title} ${formatWon(total)}",
-        onDismiss = onDismiss,
-        buttons = {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onDismiss, enabled = !isSaving, modifier = Modifier.weight(1f)) {
-                    Text("취소")
-                }
-                Button(
-                    enabled = !isSaving && myShareWon != null && myShareWon in 0..total,
-                    modifier = Modifier.weight(1f),
-                    onClick = { onSave(partyCount, myShareWon ?: 0, null) }
-                ) {
-                    Text(if (isSaving) "저장 중" else "저장")
-                }
-            }
-        }
-    ) {
-        Text("몇 명이서 나눠요?", style = MaterialTheme.typography.labelMedium, color = colors.inkSub)
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StepperButton("−", enabled = partyCount > MIN_SETTLEMENT_PARTY_COUNT) {
-                partyCount -= 1
-                if (!edited) myShareText = (total.toDouble() / partyCount).toLong().toString()
-            }
-            Text("${partyCount}명", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.ink)
-            StepperButton("+", enabled = partyCount < MAX_SETTLEMENT_PARTY_COUNT) {
-                partyCount += 1
-                if (!edited) myShareText = (total.toDouble() / partyCount).toLong().toString()
-            }
-            Spacer(Modifier.weight(1f))
-            Text("1인당 ${formatWon((total.toDouble() / partyCount).toLong())}", style = MaterialTheme.typography.labelMedium, color = colors.muted)
-        }
-        OutlinedTextField(
-            value = myShareText,
-            onValueChange = { myShareText = it; edited = true },
-            label = { Text("내 몫 (지출에 반영)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth()
-        )
-        Surface(shape = RoundedCornerShape(14.dp), color = colors.canvas, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                "내 몫 ${formatWon(myShareWon ?: 0)}만 지출로 잡고, 받을 돈 ${formatWon(receivable)}은 참고로만 남겨요.",
-                modifier = Modifier.padding(12.dp),
-                style = MaterialTheme.typography.labelMedium,
-                color = colors.inkSub
-            )
-        }
-        (errorMessage)?.let { Text(it, color = colors.negative, style = MaterialTheme.typography.bodySmall) }
     }
 }
 
@@ -853,20 +737,6 @@ private fun Instant.toRefundCandidateTime(): String =
 
 private val refundCandidateTimeFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("M월 d일 HH:mm")
-
-@Composable
-private fun StepperButton(label: String, enabled: Boolean, onClick: () -> Unit) {
-    val colors = MoneyTheme.colors
-    Surface(
-        shape = RoundedCornerShape(50),
-        color = if (enabled) colors.soft(colors.primary) else colors.canvas,
-        modifier = Modifier.size(40.dp).let { if (enabled) it.clickable(onClick = onClick) else it }
-    ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(label, style = MaterialTheme.typography.titleMedium, color = if (enabled) colors.primary else colors.muted)
-        }
-    }
-}
 
 @Composable
 private fun ReviewFilterChip(
@@ -1077,16 +947,6 @@ private fun ReviewCardUi.toPrimaryMemoAction(): ReviewMemoAction {
         sourceTransaction?.type == TransactionType.INCOME
 
     return when {
-        kind == ReviewCardKind.TRANSFER -> ReviewMemoAction(
-            card = this,
-            resolution = ReviewResolution.SETTLEMENT,
-            title = "송금 사유 입력",
-            message = "${title} ${formatWon(amountWon)}을 N분의1 정산으로 저장해요.",
-            memoLabel = "송금 사유",
-            defaultMemo = "",
-            resultMessage = "${title}을 N분의1 정산으로 저장했어요."
-        )
-
         kind == ReviewCardKind.REFUND -> ReviewMemoAction(
             card = this,
             resolution = ReviewResolution.REFUND,

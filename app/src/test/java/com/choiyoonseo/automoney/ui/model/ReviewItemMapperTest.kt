@@ -44,7 +44,7 @@ class ReviewItemMapperTest {
     }
 
     @Test
-    fun openTransferReviewMapsToSplitCard() {
+    fun openTransferReviewMapsToEditAndDeleteActions() {
         val card = openReviewItemsToCards(
             listOf(
                 OpenReviewItem(
@@ -64,9 +64,9 @@ class ReviewItemMapperTest {
 
         assertThat(card.title).isEqualTo("김민수에게 송금")
         assertThat(card.kind).isEqualTo(ReviewCardKind.TRANSFER)
-        assertThat(card.primaryAction).isEqualTo("N분의1")
-        assertThat(card.secondaryAction).isEqualTo("내 지출 아님")
-        assertThat(card.editAction).isEqualTo("수정")
+        assertThat(card.primaryAction).isEqualTo("수정")
+        assertThat(card.secondaryAction).isEqualTo("삭제")
+        assertThat(card.editAction).isNull()
     }
 
     @Test

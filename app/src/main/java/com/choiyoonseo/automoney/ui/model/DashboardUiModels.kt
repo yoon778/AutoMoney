@@ -130,9 +130,9 @@ val sampleReviewCards = listOf(
         amountWon = 10000,
         tag = "송금",
         iconText = "송",
-        primaryAction = "N분의1",
-        secondaryAction = "내 지출 아님",
-        editAction = "수정",
+        primaryAction = "수정",
+        secondaryAction = "삭제",
+        editAction = null,
         kind = ReviewCardKind.TRANSFER
     ),
     ReviewCardUi(
