@@ -371,7 +371,9 @@ fun TransactionEditDialog(
         OutlinedTextField(
             value = memoText,
             onValueChange = { memoText = it },
-            label = { Text("메모") },
+            label = {
+                Text(if (selectedType == TransactionType.SPECIAL_EXPENSE) "특별지출 사유" else "메모")
+            },
             modifier = Modifier.fillMaxWidth()
         )
         (localErrorMessage ?: errorMessage)?.let {

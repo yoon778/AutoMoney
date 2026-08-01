@@ -77,7 +77,7 @@ class RoomMoneyRepository(
     override suspend fun saveTransaction(transaction: MoneyTransaction): Long {
         return try {
             db.withTransaction {
-                saveTransactionInternal(transaction.withoutAccountLink())
+                saveTransactionInternal(transaction)
             }
         } catch (e: SQLiteConstraintException) {
             throw duplicateNotificationExceptionOrOriginal(transaction, e)
@@ -90,7 +90,7 @@ class RoomMoneyRepository(
     ): Long {
         return try {
             db.withTransaction {
-                val id = saveTransactionInternal(transaction.withoutAccountLink())
+                val id = saveTransactionInternal(transaction)
                 insertReviewItem(id, reason)
                 id
             }
@@ -126,7 +126,7 @@ class RoomMoneyRepository(
     ): Long {
         require(historyId > 0)
         return db.withTransaction {
-            val transactionId = saveTransactionInternal(transaction.withoutAccountLink())
+            val transactionId = saveTransactionInternal(transaction)
             check(
                 db.notificationHistoryDao().markResolvedManually(historyId, transactionId) == 1
             ) { "Notification history is not recordable: $historyId" }
@@ -264,7 +264,7 @@ class RoomMoneyRepository(
     }
 
     private suspend fun updateTransactionInternal(transaction: MoneyTransaction) {
-        db.transactionDao().update(transaction.withoutAccountLink().toEntity())
+        db.transactionDao().update(transaction.toEntity())
     }
 }
 

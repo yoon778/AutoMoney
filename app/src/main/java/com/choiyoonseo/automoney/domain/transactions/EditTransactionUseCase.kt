@@ -39,9 +39,10 @@ class EditTransactionUseCase(
 
         val cleanMemo = memo.trim()
         val cleanPaymentMethod = paymentMethod?.trim()?.takeIf { it.isNotBlank() }
-        val accountId = account?.id?.takeIf { it > 0 }
+        val selectedAccountId = account?.id?.takeIf { it > 0 }
+        val accountId = selectedAccountId ?: transaction.linkedAssetAccountId?.takeIf { it > 0 }
         val accountPaymentMethod = account
-            ?.takeIf { it.id == accountId }
+            ?.takeIf { it.id == selectedAccountId }
             ?.name
             ?.trim()
             ?.takeIf { it.isNotBlank() }

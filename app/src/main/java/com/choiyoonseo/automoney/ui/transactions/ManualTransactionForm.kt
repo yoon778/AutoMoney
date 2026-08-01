@@ -294,7 +294,9 @@ fun ManualTransactionForm(
         OutlinedTextField(
             value = memo,
             onValueChange = { memo = it },
-            label = { Text("메모") },
+            label = {
+                Text(if (entryType == ManualEntryType.SPECIAL_EXPENSE) "특별지출 사유" else "메모")
+            },
             modifier = Modifier.fillMaxWidth()
         )
         inputError?.let { Text(it) }

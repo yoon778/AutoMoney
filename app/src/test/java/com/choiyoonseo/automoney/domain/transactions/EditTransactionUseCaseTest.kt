@@ -213,6 +213,27 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun editingSpecialExpenseKeepsExistingAccountDebit() = runTest {
+        val repository = FakeMoneyRepository()
+
+        EditTransactionUseCase(repository).update(
+            transaction = transaction().copy(
+                type = TransactionType.SPECIAL_EXPENSE,
+                linkedAssetAccountId = 7,
+                balanceImpact = BalanceImpact.DEBIT
+            ),
+            amountWon = 500_000,
+            categoryText = "의료/건강",
+            memo = "응급 치료",
+            transactionType = TransactionType.SPECIAL_EXPENSE
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.linkedAssetAccountId).isEqualTo(7)
+        assertThat(updated.balanceImpact).isEqualTo(BalanceImpact.DEBIT)
+    }
+
+    @Test
     fun updateIncomeCanUseInvestmentReturnCategory() = runTest {
         val repository = FakeMoneyRepository()
         val useCase = EditTransactionUseCase(repository)

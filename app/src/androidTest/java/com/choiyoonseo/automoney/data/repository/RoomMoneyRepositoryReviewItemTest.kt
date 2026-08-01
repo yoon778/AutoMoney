@@ -222,6 +222,26 @@ class RoomMoneyRepositoryReviewItemTest {
     }
 
     @Test
+    fun explicitSpecialExpenseKeepsAccountDebitMetadata() = runBlocking {
+        val accountId = saveBankAccount(balanceWon = 50_000)
+        val transactionId = repository.saveTransaction(
+            autoExpense(paymentMethod = "Checking").copy(
+                type = TransactionType.SPECIAL_EXPENSE,
+                sourceType = SourceType.MANUAL,
+                sourceNotificationHash = null,
+                linkedAssetAccountId = accountId,
+                balanceImpact = BalanceImpact.DEBIT
+            )
+        )
+
+        val stored = transaction(transactionId)
+        assertEquals(TransactionType.SPECIAL_EXPENSE, stored.type)
+        assertEquals(accountId, stored.linkedAssetAccountId)
+        assertEquals(BalanceImpact.DEBIT, stored.balanceImpact)
+        assertEquals(50_000, accountBalance(accountId))
+    }
+
+    @Test
     fun deletingPaymentUnlinksRefundAndCreatesReview() = runBlocking {
         val paymentId = repository.saveTransaction(autoExpense(paymentMethod = "Kbank"))
         val refundId = repository.saveTransaction(refund(parentId = null))
