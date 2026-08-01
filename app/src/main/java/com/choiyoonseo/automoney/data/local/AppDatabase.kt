@@ -31,7 +31,7 @@ import com.choiyoonseo.automoney.data.local.entity.UserCategoryEntity
         UserCategoryEntity::class,
         NotificationHistoryEntity::class
     ],
-    version = 16,
+    version = 17,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -442,6 +442,18 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    UPDATE fixed_expenses
+                    SET effectiveFromMonth = '2026-07'
+                    WHERE effectiveFromMonth = '0001-01'
+                    """.trimIndent()
+                )
+            }
+        }
+
         val MIGRATIONS: List<Migration> = listOf(
             MIGRATION_1_2,
             MIGRATION_2_3,
@@ -457,7 +469,8 @@ abstract class AppDatabase : RoomDatabase() {
             MIGRATION_12_13,
             MIGRATION_13_14,
             MIGRATION_14_15,
-            MIGRATION_15_16
+            MIGRATION_15_16,
+            MIGRATION_16_17
         )
     }
 }

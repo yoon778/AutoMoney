@@ -323,6 +323,27 @@ class AppDatabaseMigrationTest {
         db.close()
     }
 
+    @Test
+    fun migration16To17StartsLegacyFixedExpensesInJulyWithoutRemovingRows() {
+        helper.createDatabase(ELEVENTH_TEST_DB, 16).apply {
+            insertVersionedFixedExpense(id = 7, effectiveFromMonth = "0001-01")
+            insertVersionedFixedExpense(id = 8, effectiveFromMonth = "2026-08")
+            close()
+        }
+
+        val db = helper.runMigrationsAndValidate(
+            ELEVENTH_TEST_DB,
+            17,
+            true,
+            AppDatabase.MIGRATION_16_17
+        )
+
+        assertEquals(2, db.singleLong("SELECT COUNT(*) FROM fixed_expenses"))
+        assertEquals("2026-07", db.singleString("SELECT effectiveFromMonth FROM fixed_expenses WHERE id = 7"))
+        assertEquals("2026-08", db.singleString("SELECT effectiveFromMonth FROM fixed_expenses WHERE id = 8"))
+        db.close()
+    }
+
     private fun SupportSQLiteDatabase.insertTransaction(
         id: Long,
         sourceNotificationHash: String?,
@@ -390,6 +411,21 @@ class AppDatabaseMigrationTest {
         )
     }
 
+    private fun SupportSQLiteDatabase.insertVersionedFixedExpense(
+        id: Long,
+        effectiveFromMonth: String
+    ) {
+        execSQL(
+            """
+            INSERT INTO fixed_expenses (
+                id, seriesId, name, amountWon, withdrawalDay,
+                accountName, active, effectiveFromMonth, effectiveToMonth
+            ) VALUES (?, ?, 'legacy expense', 10000, 1, 'legacy account', 1, ?, NULL)
+            """.trimIndent(),
+            arrayOf<Any?>(id, id, effectiveFromMonth)
+        )
+    }
+
     private fun SupportSQLiteDatabase.insertMonthlyPlanItem(id: Long) {
         execSQL(
             """
@@ -442,6 +478,7 @@ class AppDatabaseMigrationTest {
         const val EIGHTH_TEST_DB = "migration-test-13-14"
         const val NINTH_TEST_DB = "migration-test-14-15"
         const val TENTH_TEST_DB = "migration-test-15-16"
+        const val ELEVENTH_TEST_DB = "migration-test-16-17"
         const val WALLET_TEST_DB = "migration-test-4-5-wallets"
     }
 }

@@ -118,11 +118,13 @@ class RoomAssetRepositoryTest {
         val julyPlan = repository.observeFixedExpenses(july).first().single()
         val augustPlan = repository.observeFixedExpenses(august).first().single()
         val septemberPlan = repository.observeFixedExpenses(august.plusMonths(1)).first().single()
+        val nextYearPlan = repository.observeFixedExpenses(YearMonth.of(2027, 1)).first().single()
 
         assertEquals(originalId, julyPlan.id)
         assertEquals(70_000, julyPlan.amountWon)
         assertEquals(80_000, augustPlan.amountWon)
         assertEquals(augustPlan.id, septemberPlan.id)
+        assertEquals(80_000, nextYearPlan.amountWon)
     }
 
     @Test
