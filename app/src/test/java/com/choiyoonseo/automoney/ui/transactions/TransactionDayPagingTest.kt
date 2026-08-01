@@ -10,18 +10,20 @@ class TransactionDayPagingTest {
 
     @Test
     fun adjacentPagesMapToAdjacentDates() {
-        assertThat(transactionDateForPage(99, today, anchorPage = 100))
+        val todayPage = transactionPageForDate(today, today)
+
+        assertThat(transactionDateForPage(todayPage - 1, today))
             .isEqualTo(LocalDate.of(2026, 7, 31))
-        assertThat(transactionDateForPage(101, today, anchorPage = 100))
+        assertThat(transactionDateForPage(todayPage + 1, today))
             .isEqualTo(LocalDate.of(2026, 8, 2))
     }
 
     @Test
     fun dateToPageRoundTripPreservesDate() {
         val date = LocalDate.of(2025, 12, 25)
-        val page = transactionPageForDate(date, today, anchorPage = 1000)
+        val page = transactionPageForDate(date, today)
 
-        assertThat(transactionDateForPage(page, today, anchorPage = 1000)).isEqualTo(date)
+        assertThat(transactionDateForPage(page, today)).isEqualTo(date)
     }
 
     @Test

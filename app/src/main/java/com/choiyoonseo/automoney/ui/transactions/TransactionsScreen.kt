@@ -69,15 +69,13 @@ private const val TransactionPagerInitialPage = TransactionPagerPageCount / 2
 
 internal fun transactionDateForPage(
     page: Int,
-    anchorDate: LocalDate,
-    anchorPage: Int = TransactionPagerInitialPage
-): LocalDate = anchorDate.plusDays((page - anchorPage).toLong())
+    anchorDate: LocalDate
+): LocalDate = anchorDate.plusDays((page - TransactionPagerInitialPage).toLong())
 
 internal fun transactionPageForDate(
     date: LocalDate,
-    anchorDate: LocalDate,
-    anchorPage: Int = TransactionPagerInitialPage
-): Int = (anchorPage.toLong() + ChronoUnit.DAYS.between(anchorDate, date))
+    anchorDate: LocalDate
+): Int = (TransactionPagerInitialPage.toLong() + ChronoUnit.DAYS.between(anchorDate, date))
     .coerceIn(0, TransactionPagerPageCount.toLong() - 1)
     .toInt()
 
