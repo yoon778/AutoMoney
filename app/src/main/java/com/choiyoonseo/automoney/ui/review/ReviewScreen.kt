@@ -132,6 +132,7 @@ fun ReviewScreen(
     var activeEditReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeSettlementCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var activeRefundCard by remember { mutableStateOf<ReviewCardUi?>(null) }
+    var activeDeleteReviewCard by remember { mutableStateOf<ReviewCardUi?>(null) }
     var resultMessage by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var editErrorMessage by remember { mutableStateOf<String?>(null) }
@@ -301,6 +302,27 @@ fun ReviewScreen(
         }
     }
 
+    fun deleteReviewCard(card: ReviewCardUi) {
+        scope.launch {
+            isSaving = true
+            errorMessage = null
+            try {
+                val transaction = card.sourceTransaction
+                if (moneyRepository != null && transaction != null) {
+                    moneyRepository.deleteTransaction(transaction.id)
+                } else {
+                    sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
+                }
+                resultMessage = "${card.title}을 삭제했어요."
+                activeDeleteReviewCard = null
+            } catch (e: RuntimeException) {
+                errorMessage = "삭제 중 문제가 생겼어요."
+            } finally {
+                isSaving = false
+            }
+        }
+    }
+
     fun recordWalletUsage(card: ReviewCardUi, usedWon: Long, merchant: String, memo: String?) {
         val topup = card.sourceTransaction ?: card.toSampleTopupTransaction()
         val category = Category.CAFE_SNACK
@@ -413,6 +435,8 @@ fun ReviewScreen(
                     } else if (card.kind == ReviewCardKind.TRANSFER) {
                         activeSettlementCard = card
                         errorMessage = null
+                    } else if (reviewReasonFor(card) == ReviewReason.INCOME_UNKNOWN) {
+                        handleReviewMemoAction(card.toPrimaryMemoAction(), null)
                     } else {
                         activeReviewMemoAction = card.toPrimaryMemoAction()
                     }
@@ -420,6 +444,9 @@ fun ReviewScreen(
                 onSecondaryAction = {
                     if (card.kind == ReviewCardKind.WALLET_TOPUP) {
                         activeUnusedWalletCard = card
+                    } else if (reviewReasonFor(card) == ReviewReason.INCOME_UNKNOWN) {
+                        activeDeleteReviewCard = card
+                        errorMessage = null
                     } else {
                         activeReviewMemoAction = card.toSecondaryMemoAction()
                     }
@@ -494,6 +521,41 @@ fun ReviewScreen(
             },
             onSave = { memo ->
             handleReviewMemoAction(action, memo)
+            }
+        )
+    }
+
+    activeDeleteReviewCard?.let { card ->
+        AlertDialog(
+            onDismissRequest = {
+                if (!isSaving) {
+                    activeDeleteReviewCard = null
+                    errorMessage = null
+                }
+            },
+            title = { Text("거래 삭제") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("${card.title} ${formatWon(card.amountWon)}을 삭제할까요?")
+                    Text("거래와 검토 기록이 함께 삭제되며 되돌릴 수 없어요.")
+                    errorMessage?.let { Text(it, color = MoneyTheme.colors.negative) }
+                }
+            },
+            confirmButton = {
+                Button(onClick = { deleteReviewCard(card) }, enabled = !isSaving) {
+                    Text(if (isSaving) "삭제 중" else "삭제")
+                }
+            },
+            dismissButton = {
+                OutlinedButton(
+                    onClick = {
+                        activeDeleteReviewCard = null
+                        errorMessage = null
+                    },
+                    enabled = !isSaving
+                ) {
+                    Text("취소")
+                }
             }
         )
     }
@@ -585,9 +647,6 @@ fun ReviewScreen(
                         isSaving = true
                         editErrorMessage = null
                         try {
-                            if (moneyRepository != null && card.reviewItemId != null) {
-                                moneyRepository.resolveReviewItem(card.reviewItemId)
-                            }
                             useCase.delete(transaction)
                             if (moneyRepository == null) {
                                 sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
@@ -1048,11 +1107,11 @@ private fun ReviewCardUi.toPrimaryMemoAction(): ReviewMemoAction {
         isIncome -> ReviewMemoAction(
             card = this,
             resolution = ReviewResolution.CONFIRM,
-            title = "입금 메모 입력",
-            message = "${title} ${formatWon(amountWon)}을 받은 이유를 남겨요.",
-            memoLabel = "받은 이유",
+            title = "입금 확인",
+            message = "${title} ${formatWon(amountWon)}을 입금으로 확인해요.",
+            memoLabel = "메모",
             defaultMemo = "",
-            resultMessage = "${title} 입금 메모를 저장했어요."
+            resultMessage = "${title}을 입금으로 확인했어요."
         )
 
         else -> ReviewMemoAction(

@@ -10,6 +10,7 @@ import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
 import com.choiyoonseo.automoney.domain.report.countsAsSavingMovement
+import com.choiyoonseo.automoney.domain.report.effectiveExpenseWon
 import com.choiyoonseo.automoney.domain.report.isReportableTransaction
 import com.choiyoonseo.automoney.domain.report.plannedUseContributions
 import java.time.YearMonth
@@ -149,12 +150,16 @@ private val transactionSectionDateFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("M월 d일")
 
 private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
-    val displayAmount = if (direction == TransactionDirection.EXPENSE || type.countsAsMonthlyExpense) {
-        -amount.won
-    } else {
-        amount.won
+    val displayAmount = when {
+        type == TransactionType.SETTLEMENT && settlementMyShareWon != null -> -effectiveExpenseWon()
+        direction == TransactionDirection.EXPENSE || type.countsAsMonthlyExpense -> -amount.won
+        else -> amount.won
     }
-    val categoryText = categoryDisplayName() ?: if (type.countsAsMonthlyExpense) "\uae30\ud0c0" else "\uc9c0\ucd9c \uc81c\uc678"
+    val categoryText = categoryDisplayName() ?: when {
+        type == TransactionType.SETTLEMENT && settlementMyShareWon != null -> "N분의1"
+        type.countsAsMonthlyExpense -> "\uae30\ud0c0"
+        else -> "\uc9c0\ucd9c \uc81c\uc678"
+    }
 
     return TransactionRowUi(
         merchant = displayTitle(),

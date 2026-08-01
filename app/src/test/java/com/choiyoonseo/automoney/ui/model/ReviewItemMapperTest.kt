@@ -124,7 +124,7 @@ class ReviewItemMapperTest {
     }
 
     @Test
-    fun openIncomeReviewMapsToMemoCard() {
+    fun openIncomeReviewMapsToConfirmAndDeleteActions() {
         val card = openReviewItemsToCards(
             listOf(
                 OpenReviewItem(
@@ -144,8 +144,9 @@ class ReviewItemMapperTest {
 
         assertThat(card.title).isEqualTo("김민수")
         assertThat(card.kind).isEqualTo(ReviewCardKind.OTHER)
-        assertThat(card.primaryAction).isEqualTo("입금 메모")
-        assertThat(card.secondaryAction).isEqualTo("제외")
+        assertThat(card.message).doesNotContain("메모")
+        assertThat(card.primaryAction).isEqualTo("입금 확인")
+        assertThat(card.secondaryAction).isEqualTo("삭제")
     }
 
     @Test

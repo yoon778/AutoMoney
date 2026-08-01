@@ -280,6 +280,28 @@ class MonthlySummaryMapperTest {
     }
 
     @Test
+    fun transactionsToRowsShowsOnlyMySettlementShareAsExpense() {
+        val month = YearMonth.of(2026, 7)
+
+        val row = transactionsToRows(
+            listOf(
+                tx(
+                    occurredAt = "2026-07-08T01:00:00Z",
+                    amountWon = 30_000,
+                    type = TransactionType.SETTLEMENT,
+                    category = null,
+                    month = month,
+                    merchant = "공동 식사",
+                    settlementMyShareWon = 10_000
+                )
+            )
+        ).single()
+
+        assertThat(row.amountWon).isEqualTo(-10_000)
+        assertThat(row.category).isEqualTo("N분의1")
+    }
+
+    @Test
     fun transactionsToRowsMarksExcludedRowsForSubduedStyle() {
         val month = YearMonth.of(2026, 7)
         val rows = transactionsToRows(

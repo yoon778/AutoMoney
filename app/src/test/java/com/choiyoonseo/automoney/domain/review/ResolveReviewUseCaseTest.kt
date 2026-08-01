@@ -70,6 +70,20 @@ class ResolveReviewUseCaseTest {
     }
 
     @Test
+    fun resolveSettlementAcceptsTwentyPeopleShownByUi() = runTest {
+        val updated = ResolveReviewUseCase(AtomicReviewRepository()).resolve(
+            reviewItemId = 9,
+            transaction = reviewTransaction(),
+            resolution = ReviewResolution.SETTLEMENT,
+            userMemo = null,
+            settlementPartyCount = 20
+        )
+
+        assertThat(updated.settlementPartyCount).isEqualTo(20)
+        assertThat(updated.settlementMyShareWon).isEqualTo(500)
+    }
+
+    @Test
     fun confirmPreservesAutomaticOrExplicitBudgetChoice() = runTest {
         val useCase = ResolveReviewUseCase(AtomicReviewRepository())
 

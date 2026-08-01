@@ -19,8 +19,8 @@ class ResolveReviewUseCase(
             userMemo = userMemo
         )
         val updated = if (resolution == ReviewResolution.SETTLEMENT) {
-            require(settlementPartyCount in 2..10) {
-                "Settlement party count must be between 2 and 10"
+            require(settlementPartyCount in 2..20) {
+                "Settlement party count must be between 2 and 20"
             }
             val myShareWon = settlementMyShareWon
                 ?: transaction.amount.won / settlementPartyCount
