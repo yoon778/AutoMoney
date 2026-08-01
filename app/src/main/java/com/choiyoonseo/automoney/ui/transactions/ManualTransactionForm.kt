@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import com.choiyoonseo.automoney.ui.components.MoneyPickerField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -50,6 +51,7 @@ fun ManualTransactionForm(
     fixedExpenses: List<FixedExpensePlan> = emptyList(),
     expenseCategoryLabels: List<String> = emptyList(),
     incomeCategoryLabels: List<String> = emptyList(),
+    onDateChanged: (LocalDate) -> Unit = {},
     onSave: (
         type: ManualEntryType,
         amountWon: Long,
@@ -80,6 +82,12 @@ fun ManualTransactionForm(
     val incomeOptions = incomeCategoryLabels.ifEmpty { manualIncomeCategoryOptions.map { it.label } }
     var isDatePickerOpen by remember(resetSignal) { mutableStateOf(defaults.isDatePickerOpen) }
 
+    LaunchedEffect(budgetUsages) {
+        if (budgetUsages.none { it.plan.id == selectedBudgetPlanId }) {
+            selectedBudgetPlanId = null
+        }
+    }
+
     if (isDatePickerOpen) {
         val datePickerState = rememberDatePickerState(
             initialSelectedDateMillis = selectedDate.toDatePickerMillis()
@@ -91,6 +99,7 @@ fun ManualTransactionForm(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { selectedMillis ->
                             selectedDate = selectedMillis.toDatePickerLocalDate()
+                            onDateChanged(selectedDate)
                         }
                         isDatePickerOpen = false
                     }
@@ -143,14 +152,20 @@ fun ManualTransactionForm(
             val yesterday = today.minusDays(1)
             if (selectedDate == today) {
                 Button(
-                    onClick = { selectedDate = today },
+                    onClick = {
+                        selectedDate = today
+                        onDateChanged(today)
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("오늘")
                 }
             } else {
                 OutlinedButton(
-                    onClick = { selectedDate = today },
+                    onClick = {
+                        selectedDate = today
+                        onDateChanged(today)
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("오늘")
@@ -158,14 +173,20 @@ fun ManualTransactionForm(
             }
             if (selectedDate == yesterday) {
                 Button(
-                    onClick = { selectedDate = yesterday },
+                    onClick = {
+                        selectedDate = yesterday
+                        onDateChanged(yesterday)
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("어제")
                 }
             } else {
                 OutlinedButton(
-                    onClick = { selectedDate = yesterday },
+                    onClick = {
+                        selectedDate = yesterday
+                        onDateChanged(yesterday)
+                    },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("어제")

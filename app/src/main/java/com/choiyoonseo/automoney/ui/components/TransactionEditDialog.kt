@@ -38,6 +38,7 @@ import com.choiyoonseo.automoney.ui.model.formatWon
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.domain.model.TransactionType
 import java.time.Instant
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,6 +62,7 @@ fun TransactionEditDialog(
     ) -> Unit,
     onExclude: () -> Unit,
     onDelete: (() -> Unit)? = null,
+    onDateChanged: (LocalDate) -> Unit = {},
     excludeLabel: String = "\uc9c0\ucd9c\uc5d0\uc11c \uc81c\uc678",
     deleteLabel: String = "\uc0ad\uc81c"
 ) {
@@ -114,6 +116,7 @@ fun TransactionEditDialog(
                     onClick = {
                         datePickerState.selectedDateMillis?.let { selectedMillis ->
                             selectedDate = selectedMillis.toTransactionEditDatePickerLocalDate()
+                            onDateChanged(selectedDate)
                         }
                         isDatePickerOpen = false
                     }

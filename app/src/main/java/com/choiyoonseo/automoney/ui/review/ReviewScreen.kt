@@ -112,7 +112,7 @@ fun ReviewScreen(
     val allTransactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val budgetMonth = remember { YearMonth.now(AppDateZoneId) }
+    var budgetMonth by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
     val monthlyPlans by remember(assetRepository, budgetMonth) {
         assetRepository?.observeMonthlyPlanItems(budgetMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -457,6 +457,7 @@ fun ReviewScreen(
                 },
                 onEditAction = if (card.sourceTransaction != null && editTransactionUseCase != null) {
                     {
+                        card.sourceTransaction?.monthKey?.let { budgetMonth = it }
                         activeEditReviewCard = card
                         editErrorMessage = null
                     }
@@ -609,6 +610,7 @@ fun ReviewScreen(
                 fixedExpenses = fixedExpenses,
                 expenseCategoryLabels = expenseCategoryLabels,
                 incomeCategoryLabels = incomeCategoryLabels,
+                onDateChanged = { budgetMonth = YearMonth.from(it) },
                 onDismiss = {
                     activeEditReviewCard = null
                     editErrorMessage = null

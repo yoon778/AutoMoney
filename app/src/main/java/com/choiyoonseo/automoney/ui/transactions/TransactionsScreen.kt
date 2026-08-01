@@ -104,17 +104,18 @@ fun TransactionsScreen(
         pageCount = { MonthPagerPageCount }
     )
     val selectedMonth = monthForPagerPage(pagerState.currentPage, currentMonth)
+    var budgetMonth by remember { mutableStateOf(currentMonth) }
     val transactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val currentMonthTransactions by remember(moneyRepository, currentMonth) {
-        moneyRepository?.observeTransactionsForMonth(currentMonth) ?: flowOf(emptyList())
+    val budgetMonthTransactions by remember(moneyRepository, budgetMonth) {
+        moneyRepository?.observeTransactionsForMonth(budgetMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val monthlyPlans by remember(assetRepository, currentMonth) {
-        assetRepository?.observeMonthlyPlanItems(currentMonth) ?: flowOf(emptyList())
+    val monthlyPlans by remember(assetRepository, budgetMonth) {
+        assetRepository?.observeMonthlyPlanItems(budgetMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val budgetUsages = remember(monthlyPlans, currentMonthTransactions) {
-        buildCategoryBudgetUsages(monthlyPlans, currentMonthTransactions)
+    val budgetUsages = remember(monthlyPlans, budgetMonthTransactions) {
+        buildCategoryBudgetUsages(monthlyPlans, budgetMonthTransactions)
     }
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
@@ -182,6 +183,7 @@ fun TransactionsScreen(
             }
             FilledIconButton(
                 onClick = {
+                    budgetMonth = currentMonth
                     isManualFormVisible = true
                     manualFormMessage = null
                 },
@@ -270,6 +272,7 @@ fun TransactionsScreen(
                                     } else {
                                         {
                                             activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
+                                                ?.also { budgetMonth = it.monthKey }
                                             editErrorMessage = null
                                         }
                                     }
@@ -322,7 +325,8 @@ fun TransactionsScreen(
                 budgetUsages = budgetUsages,
                 fixedExpenses = fixedExpenses,
                 expenseCategoryLabels = expenseCategoryLabels,
-                incomeCategoryLabels = incomeCategoryLabels
+                incomeCategoryLabels = incomeCategoryLabels,
+                onDateChanged = { budgetMonth = YearMonth.from(it) }
             ) { type, amountWon, category, memo, occurredAt, budgetPlanId, fixedExpensePlanId ->
                 val useCase = saveManualTransactionUseCase
                 if (useCase == null) {
@@ -372,6 +376,7 @@ fun TransactionsScreen(
             fixedExpenses = fixedExpenses,
             expenseCategoryLabels = expenseCategoryLabels,
             incomeCategoryLabels = incomeCategoryLabels,
+            onDateChanged = { budgetMonth = YearMonth.from(it) },
             onDismiss = {
                 activeEditTransaction = null
                 editErrorMessage = null
