@@ -21,6 +21,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.BarChart
@@ -43,7 +45,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -83,9 +84,12 @@ import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.MoneyGreen
 import com.choiyoonseo.automoney.ui.components.MoneyMint
+import com.choiyoonseo.automoney.ui.components.MonthPagerHeader
+import com.choiyoonseo.automoney.ui.components.MonthPagerInitialPage
+import com.choiyoonseo.automoney.ui.components.MonthPagerPageCount
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import com.choiyoonseo.automoney.ui.components.categoryAccentForName
-import com.choiyoonseo.automoney.ui.components.monthPagerLabel
+import com.choiyoonseo.automoney.ui.components.monthForPagerPage
 import com.choiyoonseo.automoney.ui.theme.MoneyTheme
 import com.choiyoonseo.automoney.ui.model.formatWon
 import kotlinx.coroutines.flow.flowOf
@@ -107,32 +111,12 @@ fun AssetsScreen(
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(sampleFixedExpenses)
     }.collectAsState(initial = emptyList())
-    var month by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
-    val monthlyPlans by remember(assetRepository, month) {
-        assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(sampleMonthlyPlanItems)
-    }.collectAsState(initial = emptyList())
-    val monthTransactions by remember(moneyRepository, month) {
-        moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
-    val overview = remember(fixedExpenses, monthlyPlans, monthTransactions) {
-        buildAssetOverview(
-            emptyList(),
-            fixedExpenses,
-            monthlyPlans,
-            // 연결된 환급을 뺀 순사용액. 예산 카드·홈·보고서가 같은 금액을 보게 한다.
-            spentThisMonthWon = plannedUseContributions(monthTransactions)
-                .filter { it.transaction.countsAsActualExpense() }
-                .sumOf(PlannedUseContribution::amountWon)
-        )
-    }
-    val budgetUsages = remember(monthlyPlans, monthTransactions) {
-        buildCategoryBudgetUsages(monthlyPlans, monthTransactions)
-    }
-    val livingBudgetUsages = remember(budgetUsages) { budgetUsages.filterNot { it.isInvestmentPlan() } }
-    val investmentUsages = remember(budgetUsages) { budgetUsages.filter { it.isInvestmentPlan() } }
-    val unbudgetedExpenseWon = remember(monthlyPlans, monthTransactions) {
-        calculateUnbudgetedExpenseWon(monthlyPlans, monthTransactions)
-    }
+    val anchorMonth = remember { YearMonth.now(AppDateZoneId) }
+    val pagerState = rememberPagerState(
+        initialPage = MonthPagerInitialPage,
+        pageCount = { MonthPagerPageCount }
+    )
+    val selectedMonth = monthForPagerPage(pagerState.currentPage, anchorMonth)
     val userExpenseCategories by remember(userCategoryRepository) {
         userCategoryRepository?.observeActiveCategories() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -147,8 +131,7 @@ fun AssetsScreen(
             .fillMaxSize()
             .padding(padding)
             .background(MoneyTheme.colors.canvas)
-            .verticalScroll(rememberScrollState())
-            .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
+            .padding(start = 18.dp, top = 18.dp, end = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         ScreenTitle(
@@ -156,34 +139,83 @@ fun AssetsScreen(
             subtitle = "카테고리별 예산에서 얼마나 썼는지 봐요"
         )
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            OutlinedButton(
-                onClick = { month = month.minusMonths(1) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("이전 달")
+        MonthPagerHeader(
+            month = selectedMonth,
+            onPreviousMonth = {
+                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+            },
+            onNextMonth = {
+                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
             }
-            Text(
-                monthPagerLabel(month),
-                modifier = Modifier.weight(1.2f),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                fontWeight = FontWeight.Bold,
-                color = MoneyTheme.colors.ink
-            )
-            OutlinedButton(
-                onClick = { month = month.plusMonths(1) },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("다음 달")
-            }
-        }
+        )
 
         message?.let { AssistChip(onClick = {}, label = { Text(it) }) }
 
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            key = { page -> monthForPagerPage(page, anchorMonth).toString() }
+        ) { page ->
+            AssetsMonthPage(
+                month = monthForPagerPage(page, anchorMonth),
+                fixedExpenses = fixedExpenses,
+                assetRepository = assetRepository,
+                moneyRepository = moneyRepository,
+                userExpenseCategories = userExpenseCategories,
+                selectedSection = selectedSection,
+                onSelectedSection = { selectedSection = it },
+                onMessage = { message = it }
+            )
+        }
+    }
+}
+
+@Composable
+private fun AssetsMonthPage(
+    month: YearMonth,
+    fixedExpenses: List<FixedExpensePlan>,
+    assetRepository: AssetRepository?,
+    moneyRepository: MoneyRepository?,
+    userExpenseCategories: List<UserCategory>,
+    selectedSection: AssetSection,
+    onSelectedSection: (AssetSection) -> Unit,
+    onMessage: (String) -> Unit
+) {
+    val scope = rememberCoroutineScope()
+    val monthlyPlans by remember(assetRepository, month) {
+        assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(sampleMonthlyPlanItems)
+    }.collectAsState(initial = emptyList())
+    val monthTransactions by remember(moneyRepository, month) {
+        moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+    val overview = remember(fixedExpenses, monthlyPlans, monthTransactions) {
+        buildAssetOverview(
+            emptyList(),
+            fixedExpenses,
+            monthlyPlans,
+            spentThisMonthWon = plannedUseContributions(monthTransactions)
+                .filter { it.transaction.countsAsActualExpense() }
+                .sumOf(PlannedUseContribution::amountWon)
+        )
+    }
+    val budgetUsages = remember(monthlyPlans, monthTransactions) {
+        buildCategoryBudgetUsages(monthlyPlans, monthTransactions)
+    }
+    val livingBudgetUsages = remember(budgetUsages) { budgetUsages.filterNot { it.isInvestmentPlan() } }
+    val investmentUsages = remember(budgetUsages) { budgetUsages.filter { it.isInvestmentPlan() } }
+    val unbudgetedExpenseWon = remember(monthlyPlans, monthTransactions) {
+        calculateUnbudgetedExpenseWon(monthlyPlans, monthTransactions)
+    }
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(bottom = 96.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
         FinanceSectionCard(
             title = "${month.monthValue}월 예산",
             subtitle = "남은 금액 기준 · 초과는 빨간색",
@@ -230,10 +262,10 @@ fun AssetsScreen(
         }
 
         if (investmentUsages.isNotEmpty()) {
-            InvestmentPlanCard(investmentUsages)
+            InvestmentPlanCard(investmentUsages, month)
         }
 
-        IncomeAllocationCard(overview)
+        IncomeAllocationCard(overview, month)
 
         TabRow(
             selectedTabIndex = selectedSection.ordinal,
@@ -243,7 +275,7 @@ fun AssetsScreen(
             AssetSection.entries.forEach { section ->
                 Tab(
                     selected = selectedSection == section,
-                    onClick = { selectedSection = section },
+                    onClick = { onSelectedSection(section) },
                     text = { Text(section.label) }
                 )
             }
@@ -255,28 +287,28 @@ fun AssetsScreen(
                 onSave = { plan ->
                     val repository = assetRepository
                     if (repository == null) {
-                        message = "미리보기에서는 저장하지 않아요."
+                        onMessage("미리보기에서는 저장하지 않아요.")
                     } else {
                         scope.launch {
                             repository.saveFixedExpense(plan)
-                            message = "${plan.name} 고정지출을 저장했어요."
+                            onMessage("${plan.name} 고정지출을 저장했어요.")
                         }
                     }
                 },
                 onDelete = { plan ->
                     val repository = assetRepository
                     if (repository == null) {
-                        message = "미리보기에서는 삭제하지 않아요."
+                        onMessage("미리보기에서는 삭제하지 않아요.")
                     } else {
                         scope.launch {
                             repository.deleteFixedExpense(plan.id)
-                            message = "${plan.name} 고정지출을 삭제했어요."
+                            onMessage("${plan.name} 고정지출을 삭제했어요.")
                         }
                     }
                 }
             )
 
-            AssetSection.PLAN -> key(month) {
+            AssetSection.PLAN -> {
                 MonthlyPlanPanel(
                     items = monthlyPlans,
                     usages = budgetUsages,
@@ -285,22 +317,22 @@ fun AssetsScreen(
                     onSave = { item ->
                         val repository = assetRepository
                         if (repository == null) {
-                            message = "미리보기에서는 저장하지 않아요."
+                            onMessage("미리보기에서는 저장하지 않아요.")
                         } else {
                             scope.launch {
                                 repository.saveMonthlyPlanItem(item, month)
-                                message = "${month.monthValue}월 ${item.label} 계획을 저장했어요."
+                                onMessage("${month.monthValue}월 ${item.label} 계획을 저장했어요.")
                             }
                         }
                     },
                     onDelete = { item ->
                         val repository = assetRepository
                         if (repository == null) {
-                            message = "미리보기에서는 삭제하지 않아요."
+                            onMessage("미리보기에서는 삭제하지 않아요.")
                         } else {
                             scope.launch {
                                 repository.deleteMonthlyPlanItem(item.id)
-                                message = "${item.label} 계획을 삭제했어요."
+                                onMessage("${item.label} 계획을 삭제했어요.")
                             }
                         }
                     }
@@ -311,9 +343,9 @@ fun AssetsScreen(
 }
 
 @Composable
-private fun InvestmentPlanCard(usages: List<CategoryBudgetUsage>) {
+private fun InvestmentPlanCard(usages: List<CategoryBudgetUsage>, month: YearMonth) {
     FinanceSectionCard(
-        title = "이번 달 투자 계획",
+        title = "${month.monthValue}월 투자 계획",
         subtitle = "생활비 지출과 따로 계산해요",
         accent = MoneyMint,
         icon = Icons.Filled.BarChart
@@ -336,7 +368,7 @@ private fun InvestmentPlanCard(usages: List<CategoryBudgetUsage>) {
 }
 
 @Composable
-private fun IncomeAllocationCard(overview: AssetOverview) {
+private fun IncomeAllocationCard(overview: AssetOverview, month: YearMonth) {
     val colors = MoneyTheme.colors
     val income = overview.totalIncomeWon
     val fixed = overview.totalFixedExpenseWon
@@ -345,7 +377,7 @@ private fun IncomeAllocationCard(overview: AssetOverview) {
     val denom = maxOf(income, fixed + budget).coerceAtLeast(1L)
 
     FinanceSectionCard(
-        title = "이번 달 배분",
+        title = "${month.monthValue}월 배분",
         subtitle = if (income > 0) "수입에서 고정·변동 예산을 뺀 나머지" else "수입을 등록하면 남는 돈까지 봐요",
         accent = MoneyGreen,
         icon = Icons.Filled.BarChart

@@ -13,15 +13,12 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -53,11 +50,11 @@ import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.MonthPagerInitialPage
 import com.choiyoonseo.automoney.ui.components.MonthPagerPageCount
+import com.choiyoonseo.automoney.ui.components.MonthPagerHeader
 import com.choiyoonseo.automoney.ui.components.TransactionEditDialog
 import com.choiyoonseo.automoney.ui.components.rememberMergedCategoryLabels
 import com.choiyoonseo.automoney.ui.components.TransactionRow
 import com.choiyoonseo.automoney.ui.components.monthForPagerPage
-import com.choiyoonseo.automoney.ui.components.monthPagerLabel
 import com.choiyoonseo.automoney.ui.components.pagerPageForMonth
 import com.choiyoonseo.automoney.ui.model.TransactionDateSectionUi
 import com.choiyoonseo.automoney.ui.model.sampleHomeSnapshot
@@ -199,37 +196,15 @@ fun TransactionsScreen(
             AssistChip(onClick = {}, label = { Text(message) })
         }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
-                }
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "이전 달")
+        MonthPagerHeader(
+            month = selectedMonth,
+            onPreviousMonth = {
+                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
+            },
+            onNextMonth = {
+                scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
             }
-            Column(
-                modifier = Modifier.weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = monthPagerLabel(selectedMonth),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = colors.ink
-                )
-                Text("좌우로 넘겨 월 이동", style = MaterialTheme.typography.bodySmall, color = colors.muted)
-            }
-            IconButton(
-                onClick = {
-                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
-                }
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "다음 달")
-            }
-        }
+        )
 
         HorizontalPager(
             state = pagerState,
