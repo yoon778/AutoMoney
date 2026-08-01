@@ -1,6 +1,9 @@
 package com.choiyoonseo.automoney.ui.transactions
 
 import com.choiyoonseo.automoney.ui.model.TransactionDateSectionUi
+import com.choiyoonseo.automoney.ui.components.monthForPagerPage
+import com.choiyoonseo.automoney.ui.components.monthPagerLabel
+import com.choiyoonseo.automoney.ui.components.pagerPageForMonth
 import com.google.common.truth.Truth.assertThat
 import java.time.LocalDate
 import java.time.YearMonth
@@ -12,25 +15,25 @@ class TransactionMonthPagingTest {
 
     @Test
     fun adjacentPagesMapToAdjacentMonths() {
-        val currentPage = transactionPageForMonth(currentMonth, currentMonth)
+        val currentPage = pagerPageForMonth(currentMonth, currentMonth)
 
-        assertThat(transactionMonthForPage(currentPage - 1, currentMonth))
+        assertThat(monthForPagerPage(currentPage - 1, currentMonth))
             .isEqualTo(YearMonth.of(2026, 7))
-        assertThat(transactionMonthForPage(currentPage + 1, currentMonth))
+        assertThat(monthForPagerPage(currentPage + 1, currentMonth))
             .isEqualTo(YearMonth.of(2026, 9))
     }
 
     @Test
     fun monthToPageRoundTripPreservesMonth() {
         val month = YearMonth.of(2025, 12)
-        val page = transactionPageForMonth(month, currentMonth)
+        val page = pagerPageForMonth(month, currentMonth)
 
-        assertThat(transactionMonthForPage(page, currentMonth)).isEqualTo(month)
+        assertThat(monthForPagerPage(page, currentMonth)).isEqualTo(month)
     }
 
     @Test
     fun monthLabelIncludesYearAndMonth() {
-        assertThat(transactionMonthLabel(currentMonth)).isEqualTo("2026년 8월")
+        assertThat(monthPagerLabel(currentMonth)).isEqualTo("2026년 8월")
     }
 
     @Test

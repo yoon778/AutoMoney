@@ -68,18 +68,6 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 
-internal fun transactionMonthForPage(
-    page: Int,
-    anchorMonth: YearMonth
-): YearMonth = monthForPagerPage(page, anchorMonth)
-
-internal fun transactionPageForMonth(
-    month: YearMonth,
-    anchorMonth: YearMonth
-): Int = pagerPageForMonth(month, anchorMonth)
-
-internal fun transactionMonthLabel(month: YearMonth): String = monthPagerLabel(month)
-
 internal fun transactionSectionsForMonth(
     sections: List<TransactionDateSectionUi>,
     month: YearMonth
@@ -115,7 +103,7 @@ fun TransactionsScreen(
         initialPage = MonthPagerInitialPage,
         pageCount = { MonthPagerPageCount }
     )
-    val selectedMonth = transactionMonthForPage(pagerState.currentPage, currentMonth)
+    val selectedMonth = monthForPagerPage(pagerState.currentPage, currentMonth)
     val transactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -225,7 +213,7 @@ fun TransactionsScreen(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = transactionMonthLabel(selectedMonth),
+                    text = monthPagerLabel(selectedMonth),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.ink
@@ -246,9 +234,9 @@ fun TransactionsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            key = { page -> transactionMonthForPage(page, currentMonth).toString() }
+            key = { page -> monthForPagerPage(page, currentMonth).toString() }
         ) { page ->
-            val pageMonth = transactionMonthForPage(page, currentMonth)
+            val pageMonth = monthForPagerPage(page, currentMonth)
             val sections = transactionSectionsForMonth(dateSections, pageMonth)
             val rowCount = sections.sumOf { it.rows.size }
             Column(
@@ -360,7 +348,7 @@ fun TransactionsScreen(
                         manualFormMessage = null
                         isManualFormVisible = false
                         manualFormResetSignal += 1
-                        pagerState.animateScrollToPage(transactionPageForMonth(savedMonth, currentMonth))
+                        pagerState.animateScrollToPage(pagerPageForMonth(savedMonth, currentMonth))
                     } catch (e: IllegalArgumentException) {
                         saveSuccessMessage = null
                         manualFormMessage = e.message ?: "입력값을 확인해 주세요."
