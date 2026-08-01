@@ -3,6 +3,9 @@ package com.choiyoonseo.automoney.domain.review
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 
+const val MIN_SETTLEMENT_PARTY_COUNT = 2
+const val MAX_SETTLEMENT_PARTY_COUNT = 20
+
 class ResolveReviewUseCase(
     private val repository: MoneyRepository
 ) {
@@ -19,8 +22,8 @@ class ResolveReviewUseCase(
             userMemo = userMemo
         )
         val updated = if (resolution == ReviewResolution.SETTLEMENT) {
-            require(settlementPartyCount in 2..20) {
-                "Settlement party count must be between 2 and 20"
+            require(settlementPartyCount in MIN_SETTLEMENT_PARTY_COUNT..MAX_SETTLEMENT_PARTY_COUNT) {
+                "Settlement party count must be between $MIN_SETTLEMENT_PARTY_COUNT and $MAX_SETTLEMENT_PARTY_COUNT"
             }
             val myShareWon = settlementMyShareWon
                 ?: transaction.amount.won / settlementPartyCount
@@ -41,6 +44,6 @@ class ResolveReviewUseCase(
     }
 
     private companion object {
-        const val DEFAULT_SETTLEMENT_PARTY_COUNT = 2
+        const val DEFAULT_SETTLEMENT_PARTY_COUNT = MIN_SETTLEMENT_PARTY_COUNT
     }
 }

@@ -54,6 +54,8 @@ import com.choiyoonseo.automoney.domain.model.TransactionType
 import com.choiyoonseo.automoney.domain.model.ReviewReason
 import com.choiyoonseo.automoney.domain.review.RecordWalletTopupUsageUseCase
 import com.choiyoonseo.automoney.domain.review.ResolveReviewUseCase
+import com.choiyoonseo.automoney.domain.review.MAX_SETTLEMENT_PARTY_COUNT
+import com.choiyoonseo.automoney.domain.review.MIN_SETTLEMENT_PARTY_COUNT
 import com.choiyoonseo.automoney.domain.settlement.LinkSettlementRepaymentUseCase
 import com.choiyoonseo.automoney.domain.settlement.findSettlementMatch
 import com.choiyoonseo.automoney.domain.review.ReviewResolution
@@ -308,7 +310,9 @@ fun ReviewScreen(
             errorMessage = null
             try {
                 val transaction = card.sourceTransaction
-                if (moneyRepository != null && transaction != null) {
+                if (editTransactionUseCase != null && transaction != null) {
+                    editTransactionUseCase.delete(transaction)
+                } else if (moneyRepository != null && transaction != null) {
                     moneyRepository.deleteTransaction(transaction.id)
                 } else {
                     sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
@@ -643,22 +647,9 @@ fun ReviewScreen(
                 excludeLabel = "거래 제외",
                 deleteLabel = "거래 삭제",
                 onDelete = {
-                    scope.launch {
-                        isSaving = true
-                        editErrorMessage = null
-                        try {
-                            useCase.delete(transaction)
-                            if (moneyRepository == null) {
-                                sampleReviewCardsState = dismissReviewCard(sampleReviewCardsState, card.id)
-                            }
-                            resultMessage = "${card.title}을 삭제했어요."
-                            activeEditReviewCard = null
-                        } catch (e: RuntimeException) {
-                            editErrorMessage = "삭제 중 문제가 생겼어요."
-                        } finally {
-                            isSaving = false
-                        }
-                    }
+                    activeEditReviewCard = null
+                    activeDeleteReviewCard = card
+                    editErrorMessage = null
                 },
                 onExclude = {
                     scope.launch {
@@ -695,7 +686,7 @@ private fun SettlementDialog(
 ) {
     val colors = MoneyTheme.colors
     val total = card.amountWon
-    var partyCount by remember(card.id) { mutableStateOf(2) }
+    var partyCount by remember(card.id) { mutableStateOf(MIN_SETTLEMENT_PARTY_COUNT) }
     val suggestedShare = (total.toDouble() / partyCount).toLong()
     var myShareText by remember(card.id) { mutableStateOf(suggestedShare.toString()) }
     var edited by remember(card.id) { mutableStateOf(false) }
@@ -723,12 +714,12 @@ private fun SettlementDialog(
     ) {
         Text("몇 명이서 나눠요?", style = MaterialTheme.typography.labelMedium, color = colors.inkSub)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            StepperButton("−", enabled = partyCount > 2) {
+            StepperButton("−", enabled = partyCount > MIN_SETTLEMENT_PARTY_COUNT) {
                 partyCount -= 1
                 if (!edited) myShareText = (total.toDouble() / partyCount).toLong().toString()
             }
             Text("${partyCount}명", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = colors.ink)
-            StepperButton("+", enabled = partyCount < 20) {
+            StepperButton("+", enabled = partyCount < MAX_SETTLEMENT_PARTY_COUNT) {
                 partyCount += 1
                 if (!edited) myShareText = (total.toDouble() / partyCount).toLong().toString()
             }
