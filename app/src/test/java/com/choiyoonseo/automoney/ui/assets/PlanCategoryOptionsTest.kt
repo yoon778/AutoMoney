@@ -28,6 +28,29 @@ class PlanCategoryOptionsTest {
         assertThat(usage(Category.STOCK, customCategoryId = 7L).isInvestmentPlan()).isFalse()
     }
 
+    @Test
+    fun `editing plan preserves database id`() {
+        val updated = monthlyPlanItemForSave(
+            existing = MonthlyPlanItem(
+                id = 7,
+                label = "기존 식비",
+                amountWon = 300_000,
+                type = MonthlyPlanItemType.BUDGET,
+                category = Category.FOOD
+            ),
+            label = "식비",
+            amountWon = 400_000,
+            type = MonthlyPlanItemType.BUDGET,
+            builtInCategory = Category.FOOD,
+            userCategory = null
+        )
+
+        assertThat(updated.id).isEqualTo(7)
+        assertThat(updated.label).isEqualTo("식비")
+        assertThat(updated.amountWon).isEqualTo(400_000)
+        assertThat(updated.category).isEqualTo(Category.FOOD)
+    }
+
     private fun usage(category: Category, customCategoryId: Long? = null) = CategoryBudgetUsage(
         plan = MonthlyPlanItem(
             label = "계획",

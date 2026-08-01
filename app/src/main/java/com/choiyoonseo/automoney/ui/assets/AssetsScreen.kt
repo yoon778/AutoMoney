@@ -473,6 +473,7 @@ private fun MonthlyPlanPanel(
 ) {
     val usageByPlanId = remember(usages) { usages.associateBy { it.plan.id } }
     var pendingDelete by remember { mutableStateOf<MonthlyPlanItem?>(null) }
+    var editingItem by remember { mutableStateOf<MonthlyPlanItem?>(null) }
     pendingDelete?.let { item ->
         DeleteConfirmDialog(
             name = item.label,
@@ -507,9 +508,9 @@ private fun MonthlyPlanPanel(
                     ratio = usage?.usedRatio
                         ?: (item.amountWon.toFloat() / (items.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f)),
                     accent = if (item.type == MonthlyPlanItemType.INCOME) MoneyGreen else categoryAccentForName(budgetCategoryName(item) ?: item.label),
-                    actionLabel = "삭제",
-                    onAction = { pendingDelete = item },
-                    actionIcon = Icons.Filled.Delete
+                    actionLabel = "수정",
+                    onAction = { editingItem = item },
+                    actionIcon = Icons.Filled.Edit
                 )
             }
             if (items.isEmpty()) {
@@ -528,25 +529,63 @@ private fun MonthlyPlanPanel(
                 )
             }
         }
-        MonthlyPlanInputCard(userExpenseCategories, onSave)
+        MonthlyPlanInputCard(
+            userExpenseCategories = userExpenseCategories,
+            editingItem = editingItem,
+            onSave = { item ->
+                onSave(item)
+                editingItem = null
+            },
+            onCancel = { editingItem = null },
+            onDelete = { item ->
+                pendingDelete = item
+                editingItem = null
+            }
+        )
     }
 }
 
 private fun budgetCategoryName(item: MonthlyPlanItem): String? =
     item.customCategoryName ?: item.category?.let(::planCategoryLabel)
 
+internal fun monthlyPlanItemForSave(
+    existing: MonthlyPlanItem?,
+    label: String,
+    amountWon: Long,
+    type: MonthlyPlanItemType,
+    builtInCategory: Category?,
+    userCategory: UserCategory?
+): MonthlyPlanItem = MonthlyPlanItem(
+    id = existing?.id ?: 0,
+    label = label.trim(),
+    amountWon = amountWon,
+    type = type,
+    category = if (type == MonthlyPlanItemType.BUDGET) {
+        userCategory?.let { Category.OTHER } ?: builtInCategory
+    } else null,
+    customCategoryId = userCategory?.id.takeIf { type == MonthlyPlanItemType.BUDGET },
+    customCategoryName = userCategory?.name.takeIf { type == MonthlyPlanItemType.BUDGET }
+)
+
 @Composable
 private fun MonthlyPlanInputCard(
     userExpenseCategories: List<UserCategory>,
-    onSave: (MonthlyPlanItem) -> Unit
+    editingItem: MonthlyPlanItem?,
+    onSave: (MonthlyPlanItem) -> Unit,
+    onCancel: () -> Unit,
+    onDelete: (MonthlyPlanItem) -> Unit
 ) {
-    var label by remember { mutableStateOf("") }
-    var amount by remember { mutableStateOf("") }
-    var type by remember { mutableStateOf(MonthlyPlanItemType.BUDGET) }
-    var builtInCategory by remember { mutableStateOf<Category?>(null) }
-    var userCategory by remember { mutableStateOf<UserCategory?>(null) }
+    var label by remember(editingItem) { mutableStateOf(editingItem?.label.orEmpty()) }
+    var amount by remember(editingItem) { mutableStateOf(editingItem?.amountWon?.toString().orEmpty()) }
+    var type by remember(editingItem) { mutableStateOf(editingItem?.type ?: MonthlyPlanItemType.BUDGET) }
+    var builtInCategory by remember(editingItem) {
+        mutableStateOf(editingItem?.takeIf { it.customCategoryId == null }?.category)
+    }
+    var userCategory by remember(editingItem, userExpenseCategories) {
+        mutableStateOf(userExpenseCategories.firstOrNull { it.id == editingItem?.customCategoryId })
+    }
 
-    InputCard(title = "월계획 추가") {
+    InputCard(title = if (editingItem == null) "월계획 추가" else "월계획 수정") {
         OutlinedTextField(label, { label = it }, label = { Text("항목") }, modifier = Modifier.fillMaxWidth())
         OutlinedTextField(amount, { amount = it }, label = { Text("금액") }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), modifier = Modifier.fillMaxWidth())
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -596,26 +635,36 @@ private fun MonthlyPlanInputCard(
                     builtInCategory != null || userCategory != null
                 if (label.isNotBlank() && cleanAmount != null && categoryChosen) {
                     onSave(
-                        MonthlyPlanItem(
-                            label = label.trim(),
+                        monthlyPlanItemForSave(
+                            existing = editingItem,
+                            label = label,
                             amountWon = cleanAmount,
                             type = type,
-                            category = if (type == MonthlyPlanItemType.BUDGET) {
-                                userCategory?.let { Category.OTHER } ?: builtInCategory
-                            } else null,
-                            customCategoryId = userCategory?.id.takeIf { type == MonthlyPlanItemType.BUDGET },
-                            customCategoryName = userCategory?.name.takeIf { type == MonthlyPlanItemType.BUDGET }
+                            builtInCategory = builtInCategory,
+                            userCategory = userCategory
                         )
                     )
-                    label = ""
-                    amount = ""
-                    builtInCategory = null
-                    userCategory = null
+                    if (editingItem == null) {
+                        label = ""
+                        amount = ""
+                        builtInCategory = null
+                        userCategory = null
+                    }
                 }
             },
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("저장")
+            Text(if (editingItem == null) "저장" else "수정 저장")
+        }
+        if (editingItem != null) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
+                    Text("취소")
+                }
+                OutlinedButton(onClick = { onDelete(editingItem) }, modifier = Modifier.weight(1f)) {
+                    Text("삭제")
+                }
+            }
         }
     }
 }

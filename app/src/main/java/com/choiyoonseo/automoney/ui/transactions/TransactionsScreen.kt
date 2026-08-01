@@ -67,19 +67,28 @@ import java.time.temporal.ChronoUnit
 private const val TransactionPagerPageCount = Int.MAX_VALUE
 private const val TransactionPagerInitialPage = TransactionPagerPageCount / 2
 
-internal fun transactionDateForPage(
+internal fun transactionMonthForPage(
     page: Int,
-    anchorDate: LocalDate
-): LocalDate = anchorDate.plusDays((page - TransactionPagerInitialPage).toLong())
+    anchorMonth: YearMonth
+): YearMonth = anchorMonth.plusMonths((page - TransactionPagerInitialPage).toLong())
 
-internal fun transactionPageForDate(
-    date: LocalDate,
-    anchorDate: LocalDate
-): Int = (TransactionPagerInitialPage.toLong() + ChronoUnit.DAYS.between(anchorDate, date))
+internal fun transactionPageForMonth(
+    month: YearMonth,
+    anchorMonth: YearMonth
+): Int = (TransactionPagerInitialPage.toLong() + ChronoUnit.MONTHS.between(anchorMonth, month))
     .coerceIn(0, TransactionPagerPageCount.toLong() - 1)
     .toInt()
 
-internal fun transactionDateLabel(date: LocalDate, today: LocalDate): String {
+internal fun transactionMonthLabel(month: YearMonth): String = "${month.year}년 ${month.monthValue}월"
+
+internal fun transactionSectionsForMonth(
+    sections: List<TransactionDateSectionUi>,
+    month: YearMonth
+): List<TransactionDateSectionUi> = sections
+    .filter { YearMonth.from(it.date) == month }
+    .sortedBy { it.date }
+
+private fun transactionDateLabel(date: LocalDate, today: LocalDate): String {
     val weekday = listOf("월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일")[
         date.dayOfWeek.value - 1
     ]
@@ -107,7 +116,7 @@ fun TransactionsScreen(
         initialPage = TransactionPagerInitialPage,
         pageCount = { TransactionPagerPageCount }
     )
-    val selectedDate = transactionDateForPage(pagerState.currentPage, today)
+    val selectedMonth = transactionMonthForPage(pagerState.currentPage, currentMonth)
     val transactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
@@ -135,7 +144,6 @@ fun TransactionsScreen(
     } else {
         transactionsToDateSections(transactions)
     }
-    val dateSectionsByDate = remember(dateSections) { dateSections.associateBy { it.date } }
     var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
     var manualFormMessage by remember { mutableStateOf<String?>(null) }
     var manualFormResetSignal by remember { mutableStateOf(0) }
@@ -211,26 +219,26 @@ fun TransactionsScreen(
                     scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                 }
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "이전 날짜")
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "이전 달")
             }
             Column(
                 modifier = Modifier.weight(1f),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = transactionDateLabel(selectedDate, today),
+                    text = transactionMonthLabel(selectedMonth),
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
                     color = colors.ink
                 )
-                Text("좌우로 넘겨 날짜 이동", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+                Text("좌우로 넘겨 월 이동", style = MaterialTheme.typography.bodySmall, color = colors.muted)
             }
             IconButton(
                 onClick = {
                     scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 }
             ) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "다음 날짜")
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "다음 달")
             }
         }
 
@@ -239,10 +247,11 @@ fun TransactionsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
-            key = { page -> transactionDateForPage(page, today).toEpochDay() }
+            key = { page -> transactionMonthForPage(page, currentMonth).toString() }
         ) { page ->
-            val pageDate = transactionDateForPage(page, today)
-            val rows = dateSectionsByDate[pageDate]?.rows.orEmpty()
+            val pageMonth = transactionMonthForPage(page, currentMonth)
+            val sections = transactionSectionsForMonth(dateSections, pageMonth)
+            val rowCount = sections.sumOf { it.rows.size }
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -250,37 +259,45 @@ fun TransactionsScreen(
                     .padding(bottom = 96.dp)
             ) {
                 FinanceSectionCard(
-                    title = "거래 ${rows.size}건",
-                    subtitle = "검토 완료된 기록만 보여줘요",
+                    title = "거래 ${rowCount}건",
+                    subtitle = "날짜가 빠른 순서예요",
                     accent = MoneyBlue,
                     icon = Icons.AutoMirrored.Filled.List
                 ) {
-                    rows.forEach { transaction ->
-                        TransactionRow(
-                            transaction = transaction,
-                            balanceImpact = transaction.id?.let { rowId ->
-                                transactions.firstOrNull { it.id == rowId }?.balanceImpact
-                            },
-                            onClick = transaction.id?.let { transactionId ->
-                                if (editTransactionUseCase == null) {
-                                    null
-                                } else {
-                                    {
-                                        activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
-                                        editErrorMessage = null
+                    sections.forEach { section ->
+                        Text(
+                            text = transactionDateLabel(section.date, today),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colors.muted
+                        )
+                        section.rows.forEach { transaction ->
+                            TransactionRow(
+                                transaction = transaction,
+                                balanceImpact = transaction.id?.let { rowId ->
+                                    transactions.firstOrNull { it.id == rowId }?.balanceImpact
+                                },
+                                onClick = transaction.id?.let { transactionId ->
+                                    if (editTransactionUseCase == null) {
+                                        null
+                                    } else {
+                                        {
+                                            activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
+                                            editErrorMessage = null
+                                        }
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
-                    if (rows.isEmpty()) {
-                        if (pageDate == today && notificationAccessEnabled == false) {
+                    if (sections.isEmpty()) {
+                        if (pageMonth == currentMonth && notificationAccessEnabled == false) {
                             Text("\uc54c\ub9bc \uad8c\ud55c\uc744 \ucf1c\uba74 \uac70\ub798\uac00 \uc790\ub3d9\uc73c\ub85c \ub4e4\uc5b4\uc640\uc694", color = colors.muted)
                             TextButton(onClick = onOpenNotificationSettings) {
                                 Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
                             }
                         } else {
-                            Text("이 날은 거래 기록이 없어요.", color = colors.muted)
+                            Text("이 달은 거래 기록이 없어요.", color = colors.muted)
                         }
                     }
                 }
@@ -339,12 +356,12 @@ fun TransactionsScreen(
                             budgetPlanId = budgetPlanId,
                             fixedExpensePlanId = fixedExpensePlanId
                         )
-                        val savedDate = occurredAt.atZone(manualTransactionZoneId).toLocalDate()
-                        saveSuccessMessage = "수동 거래를 저장했어요. 선택한 날짜에 반영했어요."
+                        val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
+                        saveSuccessMessage = "수동 거래를 저장했어요. 선택한 달에 반영했어요."
                         manualFormMessage = null
                         isManualFormVisible = false
                         manualFormResetSignal += 1
-                        pagerState.animateScrollToPage(transactionPageForDate(savedDate, today))
+                        pagerState.animateScrollToPage(transactionPageForMonth(savedMonth, currentMonth))
                     } catch (e: IllegalArgumentException) {
                         saveSuccessMessage = null
                         manualFormMessage = e.message ?: "입력값을 확인해 주세요."
