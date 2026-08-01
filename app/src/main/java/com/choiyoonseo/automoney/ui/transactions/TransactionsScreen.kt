@@ -9,14 +9,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -57,6 +62,32 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
+
+private const val TransactionPagerPageCount = Int.MAX_VALUE
+private const val TransactionPagerInitialPage = TransactionPagerPageCount / 2
+
+internal fun transactionDateForPage(
+    page: Int,
+    anchorDate: LocalDate,
+    anchorPage: Int = TransactionPagerInitialPage
+): LocalDate = anchorDate.plusDays((page - anchorPage).toLong())
+
+internal fun transactionPageForDate(
+    date: LocalDate,
+    anchorDate: LocalDate,
+    anchorPage: Int = TransactionPagerInitialPage
+): Int = (anchorPage.toLong() + ChronoUnit.DAYS.between(anchorDate, date))
+    .coerceIn(0, TransactionPagerPageCount.toLong() - 1)
+    .toInt()
+
+internal fun transactionDateLabel(date: LocalDate, today: LocalDate): String {
+    val weekday = listOf("월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일")[
+        date.dayOfWeek.value - 1
+    ]
+    val todayPrefix = if (date == today) "오늘 · " else ""
+    return "$todayPrefix${date.monthValue}월 ${date.dayOfMonth}일 $weekday"
+}
 
 @Composable
 fun TransactionsScreen(
@@ -72,16 +103,24 @@ fun TransactionsScreen(
 ) {
     val colors = MoneyTheme.colors
     val scope = rememberCoroutineScope()
-    val month = remember { YearMonth.now(AppDateZoneId) }
-    val scrollState = rememberScrollState()
-    val transactions by remember(moneyRepository, month) {
-        moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
+    val today = remember { LocalDate.now(AppDateZoneId) }
+    val currentMonth = remember(today) { YearMonth.from(today) }
+    val pagerState = rememberPagerState(
+        initialPage = TransactionPagerInitialPage,
+        pageCount = { TransactionPagerPageCount }
+    )
+    val selectedDate = transactionDateForPage(pagerState.currentPage, today)
+    val transactions by remember(moneyRepository) {
+        moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
+    }.collectAsState(initial = emptyList())
+    val currentMonthTransactions by remember(moneyRepository, currentMonth) {
+        moneyRepository?.observeTransactionsForMonth(currentMonth) ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
     val monthlyPlans by remember(assetRepository) {
         assetRepository?.observeMonthlyPlanItems() ?: flowOf(emptyList())
     }.collectAsState(initial = emptyList())
-    val budgetUsages = remember(monthlyPlans, transactions) {
-        buildCategoryBudgetUsages(monthlyPlans, transactions)
+    val budgetUsages = remember(monthlyPlans, currentMonthTransactions) {
+        buildCategoryBudgetUsages(monthlyPlans, currentMonthTransactions)
     }
     val fixedExpenses by remember(assetRepository) {
         assetRepository?.observeFixedExpenses() ?: flowOf(emptyList())
@@ -90,7 +129,7 @@ fun TransactionsScreen(
     val dateSections = if (moneyRepository == null) {
         listOf(
             TransactionDateSectionUi(
-                date = LocalDate.now(AppDateZoneId),
+                date = today,
                 dateLabel = "오늘",
                 rows = sampleHomeSnapshot.recentTransactions
             )
@@ -98,6 +137,7 @@ fun TransactionsScreen(
     } else {
         transactionsToDateSections(transactions)
     }
+    val dateSectionsByDate = remember(dateSections) { dateSections.associateBy { it.date } }
     var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
     var manualFormMessage by remember { mutableStateOf<String?>(null) }
     var manualFormResetSignal by remember { mutableStateOf(0) }
@@ -123,8 +163,7 @@ fun TransactionsScreen(
             .fillMaxSize()
             .padding(padding)
             .background(colors.canvas)
-            .verticalScroll(scrollState)
-            .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
+            .padding(start = 18.dp, top = 18.dp, end = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Row(
@@ -165,50 +204,90 @@ fun TransactionsScreen(
             AssistChip(onClick = {}, label = { Text(message) })
         }
 
-        FinanceSectionCard(
-            title = "최근 거래",
-            subtitle = "검토 완료된 기록만 보여줘요",
-            accent = MoneyBlue,
-            icon = Icons.AutoMirrored.Filled.List
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            dateSections.forEach { section ->
-                Text(
-                    text = section.dateLabel,
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = colors.muted
-                )
-                section.rows.forEach { transaction ->
-                    TransactionRow(
-                        transaction = transaction,
-                        balanceImpact = transaction.id?.let { rowId ->
-                            transactions.firstOrNull { it.id == rowId }?.balanceImpact
-                        },
-                        onClick = transaction.id?.let { transactionId ->
-                            if (editTransactionUseCase == null) {
-                                null
-                            } else {
-                                {
-                                    activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
-                                    editErrorMessage = null
-                                }
-                            }
-                        }
-                    )
+            IconButton(
+                onClick = {
+                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage - 1) }
                 }
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "이전 날짜")
             }
-            if (dateSections.all { it.rows.isEmpty() }) {
-                if (notificationAccessEnabled == false) {
-                    Text("\uc54c\ub9bc \uad8c\ud55c\uc744 \ucf1c\uba74 \uac70\ub798\uac00 \uc790\ub3d9\uc73c\ub85c \ub4e4\uc5b4\uc640\uc694", color = colors.muted)
-                    TextButton(onClick = onOpenNotificationSettings) {
-                        Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
-                    }
-                } else {
-                    Text("아직 이번 달 기록이 없어요.", color = colors.muted)
+            Column(
+                modifier = Modifier.weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = transactionDateLabel(selectedDate, today),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.ink
+                )
+                Text("좌우로 넘겨 날짜 이동", style = MaterialTheme.typography.bodySmall, color = colors.muted)
+            }
+            IconButton(
+                onClick = {
+                    scope.launch { pagerState.animateScrollToPage(pagerState.currentPage + 1) }
                 }
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "다음 날짜")
             }
         }
 
+        HorizontalPager(
+            state = pagerState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f),
+            key = { page -> transactionDateForPage(page, today).toEpochDay() }
+        ) { page ->
+            val pageDate = transactionDateForPage(page, today)
+            val rows = dateSectionsByDate[pageDate]?.rows.orEmpty()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState())
+                    .padding(bottom = 96.dp)
+            ) {
+                FinanceSectionCard(
+                    title = "거래 ${rows.size}건",
+                    subtitle = "검토 완료된 기록만 보여줘요",
+                    accent = MoneyBlue,
+                    icon = Icons.AutoMirrored.Filled.List
+                ) {
+                    rows.forEach { transaction ->
+                        TransactionRow(
+                            transaction = transaction,
+                            balanceImpact = transaction.id?.let { rowId ->
+                                transactions.firstOrNull { it.id == rowId }?.balanceImpact
+                            },
+                            onClick = transaction.id?.let { transactionId ->
+                                if (editTransactionUseCase == null) {
+                                    null
+                                } else {
+                                    {
+                                        activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
+                                        editErrorMessage = null
+                                    }
+                                }
+                            }
+                        )
+                    }
+                    if (rows.isEmpty()) {
+                        if (pageDate == today && notificationAccessEnabled == false) {
+                            Text("\uc54c\ub9bc \uad8c\ud55c\uc744 \ucf1c\uba74 \uac70\ub798\uac00 \uc790\ub3d9\uc73c\ub85c \ub4e4\uc5b4\uc640\uc694", color = colors.muted)
+                            TextButton(onClick = onOpenNotificationSettings) {
+                                Text("\uad8c\ud55c \uc124\uc815 \uc5f4\uae30")
+                            }
+                        } else {
+                            Text("이 날은 거래 기록이 없어요.", color = colors.muted)
+                        }
+                    }
+                }
+            }
+        }
     }
 
     if (isManualFormVisible) {
@@ -262,16 +341,12 @@ fun TransactionsScreen(
                             budgetPlanId = budgetPlanId,
                             fixedExpensePlanId = fixedExpensePlanId
                         )
-                        val savedMonth = YearMonth.from(occurredAt.atZone(manualTransactionZoneId))
-                        saveSuccessMessage = if (savedMonth == month) {
-                            "수동 거래를 저장했어요. 최근 거래에 반영했어요."
-                        } else {
-                            "수동 거래를 저장했어요. 선택한 달 기록에 반영했어요."
-                        }
+                        val savedDate = occurredAt.atZone(manualTransactionZoneId).toLocalDate()
+                        saveSuccessMessage = "수동 거래를 저장했어요. 선택한 날짜에 반영했어요."
                         manualFormMessage = null
                         isManualFormVisible = false
                         manualFormResetSignal += 1
-                        scrollState.animateScrollTo(0)
+                        pagerState.animateScrollToPage(transactionPageForDate(savedDate, today))
                     } catch (e: IllegalArgumentException) {
                         saveSuccessMessage = null
                         manualFormMessage = e.message ?: "입력값을 확인해 주세요."
