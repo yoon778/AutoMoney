@@ -486,6 +486,26 @@ class MonthlySummaryMapperTest {
         ).inOrder()
     }
 
+    @Test
+    fun transactionsToRowsUsesMemoWhenMerchantIsGenericCardLabel() {
+        val rows = transactionsToRows(
+            transactions = listOf(
+                tx(
+                    occurredAt = "2026-07-01T01:00:00Z",
+                    amountWon = 10_000,
+                    type = TransactionType.EXPENSE,
+                    category = Category.OTHER,
+                    month = YearMonth.of(2026, 7),
+                    merchant = "카드",
+                    memo = "온라인 결제",
+                    status = TransactionStatus.USER_EDITED
+                )
+            )
+        )
+
+        assertThat(rows.single().merchant).isEqualTo("온라인 결제")
+    }
+
     private fun tx(
         occurredAt: String,
         amountWon: Long,

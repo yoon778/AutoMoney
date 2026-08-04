@@ -197,7 +197,7 @@ private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
 
 private fun MoneyTransaction.displayTitle(): String =
     listOfNotNull(
-        merchant.cleanOrNull(),
+        merchant.cleanOrNull()?.takeUnless { it == "카드" },
         counterparty.cleanOrNull(),
         memo.cleanOrNull(),
         incomeCategoryTitle()
