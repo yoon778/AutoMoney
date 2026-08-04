@@ -1,7 +1,7 @@
 package com.choiyoonseo.automoney.ui.components
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -35,12 +35,12 @@ fun rememberMergedCategoryLabels(
     val context = LocalContext.current
     val store = remember { SharedPreferencesCategoryPreferenceStore(context) }
     val enabledExpense by remember { store.observeEnabledExpenseCategories() }
-        .collectAsState(initial = defaultEnabledExpenseCategories)
+        .collectAsStateWithLifecycle(initialValue = defaultEnabledExpenseCategories)
     val enabledIncome by remember { store.observeEnabledIncomeCategories() }
-        .collectAsState(initial = defaultEnabledIncomeCategories)
+        .collectAsStateWithLifecycle(initialValue = defaultEnabledIncomeCategories)
     val custom by remember(userCategoryRepository) {
         userCategoryRepository?.observeActiveCategories() ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val expense = remember(enabledExpense, custom) {
         mergedCategoryLabels(enabledExpense, custom, UserCategoryKind.EXPENSE)
     }

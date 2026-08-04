@@ -24,7 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -87,10 +87,10 @@ fun HomeScreen(
     val month = remember { YearMonth.now(AppDateZoneId) }
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val reviewCount by remember(moneyRepository) {
         moneyRepository?.observeOpenReviewCount() ?: flowOf(sampleHomeSnapshot.reviewCount)
-    }.collectAsState(initial = sampleHomeSnapshot.reviewCount)
+    }.collectAsStateWithLifecycle(initialValue = sampleHomeSnapshot.reviewCount)
     val summary = if (moneyRepository == null) {
         null
     } else {
@@ -126,13 +126,13 @@ fun HomeScreen(
     val scope = rememberCoroutineScope()
     val monthlyPlans by remember(assetRepository, month) {
         assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val budgetUsages = remember(monthlyPlans, transactions) {
         buildCategoryBudgetUsages(monthlyPlans, transactions)
     }
     val fixedExpenses by remember(assetRepository, month) {
         assetRepository?.observeFixedExpenses(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     var activeEditTransaction by remember { mutableStateOf<MoneyTransaction?>(null) }
     var isEditingTransaction by remember { mutableStateOf(false) }

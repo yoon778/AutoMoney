@@ -25,7 +25,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -104,19 +104,19 @@ fun TransactionsScreen(
     var budgetMonth by remember { mutableStateOf(currentMonth) }
     val transactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val budgetMonthTransactions by remember(moneyRepository, budgetMonth) {
         moneyRepository?.observeTransactionsForMonth(budgetMonth) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val monthlyPlans by remember(assetRepository, budgetMonth) {
         assetRepository?.observeMonthlyPlanItems(budgetMonth) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val budgetUsages = remember(monthlyPlans, budgetMonthTransactions) {
         buildCategoryBudgetUsages(monthlyPlans, budgetMonthTransactions)
     }
     val fixedExpenses by remember(assetRepository, budgetMonth) {
         assetRepository?.observeFixedExpenses(budgetMonth) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     val dateSections = if (moneyRepository == null) {
         listOf(

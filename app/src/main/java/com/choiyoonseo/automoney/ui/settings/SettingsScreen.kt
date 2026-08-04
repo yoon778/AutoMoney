@@ -53,7 +53,7 @@ import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
 import com.choiyoonseo.automoney.ui.components.ScreenTitle
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.rememberCoroutineScope
 import com.choiyoonseo.automoney.data.repository.UserCategoryRepository
 import com.choiyoonseo.automoney.domain.category.UserCategoryKind
@@ -357,7 +357,7 @@ private fun CategoryManagementCard(userCategoryRepository: UserCategoryRepositor
         if (userCategoryRepository != null) {
             val scope = rememberCoroutineScope()
             val custom by userCategoryRepository.observeActiveCategories()
-                .collectAsState(initial = emptyList())
+                .collectAsStateWithLifecycle(initialValue = emptyList())
             var newExpense by remember { mutableStateOf("") }
             var newIncome by remember { mutableStateOf("") }
 

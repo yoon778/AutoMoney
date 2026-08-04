@@ -18,7 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -79,7 +79,7 @@ fun MonthlyReportScreen(
     val selectedMonth = monthForPagerPage(pagerState.currentPage, anchorMonth)
     val reviewCount by remember(moneyRepository) {
         moneyRepository?.observeOpenReviewCount() ?: flowOf(sampleHomeSnapshot.reviewCount)
-    }.collectAsState(initial = sampleHomeSnapshot.reviewCount)
+    }.collectAsStateWithLifecycle(initialValue = sampleHomeSnapshot.reviewCount)
     var activeDetail by remember { mutableStateOf<DetailSheetState?>(null) }
 
     Column(
@@ -138,7 +138,7 @@ private fun MonthlyReportPage(
 ) {
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val summary = if (moneyRepository == null) {
         null
     } else {

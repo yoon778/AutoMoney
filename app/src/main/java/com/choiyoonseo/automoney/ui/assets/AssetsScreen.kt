@@ -43,7 +43,7 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -116,7 +116,7 @@ fun AssetsScreen(
     val selectedMonth = monthForPagerPage(pagerState.currentPage, anchorMonth)
     val userExpenseCategories by remember(userCategoryRepository) {
         userCategoryRepository?.observeActiveCategories() ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     var selectedSection by remember { mutableStateOf(AssetSection.PLAN) }
     var message by remember { mutableStateOf<String?>(null) }
     AutoClearMessageEffect(message) {
@@ -181,13 +181,13 @@ private fun AssetsMonthPage(
     val scope = rememberCoroutineScope()
     val fixedExpenses by remember(assetRepository, month) {
         assetRepository?.observeFixedExpenses(month) ?: flowOf(sampleFixedExpenses)
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val monthlyPlans by remember(assetRepository, month) {
         assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(sampleMonthlyPlanItems)
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val monthTransactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val overview = remember(fixedExpenses, monthlyPlans, monthTransactions) {
         buildAssetOverview(
             emptyList(),

@@ -27,7 +27,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -102,15 +102,15 @@ fun ReviewScreen(
     val reviewService = remember { WalletTopupReviewService() }
     val openReviewItems by remember(moneyRepository) {
         moneyRepository?.observeOpenReviewItems() ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val dbReviewCards = remember(openReviewItems) { openReviewItemsToCards(openReviewItems) }
     val allTransactions by remember(moneyRepository) {
         moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     var budgetMonth by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
     val monthlyPlans by remember(assetRepository, budgetMonth) {
         assetRepository?.observeMonthlyPlanItems(budgetMonth) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val budgetUsages = remember(monthlyPlans, allTransactions, budgetMonth) {
         buildCategoryBudgetUsages(
             monthlyPlans,
@@ -119,7 +119,7 @@ fun ReviewScreen(
     }
     val fixedExpenses by remember(assetRepository, budgetMonth) {
         assetRepository?.observeFixedExpenses(budgetMonth) ?: flowOf(emptyList())
-    }.collectAsState(initial = emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
     var sampleReviewCardsState by remember { mutableStateOf(sampleReviewCards) }
     val reviewCards = if (moneyRepository == null) sampleReviewCardsState else dbReviewCards
