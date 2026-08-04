@@ -125,24 +125,21 @@ fun ManualTransactionForm(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            ManualEntryType.entries.forEach { option ->
-                if (entryType == option) {
-                    Button(
-                        onClick = { entryType = option },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(option.label)
-                    }
-                } else {
-                    OutlinedButton(
-                        onClick = { entryType = option },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(option.label)
-                    }
-                }
+            listOf(ManualEntryType.EXPENSE, ManualEntryType.INCOME).forEach { option ->
+                ManualEntryTypeButton(
+                    option = option,
+                    selected = entryType == option,
+                    onSelect = { entryType = it },
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
+        ManualEntryTypeButton(
+            option = ManualEntryType.SPECIAL_EXPENSE,
+            selected = entryType == ManualEntryType.SPECIAL_EXPENSE,
+            onSelect = { entryType = it },
+            modifier = Modifier.fillMaxWidth()
+        )
         Text("날짜")
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -351,6 +348,24 @@ fun ManualTransactionForm(
             ) {
                 Text(if (isSaving) "저장 중" else "거래 저장")
             }
+        }
+    }
+}
+
+@Composable
+private fun ManualEntryTypeButton(
+    option: ManualEntryType,
+    selected: Boolean,
+    onSelect: (ManualEntryType) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    if (selected) {
+        Button(onClick = { onSelect(option) }, modifier = modifier) {
+            Text(option.label)
+        }
+    } else {
+        OutlinedButton(onClick = { onSelect(option) }, modifier = modifier) {
+            Text(option.label)
         }
     }
 }
