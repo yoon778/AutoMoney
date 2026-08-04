@@ -216,23 +216,12 @@ private fun AssetsMonthPage(
     ) {
         FinanceSectionCard(
             title = "${month.monthValue}월 예산",
-            subtitle = "남은 금액 기준 · 초과는 빨간색",
+            subtitle = "전체 예산 중 이번 달 사용액",
             accent = MoneyBlue,
             icon = Icons.Filled.AccountBalance
         ) {
             livingBudgetUsages.forEach { usage ->
-                val over = usage.remainingWon < 0
-                AssetRow(
-                    title = usage.plan.label,
-                    subtitle = if (over) {
-                        "${formatWon(usage.spentWon)} 사용 · ${formatWon(-usage.remainingWon)} 초과"
-                    } else {
-                        "${formatWon(usage.spentWon)} 사용 · ${formatWon(usage.remainingWon)} 남음"
-                    },
-                    amountWon = usage.plan.amountWon,
-                    ratio = usage.usedRatio,
-                    accent = if (over) MoneyCoral else categoryAccentForName(usage.plan.label)
-                )
+                BudgetUsageRow(usage, categoryAccentForName(usage.plan.label))
             }
             if (livingBudgetUsages.isEmpty()) {
                 Text("아래 월계획에서 예산을 만들면 여기에 남은 금액이 표시돼요.")
@@ -350,20 +339,26 @@ private fun InvestmentPlanCard(usages: List<CategoryBudgetUsage>, month: YearMon
         icon = Icons.Filled.BarChart
     ) {
         usages.forEach { usage ->
-            val over = usage.remainingWon < 0
-            AssetRow(
-                title = usage.plan.label,
-                subtitle = if (over) {
-                    "${formatWon(usage.spentWon)} 사용 · ${formatWon(-usage.remainingWon)} 초과"
-                } else {
-                    "${formatWon(usage.spentWon)} 사용 · ${formatWon(usage.remainingWon)} 남음"
-                },
-                amountWon = usage.plan.amountWon,
-                ratio = usage.usedRatio,
-                accent = if (over) MoneyCoral else MoneyMint
-            )
+            BudgetUsageRow(usage, MoneyMint)
         }
     }
+}
+
+@Composable
+private fun BudgetUsageRow(usage: CategoryBudgetUsage, accent: Color) {
+    val over = usage.remainingWon < 0
+    AssetRow(
+        title = usage.plan.label,
+        subtitle = if (over) {
+            "전체 ${formatWon(usage.plan.amountWon)} · ${formatWon(-usage.remainingWon)} 초과"
+        } else {
+            "전체 ${formatWon(usage.plan.amountWon)} · ${formatWon(usage.remainingWon)} 남음"
+        },
+        amountWon = usage.spentWon,
+        amountLabel = "이번 달 사용",
+        ratio = usage.usedRatio,
+        accent = if (over) MoneyCoral else accent
+    )
 }
 
 @Composable
@@ -916,6 +911,7 @@ private fun AssetRow(
     title: String,
     subtitle: String,
     amountWon: Long,
+    amountLabel: String? = null,
     ratio: Float? = null,
     accent: Color = MoneyMint,
     actionLabel: String? = null,
@@ -964,6 +960,9 @@ private fun AssetRow(
                     verticalArrangement = Arrangement.spacedBy(6.dp),
                     horizontalAlignment = Alignment.End
                 ) {
+                    amountLabel?.let {
+                        Text(it, style = MaterialTheme.typography.labelSmall, color = colors.muted)
+                    }
                     Text(formatWon(amountWon), fontWeight = FontWeight.Bold, color = colors.ink)
                     if (actionLabel != null && onAction != null) {
                         Surface(
