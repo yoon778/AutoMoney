@@ -160,6 +160,7 @@ private val transactionSectionDateFormatter: DateTimeFormatter =
     DateTimeFormatter.ofPattern("M월 d일")
 
 private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
+    val isAutoSaved = sourceType == SourceType.NOTIFICATION && status == TransactionStatus.AUTO_CONFIRMED
     val displayAmount = when {
         type == TransactionType.SETTLEMENT && settlementMyShareWon != null -> -effectiveExpenseWon()
         direction == TransactionDirection.EXPENSE || type.countsAsMonthlyExpense -> -amount.won
@@ -184,8 +185,13 @@ private fun MoneyTransaction.toTransactionRowUi(): TransactionRowUi {
         iconText = categoryText.take(1),
         id = id.takeIf { it > 0 },
         isExcluded = status == TransactionStatus.EXCLUDED || type == TransactionType.EXCLUDED,
+        isAutoSaved = isAutoSaved,
         sourceApp = sourceAppUiForPackage(sourceApp),
-        sourceLabel = if (sourceType == SourceType.NOTIFICATION) "\uc790\ub3d9" else null
+        sourceLabel = when {
+            sourceType != SourceType.NOTIFICATION -> null
+            isAutoSaved -> "자동 저장"
+            else -> "\uc790\ub3d9"
+        }
     )
 }
 

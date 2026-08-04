@@ -374,7 +374,8 @@ class MonthlySummaryMapperTest {
                 badgeText = "KB"
             )
         )
-        assertThat(rows.single().sourceLabel).isEqualTo("\uc790\ub3d9")
+        assertThat(rows.single().sourceLabel).isEqualTo("자동 저장")
+        assertThat(rows.single().isAutoSaved).isTrue()
     }
 
     @Test

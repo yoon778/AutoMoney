@@ -24,6 +24,7 @@ data class TransactionRowUi(
     val iconText: String,
     val id: Long? = null,
     val isExcluded: Boolean = false,
+    val isAutoSaved: Boolean = false,
     val sourceApp: SourceAppUi? = null,
     val sourceLabel: String? = null
 )

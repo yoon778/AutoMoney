@@ -515,7 +515,7 @@ fun TransactionRow(
                     overflow = TextOverflow.Ellipsis
                 )
                 transaction.sourceLabel?.let { sourceLabel ->
-                    SourceLabelBadge(sourceLabel)
+                    SourceLabelBadge(sourceLabel, transaction.isAutoSaved)
                 }
                 when (balanceImpact) {
                     BalanceImpact.CREDIT -> BalanceImpactBadge("잔액+", colors.positive)
@@ -537,17 +537,18 @@ fun TransactionRow(
 }
 
 @Composable
-private fun SourceLabelBadge(label: String, modifier: Modifier = Modifier) {
+private fun SourceLabelBadge(label: String, isAutoSaved: Boolean, modifier: Modifier = Modifier) {
     val colors = MoneyTheme.colors
+    val accent = if (isAutoSaved) colors.positive else colors.primary
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(50),
-        color = colors.primary.copy(alpha = 0.10f)
+        color = accent.copy(alpha = 0.10f)
     ) {
         Text(
             text = label,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp),
-            color = colors.primary,
+            color = accent,
             style = MaterialTheme.typography.labelSmall,
             fontWeight = FontWeight.Bold,
             maxLines = 1
