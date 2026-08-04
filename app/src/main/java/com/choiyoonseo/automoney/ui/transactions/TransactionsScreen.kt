@@ -70,7 +70,7 @@ internal fun transactionSectionsForMonth(
     month: YearMonth
 ): List<TransactionDateSectionUi> = sections
     .filter { YearMonth.from(it.date) == month }
-    .sortedBy { it.date }
+    .sortedByDescending { it.date }
 
 private fun transactionDateLabel(date: LocalDate, today: LocalDate): String {
     val weekday = listOf("월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일")[
@@ -224,7 +224,7 @@ fun TransactionsScreen(
             ) {
                 FinanceSectionCard(
                     title = "거래 ${rowCount}건",
-                    subtitle = "날짜가 빠른 순서예요",
+                    subtitle = "최근 거래부터 보여요",
                     accent = MoneyBlue,
                     icon = Icons.AutoMirrored.Filled.List
                 ) {

@@ -37,7 +37,7 @@ class TransactionMonthPagingTest {
     }
 
     @Test
-    fun sectionsForMonthAreSortedByDateAscending() {
+    fun sectionsForMonthAreSortedByDateDescending() {
         val sections = listOf(
             section(LocalDate.of(2026, 8, 20)),
             section(LocalDate.of(2026, 7, 31)),
@@ -45,7 +45,7 @@ class TransactionMonthPagingTest {
         )
 
         assertThat(transactionSectionsForMonth(sections, currentMonth).map { it.date })
-            .containsExactly(LocalDate.of(2026, 8, 2), LocalDate.of(2026, 8, 20))
+            .containsExactly(LocalDate.of(2026, 8, 20), LocalDate.of(2026, 8, 2))
             .inOrder()
     }
 
