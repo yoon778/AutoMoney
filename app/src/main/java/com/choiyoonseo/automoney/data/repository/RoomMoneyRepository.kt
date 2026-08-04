@@ -39,8 +39,9 @@ class RoomMoneyRepository(
             .map { entities -> entities.map { it.toDomain() } }
     }
 
-    override fun observeAllTransactions(): Flow<List<MoneyTransaction>> =
-        db.transactionDao().observeAll().map { entities -> entities.map { it.toDomain() } }
+    override fun observeSettlementTrackingTransactions(): Flow<List<MoneyTransaction>> =
+        db.transactionDao().observeSettlementTrackingTransactions()
+            .map { entities -> entities.map { it.toDomain() } }
 
     override fun observeOpenReviewCount(): Flow<Int> {
         return db.reviewItemDao().observeOpenItemCount()

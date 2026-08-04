@@ -66,6 +66,38 @@ class RoomSettlementRepositoryTest {
         assertTrue(repository.observeOpenReviewItems().first().isEmpty())
     }
 
+    @Test
+    fun settlementTrackingQueryLoadsOnlyRelevantCandidateAndItsRecoveries() = runBlocking {
+        val settlementId = repository.saveTransaction(settlement())
+        val linkedRecoveryId = repository.saveTransaction(
+            recovery().copy(
+                sourceNotificationHash = "linked-recovery",
+                status = TransactionStatus.USER_EDITED,
+                settlementParentId = settlementId
+            )
+        )
+        repository.saveTransaction(
+            settlement().copy(
+                occurredAt = Instant.parse("2026-06-15T01:00:00Z"),
+                monthKey = YearMonth.of(2026, 6)
+            )
+        )
+        repository.saveTransaction(
+            recovery().copy(
+                direction = TransactionDirection.EXPENSE,
+                type = TransactionType.EXPENSE,
+                sourceNotificationHash = "unrelated-expense"
+            )
+        )
+        repository.saveTransactionWithReview(recovery(), ReviewReason.INCOME_UNKNOWN)
+
+        val trackedIds = repository.observeSettlementTrackingTransactions()
+            .first()
+            .mapTo(mutableSetOf(), MoneyTransaction::id)
+
+        assertEquals(setOf(settlementId, linkedRecoveryId), trackedIds)
+    }
+
     private fun settlement() = MoneyTransaction(
         occurredAt = Instant.parse("2026-07-01T01:00:00Z"),
         amount = MoneyAmount(12_000),

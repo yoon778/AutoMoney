@@ -102,9 +102,6 @@ fun TransactionsScreen(
     )
     val selectedMonth = monthForPagerPage(pagerState.currentPage, currentMonth)
     var budgetMonth by remember { mutableStateOf(currentMonth) }
-    val transactions by remember(moneyRepository) {
-        moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
-    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val budgetMonthTransactions by remember(moneyRepository, budgetMonth) {
         moneyRepository?.observeTransactionsForMonth(budgetMonth) ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
@@ -118,17 +115,6 @@ fun TransactionsScreen(
         assetRepository?.observeFixedExpenses(budgetMonth) ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
     val (expenseCategoryLabels, incomeCategoryLabels) = rememberMergedCategoryLabels(userCategoryRepository)
-    val dateSections = if (moneyRepository == null) {
-        listOf(
-            TransactionDateSectionUi(
-                date = today,
-                dateLabel = "오늘",
-                rows = sampleHomeSnapshot.recentTransactions
-            )
-        )
-    } else {
-        transactionsToDateSections(transactions)
-    }
     var saveSuccessMessage by remember { mutableStateOf<String?>(null) }
     var manualFormMessage by remember { mutableStateOf<String?>(null) }
     var manualFormResetSignal by remember { mutableStateOf(0) }
@@ -214,6 +200,20 @@ fun TransactionsScreen(
             key = { page -> monthForPagerPage(page, currentMonth).toString() }
         ) { page ->
             val pageMonth = monthForPagerPage(page, currentMonth)
+            val transactions by remember(moneyRepository, pageMonth) {
+                moneyRepository?.observeTransactionsForMonth(pageMonth) ?: flowOf(emptyList())
+            }.collectAsStateWithLifecycle(initialValue = emptyList())
+            val dateSections = if (moneyRepository == null) {
+                listOf(
+                    TransactionDateSectionUi(
+                        date = today,
+                        dateLabel = "오늘",
+                        rows = sampleHomeSnapshot.recentTransactions
+                    )
+                )
+            } else {
+                transactionsToDateSections(transactions)
+            }
             val sections = transactionSectionsForMonth(dateSections, pageMonth)
             val rowCount = sections.sumOf { it.rows.size }
             Column(

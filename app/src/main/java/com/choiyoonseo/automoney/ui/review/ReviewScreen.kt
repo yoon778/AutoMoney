@@ -104,18 +104,18 @@ fun ReviewScreen(
         moneyRepository?.observeOpenReviewItems() ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
     val dbReviewCards = remember(openReviewItems) { openReviewItemsToCards(openReviewItems) }
-    val allTransactions by remember(moneyRepository) {
-        moneyRepository?.observeAllTransactions() ?: flowOf(emptyList())
+    val settlementTrackingTransactions by remember(moneyRepository) {
+        moneyRepository?.observeSettlementTrackingTransactions() ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
     var budgetMonth by remember { mutableStateOf(YearMonth.now(AppDateZoneId)) }
+    val budgetMonthTransactions by remember(moneyRepository, budgetMonth) {
+        moneyRepository?.observeTransactionsForMonth(budgetMonth) ?: flowOf(emptyList())
+    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val monthlyPlans by remember(assetRepository, budgetMonth) {
         assetRepository?.observeMonthlyPlanItems(budgetMonth) ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
-    val budgetUsages = remember(monthlyPlans, allTransactions, budgetMonth) {
-        buildCategoryBudgetUsages(
-            monthlyPlans,
-            allTransactions.filter { it.monthKey == budgetMonth }
-        )
+    val budgetUsages = remember(monthlyPlans, budgetMonthTransactions) {
+        buildCategoryBudgetUsages(monthlyPlans, budgetMonthTransactions)
     }
     val fixedExpenses by remember(assetRepository, budgetMonth) {
         assetRepository?.observeFixedExpenses(budgetMonth) ?: flowOf(emptyList())
@@ -157,10 +157,10 @@ fun ReviewScreen(
     fun reviewReasonFor(card: ReviewCardUi): ReviewReason? =
         openReviewItems.firstOrNull { it.id == card.reviewItemId }?.reason
 
-    val openSettlements = allTransactions.filter {
+    val openSettlements = settlementTrackingTransactions.filter {
         it.type == TransactionType.SETTLEMENT && it.settlementMyShareWon != null && !it.settlementTrackingHidden
     }
-    val linkedRecoveries = allTransactions.filter { it.settlementParentId != null }
+    val linkedRecoveries = settlementTrackingTransactions.filter { it.settlementParentId != null }
     fun settlementMatchFor(card: ReviewCardUi) =
         card.sourceTransaction?.let { findSettlementMatch(it, openSettlements, linkedRecoveries) }
 

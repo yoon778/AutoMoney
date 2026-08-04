@@ -20,7 +20,7 @@ data class NotificationSaveResult(
 interface MoneyRepository {
     suspend fun recentNotificationTransactions(limit: Int): List<MoneyTransaction>
     fun observeTransactionsForMonth(month: YearMonth): Flow<List<MoneyTransaction>>
-    fun observeAllTransactions(): Flow<List<MoneyTransaction>> = flowOf(emptyList())
+    fun observeSettlementTrackingTransactions(): Flow<List<MoneyTransaction>> = flowOf(emptyList())
     fun observeOpenReviewCount(): Flow<Int>
     fun observeOpenReviewItems(): Flow<List<OpenReviewItem>>
     suspend fun enabledRules(): List<Rule>

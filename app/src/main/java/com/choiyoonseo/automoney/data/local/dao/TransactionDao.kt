@@ -36,8 +36,31 @@ interface TransactionDao {
     )
     fun observeTransactionsForMonth(monthKey: String): Flow<List<TransactionEntity>>
 
-    @Query("SELECT * FROM transactions ORDER BY occurredAt DESC")
-    fun observeAll(): Flow<List<TransactionEntity>>
+    @Query(
+        """
+        WITH settlement_candidates AS (
+            SELECT DISTINCT settlement.id
+            FROM transactions AS settlement
+            INNER JOIN review_items AS review ON review.resolvedAt IS NULL
+            INNER JOIN transactions AS incoming ON incoming.id = review.transactionId
+            WHERE settlement.type = 'SETTLEMENT'
+              AND settlement.settlementPartyCount > 0
+              AND settlement.settlementMyShareWon IS NOT NULL
+              AND settlement.settlementMyShareWon < settlement.amountWon
+              AND settlement.settlementTrackingHidden = 0
+              AND incoming.direction = 'INCOME'
+              AND incoming.settlementParentId IS NULL
+              AND julianday(incoming.occurredAt) - julianday(settlement.occurredAt)
+                  BETWEEN 0.0 AND 14.0
+        )
+        SELECT tracked.*
+        FROM transactions AS tracked
+        WHERE tracked.id IN (SELECT id FROM settlement_candidates)
+           OR tracked.settlementParentId IN (SELECT id FROM settlement_candidates)
+        ORDER BY tracked.occurredAt DESC
+        """
+    )
+    fun observeSettlementTrackingTransactions(): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE sourceNotificationHash IS NOT NULL ORDER BY occurredAt DESC LIMIT :limit")
     suspend fun recentNotificationTransactions(limit: Int): List<TransactionEntity>
