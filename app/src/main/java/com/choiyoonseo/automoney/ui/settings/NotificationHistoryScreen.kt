@@ -8,9 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.AlertDialog
@@ -36,6 +35,7 @@ import com.choiyoonseo.automoney.domain.manual.SaveMissedNotificationTransaction
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
 import com.choiyoonseo.automoney.ui.components.EmptyStateVisual
+import com.choiyoonseo.automoney.ui.components.FinanceLazySectionCard
 import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyCoral
@@ -81,7 +81,6 @@ fun NotificationHistoryScreen(
             .fillMaxSize()
             .padding(padding)
             .background(MoneyTheme.colors.canvas)
-            .verticalScroll(rememberScrollState())
             .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
@@ -110,13 +109,14 @@ fun NotificationHistoryScreen(
                 message = "허용한 금융 앱 알림이 들어오면 여기에 결과가 쌓여요."
             )
         } else {
-            FinanceSectionCard(
+            FinanceLazySectionCard(
                 title = "최근 알림",
                 subtitle = "최근 30일 · 최대 200건",
                 accent = MoneyBlue,
-                icon = Icons.Filled.CheckCircle
+                icon = Icons.Filled.CheckCircle,
+                modifier = Modifier.weight(1f)
             ) {
-                rows.forEach { row ->
+                items(rows, key = { it.id }) { row ->
                     NotificationHistoryRow(
                         row = row,
                         enabled = !isSaving && saveMissedNotificationTransactionUseCase != null,
