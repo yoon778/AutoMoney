@@ -32,7 +32,7 @@ fun homeFlowStepVisuals(
         icon = Icons.Filled.ShoppingCart
     ),
     HomeFlowStepVisual(
-        label = "저축/이체",
+        label = "저축",
         value = savingsValue,
         accent = MoneyMint,
         icon = Icons.Filled.Savings

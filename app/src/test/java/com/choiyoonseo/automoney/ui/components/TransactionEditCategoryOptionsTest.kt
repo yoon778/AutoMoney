@@ -43,6 +43,12 @@ class TransactionEditCategoryOptionsTest {
     }
 
     @Test
+    fun savingTypeUsesSavingCategoryOnly() {
+        assertThat(categoryLabelsFor(TransactionType.SAVING, expenseLabels, incomeLabels))
+            .containsExactly(Category.SAVING.displayName)
+    }
+
+    @Test
     fun categoryLabelForEditUsesCategoryDisplayNameOrOther() {
         assertThat(categoryLabelForEdit(Category.CAFE_SNACK)).isEqualTo("카페/간식")
         assertThat(categoryLabelForEdit(null)).isEqualTo("기타")

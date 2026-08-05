@@ -25,6 +25,7 @@ fun categoryLabelsFor(
     incomeLabels: List<String>
 ): List<String> = when (type) {
     TransactionType.INCOME -> incomeLabels
+    TransactionType.SAVING -> listOf(Category.SAVING.displayName)
     TransactionType.EXPENSE,
     TransactionType.SPECIAL_EXPENSE,
     TransactionType.FIXED_EXPENSE,

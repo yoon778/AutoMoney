@@ -17,7 +17,7 @@ class HomeFlowStepVisualsTest {
         )
 
         assertThat(steps.map { it.label })
-            .containsExactly("수입", "지출", "저축/이체")
+            .containsExactly("수입", "지출", "저축")
             .inOrder()
         assertThat(steps.map { it.value })
             .containsExactly("1,000원", "600원", "400원")

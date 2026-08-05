@@ -11,6 +11,7 @@ val transactionEditTypeOptions: List<TransactionEditTypeOption> = listOf(
     TransactionEditTypeOption(TransactionType.EXPENSE, "지출"),
     TransactionEditTypeOption(TransactionType.SPECIAL_EXPENSE, "특별지출"),
     TransactionEditTypeOption(TransactionType.INCOME, "수입/입금"),
+    TransactionEditTypeOption(TransactionType.SAVING, "저축"),
     TransactionEditTypeOption(TransactionType.TRANSFER, "계좌 이동/송금"),
     TransactionEditTypeOption(TransactionType.SETTLEMENT, "n분의1 정산"),
     TransactionEditTypeOption(TransactionType.EXCLUDED, "지출 아님")

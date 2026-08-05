@@ -189,6 +189,32 @@ class EditTransactionUseCaseTest {
     }
 
     @Test
+    fun updateCanClassifyTransactionAsSaving() = runTest {
+        val repository = FakeMoneyRepository()
+
+        EditTransactionUseCase(repository).update(
+            transaction = transaction().copy(
+                direction = TransactionDirection.NEUTRAL,
+                type = TransactionType.TRANSFER,
+                category = null,
+                status = TransactionStatus.NEEDS_REVIEW,
+                budgetPlanId = 7
+            ),
+            amountWon = 100_000,
+            categoryText = Category.SAVING.displayName,
+            memo = "적금",
+            transactionType = TransactionType.SAVING
+        )
+
+        val updated = repository.updatedTransactions.single()
+        assertThat(updated.type).isEqualTo(TransactionType.SAVING)
+        assertThat(updated.direction).isEqualTo(TransactionDirection.EXPENSE)
+        assertThat(updated.category).isEqualTo(Category.SAVING)
+        assertThat(updated.budgetPlanId).isNull()
+        assertThat(updated.status).isEqualTo(TransactionStatus.USER_EDITED)
+    }
+
+    @Test
     fun updateCanMarkOneOffSpecialExpenseWithoutBudgetOrLearnedTypeRule() = runTest {
         val repository = FakeMoneyRepository()
 
