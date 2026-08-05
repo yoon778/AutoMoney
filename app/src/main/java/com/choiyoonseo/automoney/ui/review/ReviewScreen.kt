@@ -11,10 +11,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Search
@@ -339,63 +340,70 @@ fun ReviewScreen(
         }
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(padding)
-            .background(MoneyTheme.colors.canvas)
-            .verticalScroll(rememberScrollState())
-            .padding(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
+            .background(MoneyTheme.colors.canvas),
+        contentPadding = PaddingValues(start = 18.dp, top = 18.dp, end = 18.dp, bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        ScreenTitle(
-            title = "오늘 검토",
-            subtitle = "송금, 충전, 환불처럼 애매한 거래만 모아서 확인해요"
-        )
+        item(key = "title") {
+            ScreenTitle(
+                title = "오늘 검토",
+                subtitle = "송금, 충전, 환불처럼 애매한 거래만 모아서 확인해요"
+            )
+        }
 
         resultMessage?.let { message ->
-            FinanceSectionCard(
-                title = "저장 결과",
+            item(key = "result-message") {
+                FinanceSectionCard(
+                    title = "저장 결과",
+                    accent = MoneyCoral,
+                    icon = Icons.Filled.CheckCircle
+                ) {
+                    Text(message)
+                }
+            }
+        }
+
+        item(key = "summary") {
+            IllustratedSummaryCard(
+                title = "확인 필요",
+                value = "${reviewCards.size}건",
+                helper = "놓치지 말고 확인해 주세요",
                 accent = MoneyCoral,
-                icon = Icons.Filled.CheckCircle
+                icon = Icons.Filled.Search
+            )
+        }
+
+        item(key = "filters") {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Text(message)
+                val chipEntries = buildList {
+                    add(Triple(ReviewFilterKind.ALL, "전체 ${reviewCards.size}", MoneyCoral))
+                    val counts = reviewCards.groupingBy { filterKindFor(it) }.eachCount()
+                    counts[ReviewFilterKind.TRANSFER]?.let { add(Triple(ReviewFilterKind.TRANSFER, "송금 $it", reviewAccentForLabel("송금"))) }
+                    counts[ReviewFilterKind.TOPUP]?.let { add(Triple(ReviewFilterKind.TOPUP, "충전 $it", reviewAccentForLabel("충전"))) }
+                    counts[ReviewFilterKind.DUPLICATE]?.let { add(Triple(ReviewFilterKind.DUPLICATE, "중복 $it", reviewAccentForLabel("중복"))) }
+                    counts[ReviewFilterKind.OTHER]?.let { add(Triple(ReviewFilterKind.OTHER, "기타 $it", MoneyMuted)) }
+                }
+                chipEntries.forEach { (kind, label, accent) ->
+                    ReviewFilterChip(
+                        label = label,
+                        selected = selectedFilter == kind,
+                        accent = accent,
+                        onClick = { selectedFilter = kind }
+                    )
+                }
             }
         }
 
-        IllustratedSummaryCard(
-            title = "확인 필요",
-            value = "${reviewCards.size}건",
-            helper = "놓치지 말고 확인해 주세요",
-            accent = MoneyCoral,
-            icon = Icons.Filled.Search
-        )
-
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .horizontalScroll(rememberScrollState()),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val chipEntries = buildList {
-                add(Triple(ReviewFilterKind.ALL, "전체 ${reviewCards.size}", MoneyCoral))
-                val counts = reviewCards.groupingBy { filterKindFor(it) }.eachCount()
-                counts[ReviewFilterKind.TRANSFER]?.let { add(Triple(ReviewFilterKind.TRANSFER, "송금 $it", reviewAccentForLabel("송금"))) }
-                counts[ReviewFilterKind.TOPUP]?.let { add(Triple(ReviewFilterKind.TOPUP, "충전 $it", reviewAccentForLabel("충전"))) }
-                counts[ReviewFilterKind.DUPLICATE]?.let { add(Triple(ReviewFilterKind.DUPLICATE, "중복 $it", reviewAccentForLabel("중복"))) }
-                counts[ReviewFilterKind.OTHER]?.let { add(Triple(ReviewFilterKind.OTHER, "기타 $it", MoneyMuted)) }
-            }
-            chipEntries.forEach { (kind, label, accent) ->
-                ReviewFilterChip(
-                    label = label,
-                    selected = selectedFilter == kind,
-                    accent = accent,
-                    onClick = { selectedFilter = kind }
-                )
-            }
-        }
-
-        filteredCards.forEach { card ->
+        items(filteredCards, key = { it.id }) { card ->
             ReviewActionCard(
                 card = presentedCard(card),
                 onPrimaryAction = {
@@ -437,23 +445,29 @@ fun ReviewScreen(
         }
 
         if (reviewCards.isNotEmpty() && filteredCards.isEmpty()) {
-            Text(
-                "이 분류의 검토가 없어요.",
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 16.dp),
-                color = MoneyTheme.colors.muted
-            )
+            item(key = "filtered-empty-state") {
+                Text(
+                    "이 분류의 검토가 없어요.",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 16.dp),
+                    color = MoneyTheme.colors.muted
+                )
+            }
         }
 
         if (reviewCards.isEmpty()) {
-            EmptyStateVisual(
-                title = "검토가 끝났어요",
-                message = "하루 한 번만 확인하면 자동 기록이 더 정확해져요."
-            )
+            item(key = "empty-state") {
+                EmptyStateVisual(
+                    title = "검토가 끝났어요",
+                    message = "하루 한 번만 확인하면 자동 기록이 더 정확해져요."
+                )
+            }
         }
 
-        Text("확정 거래는 거래 탭으로 이동해요.", fontWeight = FontWeight.Medium)
+        item(key = "footer") {
+            Text("확정 거래는 거래 탭으로 이동해요.", fontWeight = FontWeight.Medium)
+        }
     }
 
     activeWalletCard?.let { card ->
