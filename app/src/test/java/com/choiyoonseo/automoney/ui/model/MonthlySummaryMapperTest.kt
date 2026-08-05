@@ -1,7 +1,5 @@
 package com.choiyoonseo.automoney.ui.model
 
-import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
-import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
 import com.choiyoonseo.automoney.domain.model.Category
 import com.choiyoonseo.automoney.domain.model.MoneyAmount
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
@@ -15,28 +13,6 @@ import java.time.YearMonth
 import java.time.ZoneId
 
 class MonthlySummaryMapperTest {
-    @Test
-    fun monthlySummaryKeepsPlannedIncomeSeparateFromActualIncome() {
-        val month = YearMonth.of(2026, 8)
-
-        val summary = transactionsToMonthlySummary(
-            month = month,
-            transactions = emptyList(),
-            reviewCount = 0,
-            monthlyPlanItems = listOf(
-                MonthlyPlanItem(
-                    id = 1,
-                    label = "월급",
-                    amountWon = 500_000,
-                    type = MonthlyPlanItemType.INCOME
-                )
-            )
-        )
-
-        assertThat(summary.incomeWon).isEqualTo(0)
-        assertThat(summary.plannedIncomeWon).isEqualTo(500_000)
-    }
-
     @Test
     fun monthlySummarySeparatesSpecialExpenseAndStillSubtractsItFromNetMoney() {
         val month = YearMonth.of(2026, 7)

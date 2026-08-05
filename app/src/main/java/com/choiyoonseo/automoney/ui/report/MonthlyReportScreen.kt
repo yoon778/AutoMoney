@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.choiyoonseo.automoney.data.repository.AssetRepository
 import com.choiyoonseo.automoney.data.repository.MoneyRepository
 import com.choiyoonseo.automoney.domain.report.countsAsActualExpense
 import com.choiyoonseo.automoney.domain.report.countsAsReportIncome
@@ -69,8 +68,7 @@ import kotlinx.coroutines.launch
 @Composable
 fun MonthlyReportScreen(
     padding: PaddingValues,
-    moneyRepository: MoneyRepository? = null,
-    assetRepository: AssetRepository? = null
+    moneyRepository: MoneyRepository? = null
 ) {
     val scope = rememberCoroutineScope()
     val anchorMonth = remember { YearMonth.now(AppDateZoneId) }
@@ -117,7 +115,6 @@ fun MonthlyReportScreen(
             MonthlyReportPage(
                 month = monthForPagerPage(page, anchorMonth),
                 moneyRepository = moneyRepository,
-                assetRepository = assetRepository,
                 reviewCount = reviewCount,
                 onOpenDetail = { activeDetail = it }
             )
@@ -136,25 +133,16 @@ fun MonthlyReportScreen(
 private fun MonthlyReportPage(
     month: YearMonth,
     moneyRepository: MoneyRepository?,
-    assetRepository: AssetRepository?,
     reviewCount: Int,
     onOpenDetail: (DetailSheetState) -> Unit
 ) {
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
-    val monthlyPlanItems by remember(assetRepository, month) {
-        assetRepository?.observeMonthlyPlanItems(month) ?: flowOf(emptyList())
-    }.collectAsStateWithLifecycle(initialValue = emptyList())
     val summary = if (moneyRepository == null) {
         null
     } else {
-        transactionsToMonthlySummary(
-            month = month,
-            transactions = transactions,
-            reviewCount = reviewCount,
-            monthlyPlanItems = monthlyPlanItems
-        )
+        transactionsToMonthlySummary(month, transactions, reviewCount)
     }
     val calendar = if (moneyRepository == null) {
         sampleSpendCalendar
@@ -209,7 +197,7 @@ private fun MonthlyReportPage(
         MoneyFlowHeroCard(
             title = "${month.monthValue}월 남은 돈",
             primaryValue = formatWon(summary?.netWon ?: 342000),
-            helper = "실제 수입 - 총지출 - 저축 기준",
+            helper = "수입 - 총지출 - 저축 기준",
             reviewCount = reviewCount,
             spentLabel = formatWon(summary?.totalExpenseWon ?: 898000),
             savedLabel = formatWon(summary?.savingWon ?: 0),
@@ -220,8 +208,7 @@ private fun MonthlyReportPage(
                         headlineValue = formatWon(summary?.netWon ?: 0),
                         caption = "남은 돈",
                         summaryLines = listOf(
-                            "실제 수입 ${formatWon(summary?.incomeWon ?: 0)}",
-                            "계획 수입 ${formatWon(summary?.plannedIncomeWon ?: 0)}",
+                            "수입 ${formatWon(summary?.incomeWon ?: 0)}",
                             "일반 지출 ${formatWon(summary?.expenseWon ?: 0)}",
                             "특별지출 ${formatWon(summary?.specialExpenseWon ?: 0)}",
                             "총지출 ${formatWon(summary?.totalExpenseWon ?: 0)}",
@@ -238,20 +225,7 @@ private fun MonthlyReportPage(
             horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             MetricTile(
-                MetricTileUi(
-                    title = "실제 수입",
-                    value = formatWon(summary?.incomeWon ?: 1_240_000),
-                    progress = if ((summary?.plannedIncomeWon ?: 0) > 0) {
-                        (summary?.incomeWon ?: 0) / (summary?.plannedIncomeWon ?: 1).toFloat()
-                    } else {
-                        null
-                    },
-                    helper = if ((summary?.plannedIncomeWon ?: 0) > 0) {
-                        "계획 ${formatWon(summary?.plannedIncomeWon ?: 0)}"
-                    } else {
-                        "계획 수입 없음"
-                    }
-                ),
+                MetricTileUi("수입", formatWon(summary?.incomeWon ?: 1240000), 1f),
                 MoneyGreen,
                 Modifier.weight(1f),
                 onClick = {
@@ -259,7 +233,6 @@ private fun MonthlyReportPage(
                         DetailSheetState(
                             title = "${month.monthValue}월 수입",
                             headlineValue = formatWon(summary?.incomeWon ?: 0),
-                            caption = "계획 ${formatWon(summary?.plannedIncomeWon ?: 0)}",
                             rows = incomeRows
                         )
                     )
