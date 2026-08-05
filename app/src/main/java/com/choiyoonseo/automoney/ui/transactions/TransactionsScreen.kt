@@ -8,10 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.Add
@@ -45,7 +44,7 @@ import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.time.AppDateZoneId
 import com.choiyoonseo.automoney.domain.transactions.EditTransactionUseCase
 import com.choiyoonseo.automoney.ui.components.AutoClearMessageEffect
-import com.choiyoonseo.automoney.ui.components.FinanceSectionCard
+import com.choiyoonseo.automoney.ui.components.FinanceLazySectionCard
 import com.choiyoonseo.automoney.ui.components.MoneyBlue
 import com.choiyoonseo.automoney.ui.components.MoneyDialog
 import com.choiyoonseo.automoney.ui.components.MonthPagerInitialPage
@@ -216,46 +215,47 @@ fun TransactionsScreen(
             }
             val sections = transactionSectionsForMonth(dateSections, pageMonth)
             val rowCount = sections.sumOf { it.rows.size }
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(bottom = 96.dp)
+            val transactionsById = remember(transactions) { transactions.associateBy { it.id } }
+            FinanceLazySectionCard(
+                title = "거래 ${rowCount}건",
+                subtitle = "최근 거래부터 보여요",
+                accent = MoneyBlue,
+                icon = Icons.AutoMirrored.Filled.List,
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(start = 16.dp, top = 16.dp, end = 16.dp, bottom = 96.dp)
             ) {
-                FinanceSectionCard(
-                    title = "거래 ${rowCount}건",
-                    subtitle = "최근 거래부터 보여요",
-                    accent = MoneyBlue,
-                    icon = Icons.AutoMirrored.Filled.List
-                ) {
-                    sections.forEach { section ->
+                sections.forEach { section ->
+                    item(key = "date-${section.date}") {
                         Text(
                             text = transactionDateLabel(section.date, today),
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.SemiBold,
                             color = colors.muted
                         )
-                        section.rows.forEach { transaction ->
-                            TransactionRow(
-                                transaction = transaction,
-                                balanceImpact = transaction.id?.let { rowId ->
-                                    transactions.firstOrNull { it.id == rowId }?.balanceImpact
-                                },
-                                onClick = transaction.id?.let { transactionId ->
-                                    if (editTransactionUseCase == null) {
-                                        null
-                                    } else {
-                                        {
-                                            activeEditTransaction = transactions.firstOrNull { it.id == transactionId }
-                                                ?.also { budgetMonth = it.monthKey }
-                                            editErrorMessage = null
-                                        }
+                    }
+                    itemsIndexed(
+                        items = section.rows,
+                        key = { index, row -> row.id ?: "row-${section.date}-$index" }
+                    ) { _, transaction ->
+                        TransactionRow(
+                            transaction = transaction,
+                            balanceImpact = transaction.id?.let { transactionsById[it]?.balanceImpact },
+                            onClick = transaction.id?.let { transactionId ->
+                                if (editTransactionUseCase == null) {
+                                    null
+                                } else {
+                                    {
+                                        activeEditTransaction = transactionsById[transactionId]
+                                            ?.also { budgetMonth = it.monthKey }
+                                        editErrorMessage = null
                                     }
                                 }
-                            )
-                        }
+                            }
+                        )
                     }
-                    if (sections.isEmpty()) {
+                }
+                if (sections.isEmpty()) {
+                    item(key = "empty-state") {
                         if (pageMonth == currentMonth && notificationAccessEnabled == false) {
                             Text("\uc54c\ub9bc \uad8c\ud55c\uc744 \ucf1c\uba74 \uac70\ub798\uac00 \uc790\ub3d9\uc73c\ub85c \ub4e4\uc5b4\uc640\uc694", color = colors.muted)
                             TextButton(onClick = onOpenNotificationSettings) {
