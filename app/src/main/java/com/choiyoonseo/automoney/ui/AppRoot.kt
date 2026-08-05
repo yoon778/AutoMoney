@@ -203,7 +203,8 @@ fun AppRoot(
             )
             AppTab.REPORT -> MonthlyReportScreen(
                 padding = padding,
-                moneyRepository = moneyRepository
+                moneyRepository = moneyRepository,
+                assetRepository = assetRepository
             )
             AppTab.SETTINGS -> if (showNotificationHistory) {
                 NotificationHistoryScreen(

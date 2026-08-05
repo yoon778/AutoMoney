@@ -1,5 +1,7 @@
 package com.choiyoonseo.automoney.ui.model
 
+import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItem
+import com.choiyoonseo.automoney.domain.assets.MonthlyPlanItemType
 import com.choiyoonseo.automoney.domain.model.MoneyTransaction
 import com.choiyoonseo.automoney.domain.model.categoryDisplayName
 import com.choiyoonseo.automoney.domain.model.SourceType
@@ -23,6 +25,7 @@ import kotlin.math.roundToInt
 data class MonthlySummaryUi(
     val monthTitle: String,
     val incomeWon: Long,
+    val plannedIncomeWon: Long,
     val expenseWon: Long,
     val specialExpenseWon: Long,
     val totalExpenseWon: Long,
@@ -36,12 +39,16 @@ data class MonthlySummaryUi(
 fun transactionsToMonthlySummary(
     month: YearMonth,
     transactions: List<MoneyTransaction>,
-    reviewCount: Int
+    reviewCount: Int,
+    monthlyPlanItems: List<MonthlyPlanItem> = emptyList()
 ): MonthlySummaryUi {
     val monthlyTransactions = transactions.filter { it.monthKey == month && it.isReportableTransaction() }
     val incomeWon = monthlyTransactions
         .filter { it.countsAsReportIncome() }
         .sumOf { it.amount.won }
+    val plannedIncomeWon = monthlyPlanItems
+        .filter { it.type == MonthlyPlanItemType.INCOME }
+        .sumOf { it.amountWon }
     val expenseContributions = plannedUseContributions(transactions).filter {
         it.transaction.monthKey == month && it.transaction.countsAsActualExpense()
     }
@@ -113,6 +120,7 @@ fun transactionsToMonthlySummary(
     return MonthlySummaryUi(
         monthTitle = "${month.monthValue}\uc6d4 \ub3c8 \ud750\ub984",
         incomeWon = incomeWon,
+        plannedIncomeWon = plannedIncomeWon,
         expenseWon = expenseWon,
         specialExpenseWon = specialExpenseWon,
         totalExpenseWon = totalExpenseWon,
