@@ -86,7 +86,7 @@ fun MoneyFlowHeroCard(
     title: String,
     primaryValue: String,
     helper: String,
-    reviewCount: Int,
+    incomeLabel: String,
     spentLabel: String,
     savedLabel: String,
     modifier: Modifier = Modifier,
@@ -144,9 +144,9 @@ fun MoneyFlowHeroCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FlowPill("수입", incomeLabel, MoneyGreen, Modifier.weight(1f))
                 FlowPill("지출", spentLabel, MoneyCoral, Modifier.weight(1f))
                 FlowPill("저축", savedLabel, MoneyMint, Modifier.weight(1f))
-                FlowPill("검토", "${reviewCount}건", MoneyBlue, Modifier.weight(1f))
             }
         }
     }

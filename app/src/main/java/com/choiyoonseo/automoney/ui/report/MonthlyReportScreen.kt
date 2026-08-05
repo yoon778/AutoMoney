@@ -198,7 +198,7 @@ private fun MonthlyReportPage(
             title = "${month.monthValue}월 남은 돈",
             primaryValue = formatWon(summary?.netWon ?: 342000),
             helper = "수입 - 총지출 - 저축 기준",
-            reviewCount = reviewCount,
+            incomeLabel = formatWon(summary?.incomeWon ?: 1_240_000),
             spentLabel = formatWon(summary?.totalExpenseWon ?: 898000),
             savedLabel = formatWon(summary?.savingWon ?: 0),
             onClick = {
