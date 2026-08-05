@@ -17,10 +17,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material.icons.Icons
@@ -207,124 +206,132 @@ private fun AssetsMonthPage(
         calculateUnbudgetedExpenseWon(monthlyPlans, monthTransactions)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        FinanceSectionCard(
-            title = "${month.monthValue}월 예산",
-            subtitle = "전체 예산 중 이번 달 사용액",
-            accent = MoneyBlue,
-            icon = Icons.Filled.AccountBalance
-        ) {
-            livingBudgetUsages.forEach { usage ->
-                BudgetUsageRow(usage, categoryAccentForName(usage.plan.label))
-            }
-            if (livingBudgetUsages.isEmpty()) {
-                Text("아래 월계획에서 예산을 만들면 여기에 남은 금액이 표시돼요.")
-            }
-            if (unbudgetedExpenseWon > 0) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MoneyTheme.colors.soft(MoneyCoral)
-                ) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            "예산 밖 지출 ${formatWon(unbudgetedExpenseWon)}",
-                            fontWeight = FontWeight.Bold,
-                            color = MoneyCoral
-                        )
-                        Text(
-                            "어느 예산에도 안 잡힌 지출이에요. 월계획에 예산을 추가해 관리해 보세요.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MoneyTheme.colors.muted
-                        )
+        item(key = "budget-summary") {
+            FinanceSectionCard(
+                title = "${month.monthValue}월 예산",
+                subtitle = "전체 예산 중 이번 달 사용액",
+                accent = MoneyBlue,
+                icon = Icons.Filled.AccountBalance
+            ) {
+                livingBudgetUsages.forEach { usage ->
+                    BudgetUsageRow(usage, categoryAccentForName(usage.plan.label))
+                }
+                if (livingBudgetUsages.isEmpty()) {
+                    Text("아래 월계획에서 예산을 만들면 여기에 남은 금액이 표시돼요.")
+                }
+                if (unbudgetedExpenseWon > 0) {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(14.dp),
+                        color = MoneyTheme.colors.soft(MoneyCoral)
+                    ) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                "예산 밖 지출 ${formatWon(unbudgetedExpenseWon)}",
+                                fontWeight = FontWeight.Bold,
+                                color = MoneyCoral
+                            )
+                            Text(
+                                "어느 예산에도 안 잡힌 지출이에요. 월계획에 예산을 추가해 관리해 보세요.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MoneyTheme.colors.muted
+                            )
+                        }
                     }
                 }
             }
         }
 
         if (investmentUsages.isNotEmpty()) {
-            InvestmentPlanCard(investmentUsages, month)
-        }
-
-        IncomeAllocationCard(overview, month)
-
-        TabRow(
-            selectedTabIndex = selectedSection.ordinal,
-            containerColor = MoneyTheme.colors.surface,
-            contentColor = MoneyTheme.colors.primary
-        ) {
-            AssetSection.entries.forEach { section ->
-                Tab(
-                    selected = selectedSection == section,
-                    onClick = { onSelectedSection(section) },
-                    text = { Text(section.label) }
-                )
+            item(key = "investment-plan") {
+                InvestmentPlanCard(investmentUsages, month)
             }
         }
 
-        when (selectedSection) {
-            AssetSection.FIXED -> FixedExpensePanel(
-                month = month,
-                plans = fixedExpenses,
-                onSave = { plan ->
-                    val repository = assetRepository
-                    if (repository == null) {
-                        onMessage("미리보기에서는 저장하지 않아요.")
-                    } else {
-                        scope.launch {
-                            repository.saveFixedExpense(plan, month)
-                            onMessage("${month.monthValue}월부터 ${plan.name} 고정지출을 저장했어요.")
-                        }
-                    }
-                },
-                onDelete = { plan ->
-                    val repository = assetRepository
-                    if (repository == null) {
-                        onMessage("미리보기에서는 삭제하지 않아요.")
-                    } else {
-                        scope.launch {
-                            repository.deleteFixedExpense(plan.id, month)
-                            onMessage("${month.monthValue}월부터 ${plan.name} 고정지출을 종료했어요.")
-                        }
-                    }
-                }
-            )
+        item(key = "income-allocation") {
+            IncomeAllocationCard(overview, month)
+        }
 
-            AssetSection.PLAN -> {
-                MonthlyPlanPanel(
-                    items = monthlyPlans,
-                    usages = budgetUsages,
-                    userExpenseCategories = userExpenseCategories.filter { it.kind == UserCategoryKind.EXPENSE },
-                    plannedRemainingWon = overview.plannedRemainingWon.takeIf { overview.totalIncomeWon > 0 },
-                    onSave = { item ->
+        item(key = "section-tabs") {
+            TabRow(
+                selectedTabIndex = selectedSection.ordinal,
+                containerColor = MoneyTheme.colors.surface,
+                contentColor = MoneyTheme.colors.primary
+            ) {
+                AssetSection.entries.forEach { section ->
+                    Tab(
+                        selected = selectedSection == section,
+                        onClick = { onSelectedSection(section) },
+                        text = { Text(section.label) }
+                    )
+                }
+            }
+        }
+
+        item(key = "section-${selectedSection.name}") {
+            when (selectedSection) {
+                AssetSection.FIXED -> FixedExpensePanel(
+                    month = month,
+                    plans = fixedExpenses,
+                    onSave = { plan ->
                         val repository = assetRepository
                         if (repository == null) {
                             onMessage("미리보기에서는 저장하지 않아요.")
                         } else {
                             scope.launch {
-                                repository.saveMonthlyPlanItem(item, month)
-                                onMessage("${month.monthValue}월 ${item.label} 계획을 저장했어요.")
+                                repository.saveFixedExpense(plan, month)
+                                onMessage("${month.monthValue}월부터 ${plan.name} 고정지출을 저장했어요.")
                             }
                         }
                     },
-                    onDelete = { item ->
+                    onDelete = { plan ->
                         val repository = assetRepository
                         if (repository == null) {
                             onMessage("미리보기에서는 삭제하지 않아요.")
                         } else {
                             scope.launch {
-                                repository.deleteMonthlyPlanItem(item.id)
-                                onMessage("${item.label} 계획을 삭제했어요.")
+                                repository.deleteFixedExpense(plan.id, month)
+                                onMessage("${month.monthValue}월부터 ${plan.name} 고정지출을 종료했어요.")
                             }
                         }
                     }
                 )
+
+                AssetSection.PLAN -> {
+                    MonthlyPlanPanel(
+                        items = monthlyPlans,
+                        usages = budgetUsages,
+                        userExpenseCategories = userExpenseCategories.filter { it.kind == UserCategoryKind.EXPENSE },
+                        plannedRemainingWon = overview.plannedRemainingWon.takeIf { overview.totalIncomeWon > 0 },
+                        onSave = { item ->
+                            val repository = assetRepository
+                            if (repository == null) {
+                                onMessage("미리보기에서는 저장하지 않아요.")
+                            } else {
+                                scope.launch {
+                                    repository.saveMonthlyPlanItem(item, month)
+                                    onMessage("${month.monthValue}월 ${item.label} 계획을 저장했어요.")
+                                }
+                            }
+                        },
+                        onDelete = { item ->
+                            val repository = assetRepository
+                            if (repository == null) {
+                                onMessage("미리보기에서는 삭제하지 않아요.")
+                            } else {
+                                scope.launch {
+                                    repository.deleteMonthlyPlanItem(item.id)
+                                    onMessage("${item.label} 계획을 삭제했어요.")
+                                }
+                            }
+                        }
+                    )
+                }
             }
         }
     }
@@ -600,6 +607,7 @@ private fun MonthlyPlanPanel(
     onDelete: (MonthlyPlanItem) -> Unit
 ) {
     val usageByPlanId = remember(usages) { usages.associateBy { it.plan.id } }
+    val maxAmountWon = remember(items) { items.maxOfOrNull { it.amountWon }?.coerceAtLeast(1) ?: 1 }
     var pendingDelete by remember { mutableStateOf<MonthlyPlanItem?>(null) }
     var editingItem by remember { mutableStateOf<MonthlyPlanItem?>(null) }
     editingItem?.let { item ->
@@ -657,7 +665,7 @@ private fun MonthlyPlanPanel(
                     subtitle = subtitle,
                     amountWon = item.amountWon,
                     ratio = usage?.usedRatio
-                        ?: (item.amountWon.toFloat() / (items.maxOfOrNull { it.amountWon }?.coerceAtLeast(1)?.toFloat() ?: 1f)),
+                        ?: (item.amountWon.toFloat() / maxAmountWon.toFloat()),
                     accent = if (item.type == MonthlyPlanItemType.INCOME) MoneyGreen else categoryAccentForName(budgetCategoryName(item) ?: item.label),
                     actionLabel = "수정",
                     onAction = { editingItem = item },
