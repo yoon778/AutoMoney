@@ -8,10 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material3.Icon
@@ -139,35 +138,47 @@ private fun MonthlyReportPage(
     val transactions by remember(moneyRepository, month) {
         moneyRepository?.observeTransactionsForMonth(month) ?: flowOf(emptyList())
     }.collectAsStateWithLifecycle(initialValue = emptyList())
-    val summary = if (moneyRepository == null) {
-        null
-    } else {
-        transactionsToMonthlySummary(month, transactions, reviewCount)
+    val summary = remember(moneyRepository, month, transactions, reviewCount) {
+        if (moneyRepository == null) {
+            null
+        } else {
+            transactionsToMonthlySummary(month, transactions, reviewCount)
+        }
     }
-    val calendar = if (moneyRepository == null) {
-        sampleSpendCalendar
-    } else {
-        transactionsToSpendCalendar(month, transactions)
+    val calendar = remember(moneyRepository, month, transactions) {
+        if (moneyRepository == null) {
+            sampleSpendCalendar
+        } else {
+            transactionsToSpendCalendar(month, transactions)
+        }
     }
-    val incomeRows = if (moneyRepository == null) {
-        emptyList()
-    } else {
-        transactionsToRows(transactions.filter { it.countsAsReportIncome() }, limit = 30)
+    val incomeRows = remember(moneyRepository, transactions) {
+        if (moneyRepository == null) {
+            emptyList()
+        } else {
+            transactionsToRows(transactions.filter { it.countsAsReportIncome() }, limit = 30)
+        }
     }
-    val expenseRows = if (moneyRepository == null) {
-        emptyList()
-    } else {
-        transactionsToRows(transactions.filter { it.countsAsActualExpense() }, limit = 30)
+    val expenseRows = remember(moneyRepository, transactions) {
+        if (moneyRepository == null) {
+            emptyList()
+        } else {
+            transactionsToRows(transactions.filter { it.countsAsActualExpense() }, limit = 30)
+        }
     }
-    val specialExpenseRows = if (moneyRepository == null) {
-        emptyList()
-    } else {
-        transactionsToRows(transactions.filter { it.countsAsSpecialExpense() }, limit = 30)
+    val specialExpenseRows = remember(moneyRepository, transactions) {
+        if (moneyRepository == null) {
+            emptyList()
+        } else {
+            transactionsToRows(transactions.filter { it.countsAsSpecialExpense() }, limit = 30)
+        }
     }
-    val savingRows = if (moneyRepository == null) {
-        emptyList()
-    } else {
-        transactionsToRows(transactions.filter { it.countsAsSavingMovement() }, limit = 30)
+    val savingRows = remember(moneyRepository, transactions) {
+        if (moneyRepository == null) {
+            emptyList()
+        } else {
+            transactionsToRows(transactions.filter { it.countsAsSavingMovement() }, limit = 30)
+        }
     }
     var selectedReportDay by remember(month) { mutableStateOf<Int?>(null) }
     val dayExpenseRows = remember(transactions, selectedReportDay) {
@@ -187,150 +198,160 @@ private fun MonthlyReportPage(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(bottom = 96.dp),
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 96.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        MoneyFlowHeroCard(
-            title = "${month.monthValue}월 남은 돈",
-            primaryValue = formatWon(summary?.netWon ?: 342000),
-            helper = "수입 - 총지출 - 저축 기준",
-            incomeLabel = formatWon(summary?.incomeWon ?: 1_240_000),
-            spentLabel = formatWon(summary?.totalExpenseWon ?: 898000),
-            savedLabel = formatWon(summary?.savingWon ?: 0),
-            onClick = {
-                onOpenDetail(
-                    DetailSheetState(
-                        title = "${month.monthValue}월 요약",
-                        headlineValue = formatWon(summary?.netWon ?: 0),
-                        caption = "남은 돈",
-                        summaryLines = listOf(
-                            "수입 ${formatWon(summary?.incomeWon ?: 0)}",
-                            "일반 지출 ${formatWon(summary?.expenseWon ?: 0)}",
-                            "특별지출 ${formatWon(summary?.specialExpenseWon ?: 0)}",
-                            "총지출 ${formatWon(summary?.totalExpenseWon ?: 0)}",
-                            "저축 ${formatWon(summary?.savingWon ?: 0)}"
-                        ),
-                        rows = incomeRows + expenseRows + specialExpenseRows + savingRows
-                    )
-                )
-            }
-        )
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            MetricTile(
-                MetricTileUi("수입", formatWon(summary?.incomeWon ?: 1240000), 1f),
-                MoneyGreen,
-                Modifier.weight(1f),
+        item(key = "hero") {
+            MoneyFlowHeroCard(
+                title = "${month.monthValue}월 남은 돈",
+                primaryValue = formatWon(summary?.netWon ?: 342000),
+                helper = "수입 - 총지출 - 저축 기준",
+                incomeLabel = formatWon(summary?.incomeWon ?: 1_240_000),
+                spentLabel = formatWon(summary?.totalExpenseWon ?: 898000),
+                savedLabel = formatWon(summary?.savingWon ?: 0),
                 onClick = {
                     onOpenDetail(
                         DetailSheetState(
-                            title = "${month.monthValue}월 수입",
-                            headlineValue = formatWon(summary?.incomeWon ?: 0),
-                            rows = incomeRows
-                        )
-                    )
-                }
-            )
-            MetricTile(
-                MetricTileUi(
-                    "일반 지출",
-                    formatWon(summary?.expenseWon ?: 898000),
-                    if ((summary?.incomeWon ?: 1240000) > 0) {
-                        (summary?.expenseWon ?: 898000) / (summary?.incomeWon ?: 1240000).toFloat()
-                    } else {
-                        0f
-                    }
-                ),
-                MoneyCoral,
-                Modifier.weight(1f),
-                onClick = {
-                    onOpenDetail(
-                        DetailSheetState(
-                            title = "${month.monthValue}월 지출",
-                            headlineValue = formatWon(summary?.expenseWon ?: 0),
-                            rows = expenseRows
+                            title = "${month.monthValue}월 요약",
+                            headlineValue = formatWon(summary?.netWon ?: 0),
+                            caption = "남은 돈",
+                            summaryLines = listOf(
+                                "수입 ${formatWon(summary?.incomeWon ?: 0)}",
+                                "일반 지출 ${formatWon(summary?.expenseWon ?: 0)}",
+                                "특별지출 ${formatWon(summary?.specialExpenseWon ?: 0)}",
+                                "총지출 ${formatWon(summary?.totalExpenseWon ?: 0)}",
+                                "저축 ${formatWon(summary?.savingWon ?: 0)}"
+                            ),
+                            rows = incomeRows + expenseRows + specialExpenseRows + savingRows
                         )
                     )
                 }
             )
         }
 
-        MetricTile(
-            MetricTileUi(
-                "특별지출",
-                formatWon(summary?.specialExpenseWon ?: 0),
-                if ((summary?.incomeWon ?: 0) > 0) {
-                    (summary?.specialExpenseWon ?: 0) / (summary?.incomeWon ?: 1).toFloat()
-                } else {
-                    0f
-                }
-            ),
-            MoneyCoral,
-            Modifier.fillMaxWidth(),
-            onClick = {
-                onOpenDetail(
-                    DetailSheetState(
-                        title = "${month.monthValue}월 특별지출",
-                        headlineValue = formatWon(summary?.specialExpenseWon ?: 0),
-                        caption = "예산 달성률과 생활비 통계에서 분리",
-                        rows = specialExpenseRows
-                    )
-                )
-            }
-        )
-
-        SpendingCalendarCard(
-            title = "일반 지출 날짜별 사용",
-            calendar = calendar,
-            onDaySelected = { selectedReportDay = it }
-        )
-
-        selectedReportDay?.let { day ->
-            FinanceSectionCard(
-                title = "${month.monthValue}월 ${day}일 지출",
-                subtitle = "이 날 사용한 내역",
-                accent = MoneyCoral,
-                icon = Icons.Filled.BarChart
+        item(key = "income-expense") {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                if (dayExpenseRows.isEmpty()) {
-                    Text("이 날은 지출 기록이 없어요")
-                } else {
-                    dayExpenseRows.forEach { row -> DayExpenseRow(row) }
-                }
-            }
-        }
-
-        FinanceSectionCard(
-            title = "일반 카테고리별 지출",
-            subtitle = "많이 쓴 순서로 확인",
-            accent = MoneyBlue,
-            icon = Icons.Filled.BarChart
-        ) {
-            val categories = summary?.categorySpends ?: sampleCategorySpends
-            categories.forEach { category ->
-                CategoryBar(
-                    category = category,
-                    color = categoryAccentForName(category.name),
+                MetricTile(
+                    MetricTileUi("수입", formatWon(summary?.incomeWon ?: 1240000), 1f),
+                    MoneyGreen,
+                    Modifier.weight(1f),
                     onClick = {
                         onOpenDetail(
                             DetailSheetState(
-                                title = category.name,
-                                headlineValue = formatWon(category.amountWon),
-                                rows = expenseRows.filter { it.category == category.name }
+                                title = "${month.monthValue}월 수입",
+                                headlineValue = formatWon(summary?.incomeWon ?: 0),
+                                rows = incomeRows
+                            )
+                        )
+                    }
+                )
+                MetricTile(
+                    MetricTileUi(
+                        "일반 지출",
+                        formatWon(summary?.expenseWon ?: 898000),
+                        if ((summary?.incomeWon ?: 1240000) > 0) {
+                            (summary?.expenseWon ?: 898000) / (summary?.incomeWon ?: 1240000).toFloat()
+                        } else {
+                            0f
+                        }
+                    ),
+                    MoneyCoral,
+                    Modifier.weight(1f),
+                    onClick = {
+                        onOpenDetail(
+                            DetailSheetState(
+                                title = "${month.monthValue}월 지출",
+                                headlineValue = formatWon(summary?.expenseWon ?: 0),
+                                rows = expenseRows
                             )
                         )
                     }
                 )
             }
-            if (categories.isEmpty()) {
-                Text("아직 이번 달 지출 기록이 없어요")
+        }
+
+        item(key = "special-expense") {
+            MetricTile(
+                MetricTileUi(
+                    "특별지출",
+                    formatWon(summary?.specialExpenseWon ?: 0),
+                    if ((summary?.incomeWon ?: 0) > 0) {
+                        (summary?.specialExpenseWon ?: 0) / (summary?.incomeWon ?: 1).toFloat()
+                    } else {
+                        0f
+                    }
+                ),
+                MoneyCoral,
+                Modifier.fillMaxWidth(),
+                onClick = {
+                    onOpenDetail(
+                        DetailSheetState(
+                            title = "${month.monthValue}월 특별지출",
+                            headlineValue = formatWon(summary?.specialExpenseWon ?: 0),
+                            caption = "예산 달성률과 생활비 통계에서 분리",
+                            rows = specialExpenseRows
+                        )
+                    )
+                }
+            )
+        }
+
+        item(key = "calendar") {
+            SpendingCalendarCard(
+                title = "일반 지출 날짜별 사용",
+                calendar = calendar,
+                onDaySelected = { selectedReportDay = it }
+            )
+        }
+
+        selectedReportDay?.let { day ->
+            item(key = "day-$day") {
+                FinanceSectionCard(
+                    title = "${month.monthValue}월 ${day}일 지출",
+                    subtitle = "이 날 사용한 내역",
+                    accent = MoneyCoral,
+                    icon = Icons.Filled.BarChart
+                ) {
+                    if (dayExpenseRows.isEmpty()) {
+                        Text("이 날은 지출 기록이 없어요")
+                    } else {
+                        dayExpenseRows.forEach { row -> DayExpenseRow(row) }
+                    }
+                }
+            }
+        }
+
+        item(key = "categories") {
+            FinanceSectionCard(
+                title = "일반 카테고리별 지출",
+                subtitle = "많이 쓴 순서로 확인",
+                accent = MoneyBlue,
+                icon = Icons.Filled.BarChart
+            ) {
+                val categories = summary?.categorySpends ?: sampleCategorySpends
+                categories.forEach { category ->
+                    CategoryBar(
+                        category = category,
+                        color = categoryAccentForName(category.name),
+                        onClick = {
+                            onOpenDetail(
+                                DetailSheetState(
+                                    title = category.name,
+                                    headlineValue = formatWon(category.amountWon),
+                                    rows = expenseRows.filter { it.category == category.name }
+                                )
+                            )
+                        }
+                    )
+                }
+                if (categories.isEmpty()) {
+                    Text("아직 이번 달 지출 기록이 없어요")
+                }
             }
         }
     }
